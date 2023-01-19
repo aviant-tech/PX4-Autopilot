@@ -93,6 +93,7 @@ public:
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
 		RTL_STATE_HEAD_TO_CENTER,
+		RTL_STATE_MC_DESCEND,
 	};
 
 	void on_inactivation() override;
@@ -166,6 +167,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
+		(ParamFloat<px4::params::RTL_DESCEND_MC>)  _param_rtl_descend_mc,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>)  _param_rtl_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
