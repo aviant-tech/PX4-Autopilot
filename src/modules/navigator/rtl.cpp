@@ -503,7 +503,10 @@ void RTL::set_rtl_item()
 			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
-
+			
+			_mission_item.vtol_back_transition = true;
+			// acceptance_radius will be overwritten since vtol_back_transition is set,
+			// set as a default value only
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
