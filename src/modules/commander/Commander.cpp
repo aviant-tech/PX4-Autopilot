@@ -945,6 +945,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
 					arming_res = disarm(arm_disarm_reason, forced);
+					const bool is_right_after_takeoff = hrt_elapsed_time(&_vehicle_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
+
+					if (arming_res == TRANSITION_CHANGED && !_vehicle_land_detected.landed && !is_right_after_takeoff) {
+						send_parachute_command();
+					}
 
 				}
 
