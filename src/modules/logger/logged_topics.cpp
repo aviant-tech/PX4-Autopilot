@@ -71,6 +71,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target_status", 400);
 	add_optional_topic("flaps_setpoint", 1000);
 	add_optional_topic("flight_phase_estimation", 1000);
+	add_topic("fw_virtual_attitude_setpoint", 50);
 	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
@@ -90,6 +91,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
+	add_topic("mc_virtual_attitude_setpoint", 50);
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
 	add_topic("npfg_status", 100);
