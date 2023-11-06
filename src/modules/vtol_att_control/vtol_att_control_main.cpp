@@ -257,7 +257,7 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			return;
 		}
 
-		_vtol_vehicle_status.fixed_wing_system_failure = true;
+		_quadchute_requested = true;
 	}
 }
 
@@ -376,6 +376,14 @@ VtolAttitudeControl::Run()
 		// check if mc and fw sp were updated
 		const bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
 		const bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
+
+		// Set fixed_wing_system_failure flag if quadchute was requested the previous iteration
+		// We do this before _vtol_type->update_vtol_state() so that
+		// failsafe flag and mr flag is updated at the same iteration
+		if (_quadchute_requested) {
+			_vtol_vehicle_status.fixed_wing_system_failure = true;
+			_quadchute_requested = false;
+		}
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
