@@ -2883,7 +2883,7 @@ Commander::run()
 						events::send(events::ID("commander_fd_lockdown"), {events::Log::Emergency, events::LogInternal::Warning},
 							     "Critical failure detected: lockdown");
 
-					} else if (_failure_detector.getTerminationAllowed() &&
+					} else if (isTerminationAllowed() &&
 						   !_status_flags.circuit_breaker_flight_termination_disabled &&
 						   !_flight_termination_triggered && !_lockdown_triggered) {
 
@@ -4500,6 +4500,22 @@ void Commander::checkWindAndWarn()
 			_last_wind_warning = hrt_absolute_time();
 		}
 	}
+}
+
+bool Commander::isTerminationAllowed()
+{
+	vehicle_local_position_s local_position;
+	_local_position_sub.copy(&local_position);
+
+	bool termination_allowed = true;
+
+	// If the measurement is valid and under the distance threshold, flight termination is not allowed, otherwise it is.
+	if (local_position.dist_bottom_valid && (local_position.dist_bottom < _param_fd_min_dist_trm.get())) {
+		termination_allowed = false;
+
+	}
+
+	return termination_allowed;
 }
 
 int Commander::print_usage(const char *reason)

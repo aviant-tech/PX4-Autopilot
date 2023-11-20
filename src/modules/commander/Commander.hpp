@@ -184,6 +184,8 @@ private:
 
 	void checkWindAndWarn();
 
+	bool isTerminationAllowed();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
@@ -276,7 +278,9 @@ private:
 		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
 
 		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
+
+		(ParamFloat<px4::params::FD_MIN_DIST_TRM>) _param_fd_min_dist_trm
 	)
 
 	enum class PrearmedMode {
