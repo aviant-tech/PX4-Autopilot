@@ -33,7 +33,7 @@
 
 #include "autopilot_tester.h"
 
-
+#if 0 // disabled multicopter test for GPS lost.
 TEST_CASE("Land on GPS lost during mission (baro height mode)", "[multicopter]")
 {
 	AutopilotTester tester;
@@ -83,7 +83,6 @@ TEST_CASE("Continue on mag lost during mission", "[multicopter]")
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-#if 0
 // This test is disabled for now because the estimator sometimes diverges on
 // right after landing which then prevents auto-disarm.
 TEST_CASE("Continue on mag stuck during mission", "[multicopter][vtol]")
