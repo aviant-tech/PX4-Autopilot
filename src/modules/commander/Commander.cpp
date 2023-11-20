@@ -2863,7 +2863,7 @@ Commander::run()
 				}
 
 				if (fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt || fd_status_flags.ext
-				    || fd_status_flags.mpc_vz) {
+				    || fd_status_flags.mpc_vz || fd_status_flags.nav_state) {
 					const bool is_right_after_takeoff = hrt_elapsed_time(&_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
 
 					if (is_right_after_takeoff && !_lockdown_triggered) {
@@ -3467,9 +3467,8 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-		/* disable all controllers on termination */
-		_vehicle_control_mode.flag_control_termination_enabled = true;
-		break;
+		/* Exit the function. We are handling flight termination inside commander. */
+		return;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		_vehicle_control_mode.flag_control_offboard_enabled = true;

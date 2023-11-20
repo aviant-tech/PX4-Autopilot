@@ -283,13 +283,6 @@ MulticopterRateControl::Run()
 
 			updateActuatorControlsStatus(actuators, dt);
 
-		} else if (_v_control_mode.flag_control_termination_enabled) {
-			if (!_vehicle_status.is_vtol) {
-				// publish actuator controls
-				actuator_controls_s actuators{};
-				actuators.timestamp = hrt_absolute_time();
-				_actuators_0_pub.publish(actuators);
-			}
 		}
 	}
 

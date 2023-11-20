@@ -80,6 +80,8 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_status.flags.mpc_vz = false;
 	}
 
+	_status.flags.nav_state = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION);
+
 	return _status.value != status_prev.value;
 }
 
