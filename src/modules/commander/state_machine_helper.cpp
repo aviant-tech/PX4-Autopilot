@@ -298,6 +298,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		   const quadchute_actions_t quadchute_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
+		   const global_position_loss_response_t param_com_glb_pos_loss_resp,
 		   const float param_com_rcl_act_t, const int param_com_rcl_except,
 		   const bool is_termination_allowed)
 {
@@ -370,7 +371,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 			} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
 							       rc_fallback_allowed, status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING,
-							       is_termination_allowed)) {
+							       param_com_glb_pos_loss_resp, is_termination_allowed)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else if (status_flags.vtol_transition_failure) {
@@ -390,7 +391,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		 * - on data and RC link loss */
 
 		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
@@ -447,7 +448,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else if (status_flags.vtol_transition_failure) {
@@ -489,7 +490,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -505,7 +506,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -524,7 +525,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// failsafe: necessary position estimate lost; switching is done in check_invalid_pos_nav_state
 
 			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
@@ -567,7 +568,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else if (status_flags.vtol_transition_failure) {
@@ -610,7 +611,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -627,7 +628,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false,
-				is_termination_allowed)) {
+				param_com_glb_pos_loss_resp, is_termination_allowed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -678,6 +679,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
 				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos,
+				 const global_position_loss_response_t param_com_glb_pos_loss_resp,
 				 const bool is_termination_allowed)
 {
 	bool fallback_required = false;
@@ -710,12 +712,26 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 			if (status_flags.local_position_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
-			} else if (status_flags.local_altitude_valid && !is_termination_allowed) {
-				// If it is allowed, priority is on flight termination since the parachute deploying is preferred
-				status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+			} else if (param_com_glb_pos_loss_resp == global_position_loss_response_t::DESCEND) {
 
-			} else {
-				status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				if (status_flags.local_altitude_valid) {
+					status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+				} else {
+					// Altitude is not valid, it is better to terminate the flight.
+					status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				}
+
+			} else if (param_com_glb_pos_loss_resp == global_position_loss_response_t::TERMINATE) {
+
+				if (!is_termination_allowed && status_flags.local_altitude_valid) {
+					// Flight termination is not allowed. If altitude is valid try to descend.
+					status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+				} else {
+					// Altitude is not valid, terminate the flight anyway.
+					status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+				}
 			}
 		}
 

@@ -100,6 +100,11 @@ enum class position_nav_loss_actions_t {
 	LAND_TERMINATE = 1,	// Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
 };
 
+enum class global_position_loss_response_t {
+	TERMINATE = 0,	// Response for flight termination in case of global position loss.
+	DESCEND = 1	// Response to make vehicle descend in case of global position loss.
+};
+
 extern const char *const arming_state_names[];
 extern const char *const nav_state_names[];
 
@@ -120,6 +125,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		   const quadchute_actions_t quadchute_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
+		   const global_position_loss_response_t param_com_glb_pos_loss,
 		   const float param_com_rcl_act_t, const int param_com_rcl_except,
 		   const bool is_termination_allowed);
 
@@ -129,6 +135,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
  */
 bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
 				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos,
+				 const global_position_loss_response_t param_com_glb_pos_loss,
 				 const bool is_termination_allowed);
 
 
