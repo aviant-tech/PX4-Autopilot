@@ -336,6 +336,9 @@ public:
 
 	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 
+	void resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
+			uint64_t timestamp_observation);
+
 private:
 
 	// set the internal states and status to their default value
@@ -654,7 +657,9 @@ private:
 	void resetHorizontalPositionToVision();
 	void resetHorizontalPositionToOpticalFlow();
 	void resetHorizontalPositionToLastKnown();
-	void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+	void resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy);
+	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
+	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const float pos_var = NAN) { resetHorizontalPositionTo(new_horz_pos, Vector2f(pos_var, pos_var)); }
 
 	void resetVerticalPositionTo(float new_vert_pos);
 
