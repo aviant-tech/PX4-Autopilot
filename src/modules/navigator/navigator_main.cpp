@@ -801,7 +801,6 @@ void Navigator::run()
 void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
 	if (have_geofence_position_data &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
@@ -861,15 +860,18 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		gf_violation_type.flags.max_altitude_exceeded = !_geofence.isBelowMaxAltitude(_global_pos.alt +
 				vertical_test_point_distance);
 
-		gf_violation_type.flags.fence_violation = !_geofence.isInsidePolygonOrCircle(fence_violation_test_point(0),
+		gf_violation_type.flags.fence_violation = !_geofence.isInsideFence(fence_violation_test_point(0),
 				fence_violation_test_point(1),
-				_global_pos.alt);
+				_global_pos.alt + vertical_test_point_distance);
+
+		gf_violation_type.flags.max_altitude_exceeded |= _geofence.isMaxAltitudeExceeded();
 
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.action_required = _geofence.isActionRequired();
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.value) {
@@ -932,6 +934,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 			/* Reset the _geofence_violation_warning_sent field */
 			_geofence_violation_warning_sent = false;
+
+			_geofence.resetGeofenceAction();
 		}
 
 		_geofence_result_pub.publish(_geofence_result);
