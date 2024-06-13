@@ -184,6 +184,8 @@ private:
 
 	void checkWindAndWarn();
 
+	bool isTerminationAllowed();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
@@ -205,6 +207,7 @@ private:
 		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv, 	/*Not realy used for now*/
 		(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
 		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
+		(ParamInt<px4::params::COM_GLB_POS_LOSS>) _param_com_glb_pos_loss,	/* failsafe response to global position loss */
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
 
@@ -273,7 +276,9 @@ private:
 		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
 
 		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
+
+		(ParamFloat<px4::params::FD_MIN_DIST_TRM>) _param_fd_min_dist_trm
 	)
 
 	enum class PrearmedMode {
