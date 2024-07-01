@@ -43,6 +43,8 @@ UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
 	ModuleParams(nullptr),
 	_sub_battery(node),
 	_sub_battery_aux(node),
+	_pub_battery_info(node),
+	_pub_battery_info_aux(node),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
@@ -50,21 +52,91 @@ UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
 
 int UavcanBatteryBridge::init()
 {
-	int res = _sub_battery.start(BatteryInfoCbBinder(this, &UavcanBatteryBridge::battery_sub_cb));
 
-	if (res < 0) {
-		PX4_ERR("failed to start uavcan sub: %d", res);
-		return res;
-	}
+	int32_t uavcan_sub_bat = 0;
+	param_get(param_find("UAVCAN_SUB_BAT"), &uavcan_sub_bat);
 
-	res = _sub_battery_aux.start(BatteryInfoAuxCbBinder(this, &UavcanBatteryBridge::battery_aux_sub_cb));
+	if (uavcan_sub_bat) {
+		int res = _sub_battery.start(BatteryInfoCbBinder(this, &UavcanBatteryBridge::battery_sub_cb));
 
-	if (res < 0) {
-		PX4_ERR("failed to start uavcan sub: %d", res);
-		return res;
+		if (res < 0) {
+			PX4_ERR("failed to start uavcan sub: %d", res);
+			return res;
+		}
+
+		res = _sub_battery_aux.start(BatteryInfoAuxCbBinder(this, &UavcanBatteryBridge::battery_aux_sub_cb));
+
+		if (res < 0) {
+			PX4_ERR("failed to start uavcan sub: %d", res);
+			return res;
+		}
 	}
 
 	return 0;
+}
+
+void UavcanBatteryBridge::update()
+{
+	// TODO: Decide if we want to do this on UavcanSensorBridgeBase::update()
+	// or have it as a SubscriptionCallbackWorkItem. The latter could allow us
+	// to lock onto the exact same rate as the uORB battery_status topic.
+	battery_status_s battery;
+
+
+	if (_uavcan_pub_bat.get() && _sub_battery_uorb.update(&battery)) {
+		// Keep track of max current since last publication
+		// TODO: Average other values?
+		_max_current =  fmax(_max_current, fabs(battery.current_a));
+
+		// Rate limiting
+		hrt_abstime interval_us = roundf(1e6f / _uavcan_bat_rate.get());
+
+		if (hrt_absolute_time() < _last_uavcan_pub + interval_us) {
+			return;
+		}
+
+		ardupilot::equipment::power::BatteryInfoAux battery_info_aux{};
+		battery_info_aux.timestamp.usec = hrt_absolute_time();
+
+		for (uint8_t i = 0; i < battery.cell_count; i++) {
+			battery_info_aux.voltage_cell.push_back(battery.voltage_cell_v[i]);
+		}
+
+		battery_info_aux.cycle_count = battery.cycle_count;
+		battery_info_aux.over_discharge_count = battery.over_discharge_count;
+		battery_info_aux.max_current = _max_current;
+		battery_info_aux.nominal_voltage = battery.nominal_voltage;
+		battery_info_aux.is_powering_off = battery.is_powering_off;
+
+		_pub_battery_info_aux.broadcast(battery_info_aux);
+
+
+		uavcan::equipment::power::BatteryInfo battery_info{};
+		battery_info.voltage = battery.voltage_v;
+		battery_info.current = fabs(battery.current_a);
+		battery_info.temperature = battery.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // convert from C to K
+		battery_info.full_charge_capacity_wh = battery.capacity;
+		battery_info.remaining_capacity_wh = battery.remaining * battery.capacity;
+		battery_info.state_of_charge_pct = battery.remaining * 100;
+		battery_info.state_of_charge_pct_stdev = battery.max_error;
+		battery_info.model_instance_id = 0; // TODO: what goes here?
+		battery_info.model_name = "Aviant BMS";
+		battery_info.battery_id = battery.serial_number;
+		battery_info.hours_to_full_charge = 0; // TODO: Read BQ40Z80_TIME_TO_FULL
+		battery_info.state_of_health_pct = battery.state_of_health;
+
+		if (battery.current_a > 0.0f) {
+			battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING;
+
+		} else {
+			battery_info.status_flags = uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
+		}
+
+		_pub_battery_info.broadcast(battery_info);
+
+		// Reset max current
+		_max_current = 0;
+	}
 }
 
 void

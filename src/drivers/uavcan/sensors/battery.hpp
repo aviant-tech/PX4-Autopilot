@@ -37,6 +37,7 @@
 
 #pragma once
 
+#include <uORB/Subscription.hpp>
 #include "sensor_bridge.hpp"
 #include <uORB/topics/battery_status.h>
 #include <uavcan/equipment/power/BatteryInfo.hpp>
@@ -54,6 +55,8 @@ public:
 	const char *get_name() const override { return NAME; }
 
 	int init() override;
+
+	void update() override;
 
 private:
 
@@ -73,12 +76,20 @@ private:
 
 	uavcan::Subscriber<uavcan::equipment::power::BatteryInfo, BatteryInfoCbBinder> _sub_battery;
 	uavcan::Subscriber<ardupilot::equipment::power::BatteryInfoAux, BatteryInfoAuxCbBinder> _sub_battery_aux;
+	uavcan::Publisher<uavcan::equipment::power::BatteryInfo> _pub_battery_info;
+	uavcan::Publisher<ardupilot::equipment::power::BatteryInfoAux> _pub_battery_info_aux;
+	uORB::Subscription _sub_battery_uorb{ORB_ID(battery_status)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
 		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr,
+		(ParamInt<px4::params::UAVCAN_PUB_BAT>) _uavcan_pub_bat,
+		(ParamFloat<px4::params::UAVCAN_BAT_RATE>) _uavcan_bat_rate
 	)
+
+	hrt_abstime _last_uavcan_pub = 0;
+	float _max_current = 0.f;
 
 	float _discharged_mah = 0.f;
 	float _discharged_mah_loop = 0.f;
