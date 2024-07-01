@@ -259,6 +259,30 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
 PARAM_DEFINE_INT32(UAVCAN_SUB_BAT, 0);
 
 /**
+ * publisher battery
+ *
+ * Enable publishing batteryinfo to UAVCAN.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_PUB_BAT, 0);
+
+/**
+ * UAVCAN battery max publication rate
+ *
+ * UAVCAN battery info maximum publication rate. This is an upper bound,
+ * data rate is still dependant on battery status source
+ *
+ * @min 1
+ * @max 200
+ * @group UAVCAN
+ * @unit Hz
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_BAT_RATE, 10.0f);
+
+/**
  * subscription differential pressure
  *
  * Enable UAVCAN differential pressure subscription.

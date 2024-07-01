@@ -76,8 +76,10 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	// battery
 	int32_t uavcan_sub_bat = 1;
 	param_get(param_find("UAVCAN_SUB_BAT"), &uavcan_sub_bat);
+	int32_t uavcan_pub_bat = 1;
+	param_get(param_find("UAVCAN_PUB_BAT"), &uavcan_pub_bat);
 
-	if (uavcan_sub_bat != 0) {
+	if (uavcan_sub_bat != 0 || uavcan_pub_bat != 0) {
 		list.add(new UavcanBatteryBridge(node));
 	}
 
