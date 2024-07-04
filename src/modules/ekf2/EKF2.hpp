@@ -124,7 +124,7 @@ public:
 	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
-	bool multi_init(int imu, int mag);
+	bool multi_init(int imu, int mag, uint8_t pos_est_mode);
 
 	int instance() const { return _instance; }
 
@@ -132,6 +132,8 @@ private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
+
+	uint8_t _pos_est_mode = estimator_status_s::POS_EST_MODE_NORMAL;
 
 	void Run() override;
 
@@ -201,6 +203,8 @@ private:
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
+
+	bool _armed{false};	///< true when vehicle is armed
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {
@@ -544,8 +548,12 @@ private:
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>)
-		_param_ekf2_gsf_tas_default	///< default value of true airspeed assumed during fixed wing operation
-
+		_param_ekf2_gsf_tas_default,	///< default value of true airspeed assumed during fixed wing operation
+		//
+		// Used when testing GNSS-denied EKFs
+		(ParamExtInt<px4::params::EKF2_GD_GPS_INIT>)
+		_param_ekf2_gd_gps_init	///< (Only for GNSS-denied EKFs) Allow GPS fusion while disarmed for initialisation
 	)
 };
+
 #endif // !EKF2_HPP
