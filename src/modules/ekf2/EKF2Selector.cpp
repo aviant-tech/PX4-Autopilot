@@ -50,6 +50,10 @@ EKF2Selector::EKF2Selector() :
 	_vehicle_local_position_pub.advertise();
 	_vehicle_odometry_pub.advertise();
 	_wind_pub.advertise();
+
+	// Set vision mode to normal by default, INVALID if multi vision is enabled
+	// (We wait for flight mode to determine GNSS/Vision mode)
+	_vis_mode_desired = _param_ekf2_multi_vis.get() ? VIS_MODE_INVALID : VIS_MODE_NORMAL;
 }
 
 EKF2Selector::~EKF2Selector()
@@ -685,11 +689,12 @@ void EKF2Selector::Run()
 		updateParams();
 	}
 
-	if (_status_sub.updated()) {
+	if (_param_ekf2_multi_vis.get() && _status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
 		if (_status_sub.copy(&vehicle_status)) {
-			_vis_mode_desired = VIS_MODE_GNSS_ONLY;
+			_vis_mode_desired = VIS_MODE_GNSS_ONLY; // Default to GNSS only mode
+
 			// TODO: Use flight mode to determine GNSS/Vision mode, possibly with configurable param.
 			/*if (vehicle_status.nav_state == vehicle_status.NAVIGATION_STATE_AUTO_MISSION) {
 				_vis_mode_desired = VIS_MODE_VIS_ONLY;
