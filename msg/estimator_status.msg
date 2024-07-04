@@ -124,6 +124,12 @@ uint32 gyro_device_id
 uint32 baro_device_id
 uint32 mag_device_id
 
+# If you change these definitions, you also need to change the human-friendly textual representation in EKF2::print_status
+uint8 pos_est_mode
+uint8 POS_EST_MODE_NORMAL = 0
+uint8 POS_EST_MODE_VISION_DENIED = 1
+uint8 POS_EST_MODE_GNSS_DENIED = 2
+
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
 uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)
