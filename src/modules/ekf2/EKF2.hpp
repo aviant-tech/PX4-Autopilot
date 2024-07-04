@@ -124,7 +124,7 @@ public:
 	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
-	bool multi_init(int imu, int mag);
+	bool multi_init(int imu, int mag, uint8_t vis_mode);
 
 	int instance() const { return _instance; }
 
@@ -132,6 +132,13 @@ private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
+	static constexpr uint8_t MAX_NUM_VIS_GNSS = 2;
+
+	static constexpr uint8_t VIS_NORMAL_OPERATION = 0;
+	static constexpr uint8_t VIS_ONLY_GNSS = 1;
+	static constexpr uint8_t VIS_ONLY_VIS = 2;
+	static const char *VIS_MODE_TXT[];
+	uint8_t _vis_mode = VIS_NORMAL_OPERATION;
 
 	void Run() override;
 
@@ -201,6 +208,8 @@ private:
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
+
+	bool _armed{false};	///< true when vehicle is armed
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {

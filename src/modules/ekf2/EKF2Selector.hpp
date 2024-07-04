@@ -54,6 +54,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 
 #if CONSTRAINED_MEMORY
@@ -125,6 +126,7 @@ private:
 		uint32_t gyro_device_id{0};
 		uint32_t baro_device_id{0};
 		uint32_t mag_device_id{0};
+		uint8_t vis_mode{0};
 
 		hrt_abstime time_last_selected{0};
 		hrt_abstime time_last_no_warning{0};
@@ -180,6 +182,11 @@ private:
 	bool _gyro_fault_detected{false};
 	bool _accel_fault_detected{false};
 
+	static constexpr int8_t VIS_MODE_INVALID{-1};
+	static constexpr int8_t VIS_MODE_NORMAL{0};
+	static constexpr int8_t VIS_MODE_GNSS_ONLY{1};
+	static constexpr int8_t VIS_MODE_VIS_ONLY{2};
+	int8_t _vis_mode_desired{VIS_MODE_NORMAL};
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};
 	px4::atomic<uint8_t> _request_instance{INVALID_INSTANCE};
@@ -230,6 +237,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
+	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 
 	// Publications
 	uORB::Publication<estimator_selector_status_s> _estimator_selector_status_pub{ORB_ID(estimator_selector_status)};

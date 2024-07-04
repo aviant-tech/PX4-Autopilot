@@ -195,8 +195,11 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_optical_flow_perf);
 }
 
-bool EKF2::multi_init(int imu, int mag)
+const char *EKF2::VIS_MODE_TXT[] = {"Normal", "GNSS only ", "VIS only"};
+
+bool EKF2::multi_init(int imu, int mag, uint8_t vis_mode)
 {
+	_vis_mode = vis_mode;
 	// advertise all topics to ensure consistent uORB instance numbering
 	_ekf2_timestamps_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
@@ -242,8 +245,8 @@ bool EKF2::multi_init(int imu, int mag)
 
 int EKF2::print_status()
 {
-	PX4_INFO_RAW("ekf2:%d EKF dt: %.4fs, IMU dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
-		     _instance, (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
+	PX4_INFO_RAW("ekf2:%d VIS: %s EKF dt: %.4fs, IMU dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
+		     _instance, VIS_MODE_TXT[_vis_mode], (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
 
 	perf_print_counter(_ecl_ekf_update_perf);
@@ -523,6 +526,9 @@ void EKF2::Run()
 			if (_status_sub.copy(&vehicle_status)) {
 				const bool is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
+				// keep track of the armed state, this is used for initializing vision-only filters
+				_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+
 				// only fuse synthetic sideslip measurements if conditions are met
 				_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
 
@@ -578,13 +584,26 @@ void EKF2::Run()
 		UpdateAirspeedSample(ekf2_timestamps);
 		UpdateAuxVelSample(ekf2_timestamps);
 		UpdateBaroSample(ekf2_timestamps);
-		UpdateFlowSample(ekf2_timestamps);
-		UpdateGpsSample(ekf2_timestamps);
+
+		if (_vis_mode != VIS_ONLY_GNSS) {
+			UpdateFlowSample(ekf2_timestamps);
+		}
+
+		// While we are disarmed, use GPS to initialize position and velocity estimates
+		if (!_armed || (_vis_mode != VIS_ONLY_VIS)) {
+			UpdateGpsSample(ekf2_timestamps);
+		}
+
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
 
 		vehicle_odometry_s ev_odom;
-		const bool new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
+
+		bool new_ev_odom = false;
+
+		if (_vis_mode != VIS_ONLY_GNSS) {
+			new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
+		}
 
 		// run the EKF update and output
 		const hrt_abstime ekf_update_start = hrt_absolute_time();
@@ -1239,6 +1258,8 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.baro_device_id = _device_id_baro;
 	status.gyro_device_id = _device_id_gyro;
 	status.mag_device_id = _device_id_mag;
+
+	status.vision_mode = _vis_mode;
 
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
@@ -2023,6 +2044,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 	bool multi_mode = false;
 	int32_t imu_instances = 0;
 	int32_t mag_instances = 0;
+	int32_t vis_gnss_instances = 1;
+
+	int32_t ekf2_multi_vis = 0;
 
 	int32_t sens_imu_mode = 1;
 	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
@@ -2030,6 +2054,13 @@ int EKF2::task_spawn(int argc, char *argv[])
 	if (sens_imu_mode == 0) {
 		// ekf selector requires SENS_IMU_MODE = 0
 		multi_mode = true;
+
+		// External Vision / GNSS separate instances
+		param_get(param_find("EKF2_MULTI_VIS"), &ekf2_multi_vis);
+
+		if (ekf2_multi_vis == 1) {
+			vis_gnss_instances = 2;
+		}
 
 		// IMUs (1 - 4 supported)
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
@@ -2075,13 +2106,14 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
+		const int multi_instances = math::min(imu_instances * mag_instances * vis_gnss_instances,
+						      static_cast<int32_t>(EKF2_MAX_INSTANCES));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
-		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS] {}; // IMUs * mags
+		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS][MAX_NUM_VIS_GNSS] {}; // IMUs * mags * EV/GNSS
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
@@ -2090,51 +2122,60 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-			for (uint8_t mag = 0; mag < mag_instances; mag++) {
-				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
+			for (uint8_t vis = 0; vis < vis_gnss_instances; vis++) {
 
-				for (uint8_t imu = 0; imu < imu_instances; imu++) {
+				for (uint8_t mag = 0; mag < mag_instances; mag++) {
+					uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
 
-					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
-					vehicle_mag_sub.update();
+					for (uint8_t imu = 0; imu < imu_instances; imu++) {
 
-					// Mag & IMU data must be valid, first mag can be ignored initially
-					if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
+						uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
+						vehicle_mag_sub.update();
 
-						if (!ekf2_instance_created[imu][mag]) {
-							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
+						// Mag & IMU data must be valid, first mag can be ignored initially
+						if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
 
-							if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
-								int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
+							if (!ekf2_instance_created[imu][mag][vis]) {
+								EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
 
-								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
-									_objects[actual_instance].store(ekf2_inst);
-									success = true;
-									multi_instances_allocated++;
-									ekf2_instance_created[imu][mag] = true;
+								int8_t vis_mode = VIS_NORMAL_OPERATION;
 
-									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										  imu, vehicle_imu_sub.get().accel_device_id,
-										  mag, vehicle_mag_sub.get().device_id);
-
-									_ekf2_selector.load()->ScheduleNow();
-
-								} else {
-									PX4_ERR("instance numbering problem instance: %d", actual_instance);
-									delete ekf2_inst;
-									break;
+								if (ekf2_multi_vis) {
+									vis_mode = (vis == 1) ? VIS_ONLY_VIS : VIS_ONLY_GNSS;
 								}
 
-							} else {
-								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
-								px4_usleep(100000);
-								break;
-							}
-						}
+								if (ekf2_inst && ekf2_inst->multi_init(imu, mag, vis_mode)) {
+									int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
-					} else {
-						px4_usleep(1000); // give the sensors extra time to start
-						break;
+									if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
+										_objects[actual_instance].store(ekf2_inst);
+										success = true;
+										multi_instances_allocated++;
+										ekf2_instance_created[imu][mag][vis] = true;
+
+										PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
+											  imu, vehicle_imu_sub.get().accel_device_id,
+											  mag, vehicle_mag_sub.get().device_id);
+
+										_ekf2_selector.load()->ScheduleNow();
+
+									} else {
+										PX4_ERR("instance numbering problem instance: %d", actual_instance);
+										delete ekf2_inst;
+										break;
+									}
+
+								} else {
+									PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
+									px4_usleep(100000);
+									break;
+								}
+							}
+
+						} else {
+							px4_usleep(1000); // give the sensors extra time to start
+							break;
+						}
 					}
 				}
 			}
