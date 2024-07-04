@@ -268,6 +268,7 @@ bool EKF2Selector::UpdateErrorScores()
 			_instance[i].gyro_device_id = status.gyro_device_id;
 			_instance[i].baro_device_id = status.baro_device_id;
 			_instance[i].mag_device_id = status.mag_device_id;
+			_instance[i].vis_mode = status.vision_mode;
 
 			if ((i + 1) > _available_instances) {
 				_available_instances = i + 1;
@@ -684,6 +685,18 @@ void EKF2Selector::Run()
 		updateParams();
 	}
 
+	if (_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_status_sub.copy(&vehicle_status)) {
+			_vis_mode_desired = VIS_MODE_GNSS_ONLY;
+			// TODO: Use flight mode to determine GNSS/Vision mode, possibly with configurable param.
+			/*if (vehicle_status.nav_state == vehicle_status.NAVIGATION_STATE_AUTO_MISSION) {
+				_vis_mode_desired = VIS_MODE_VIS_ONLY;
+			}*/
+		}
+	}
+
 	// update combined test ratio for all estimators
 	const bool updated = UpdateErrorScores();
 
@@ -691,7 +704,8 @@ void EKF2Selector::Run()
 	if (_selected_instance == INVALID_INSTANCE) {
 		for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			if ((_instance[i].accel_device_id != 0)
-			    && (_instance[i].gyro_device_id != 0)) {
+			    && (_instance[i].gyro_device_id != 0)
+			    && (_instance[i].vis_mode == _vis_mode_desired)) {
 
 				if (SelectInstance(i)) {
 					break;
@@ -728,7 +742,7 @@ void EKF2Selector::Run()
 			// (has relative error less than selected instance and has not been the selected instance for at least 10 seconds
 			// OR
 			// selected instance has stopped updating
-			if (_instance[i].healthy.get_state() && (i != _selected_instance)) {
+			if (_instance[i].healthy.get_state() && (i != _selected_instance) && (_instance[i].vis_mode == _vis_mode_desired)) {
 				const float test_ratio = _instance[i].combined_test_ratio;
 				const float relative_error = _instance[i].relative_test_ratio;
 
@@ -754,7 +768,12 @@ void EKF2Selector::Run()
 			}
 		}
 
-		if (!_instance[_selected_instance].healthy.get_state()) {
+		if (_instance[_selected_instance].vis_mode != _vis_mode_desired
+		    && best_ekf != INVALID_INSTANCE) {
+			// switch to the best available instance with the desired vision mode
+			SelectInstance(best_ekf);
+
+		} else if (!_instance[_selected_instance].healthy.get_state()) {
 			// prefer the best healthy instance using a different IMU
 			if (!SelectInstance(best_ekf_different_imu)) {
 				// otherwise switch to the healthy instance with best overall test ratio
@@ -848,8 +867,10 @@ void EKF2Selector::PrintStatus()
 	for (int i = 0; i < _available_instances; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
-		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s, test ratio: %.7f (%.5f) %s",
-			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
+		PX4_INFO("%" PRIu8 ": VIS: %" PRIu8 " ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32
+			 ", %s, test ratio: %.7f (%.5f) %s",
+			 inst.instance, inst.vis_mode,
+			 inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
 			 inst.healthy.get_state() ? "healthy" : "unhealthy",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
 			 (_selected_instance == i) ? "*" : "");
