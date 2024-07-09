@@ -593,7 +593,7 @@ void EKF2::Run()
 		// While we are disarmed, use GPS to initialize position and velocity estimates
 		if (!_armed || (_vis_mode != estimator_status_s::VISION_MODE_VISION_ONLY)) {
 			UpdateGpsSample(ekf2_timestamps);
-        }
+		}
 
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);

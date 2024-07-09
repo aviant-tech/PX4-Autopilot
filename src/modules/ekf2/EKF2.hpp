@@ -132,7 +132,8 @@ private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
-	static constexpr uint8_t MAX_NUM_VIS_GNSS = 2;  // This should probably always be 2. One for GPS-only and one for vision-only
+	// MAX_NUM_VIS_GNSS should probably always be 2. One for GPS-only and one for vision-only
+	static constexpr uint8_t MAX_NUM_VIS_GNSS = 2;
 
 	static const char *VIS_MODE_TXT[];
 	uint8_t _vis_mode = estimator_status_s::VISION_MODE_NORMAL;

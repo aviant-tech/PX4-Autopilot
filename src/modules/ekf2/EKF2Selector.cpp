@@ -689,7 +689,7 @@ void EKF2Selector::Run()
 		vehicle_status_s vehicle_status;
 
 		if (_status_sub.copy(&vehicle_status)) {
-            _desired_vision_mode = estimator_status_s::VISION_MODE_GNSS_ONLY; // Default to GNSS only mode
+			_desired_vision_mode = estimator_status_s::VISION_MODE_GNSS_ONLY; // Default to GNSS only mode
 
 			// TODO: Use flight mode to determine GNSS/Vision mode, possibly with configurable param.
 			/*if (vehicle_status.nav_state == vehicle_status.NAVIGATION_STATE_AUTO_MISSION) {
