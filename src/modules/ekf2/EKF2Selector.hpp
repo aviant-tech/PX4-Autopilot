@@ -182,11 +182,7 @@ private:
 	bool _gyro_fault_detected{false};
 	bool _accel_fault_detected{false};
 
-	static constexpr int8_t VIS_MODE_INVALID{-1};
-	static constexpr int8_t VIS_MODE_NORMAL{0};
-	static constexpr int8_t VIS_MODE_GNSS_ONLY{1};
-	static constexpr int8_t VIS_MODE_VIS_ONLY{2};
-	int8_t _vis_mode_desired{VIS_MODE_NORMAL};
+	int8_t _desired_vision_mode{estimator_status_s::VISION_MODE_NORMAL};
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};
 	px4::atomic<uint8_t> _request_instance{INVALID_INSTANCE};

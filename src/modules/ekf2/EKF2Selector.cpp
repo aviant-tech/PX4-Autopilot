@@ -50,10 +50,6 @@ EKF2Selector::EKF2Selector() :
 	_vehicle_local_position_pub.advertise();
 	_vehicle_odometry_pub.advertise();
 	_wind_pub.advertise();
-
-	// Set vision mode to normal by default, INVALID if multi vision is enabled
-	// (We wait for flight mode to determine GNSS/Vision mode)
-	_vis_mode_desired = _param_ekf2_multi_vis.get() ? VIS_MODE_INVALID : VIS_MODE_NORMAL;
 }
 
 EKF2Selector::~EKF2Selector()
@@ -693,11 +689,11 @@ void EKF2Selector::Run()
 		vehicle_status_s vehicle_status;
 
 		if (_status_sub.copy(&vehicle_status)) {
-			_vis_mode_desired = VIS_MODE_GNSS_ONLY; // Default to GNSS only mode
+            _desired_vision_mode = estimator_status_s::VISION_MODE_GNSS_ONLY; // Default to GNSS only mode
 
 			// TODO: Use flight mode to determine GNSS/Vision mode, possibly with configurable param.
 			/*if (vehicle_status.nav_state == vehicle_status.NAVIGATION_STATE_AUTO_MISSION) {
-				_vis_mode_desired = VIS_MODE_VIS_ONLY;
+				_desired_vision_mode = estimator_status_s::VISION_MODE_VISION_ONLY;
 			}*/
 		}
 	}
@@ -710,7 +706,7 @@ void EKF2Selector::Run()
 		for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			if ((_instance[i].accel_device_id != 0)
 			    && (_instance[i].gyro_device_id != 0)
-			    && (_instance[i].vis_mode == _vis_mode_desired)) {
+			    && (_instance[i].vis_mode == _desired_vision_mode)) {
 
 				if (SelectInstance(i)) {
 					break;
@@ -747,7 +743,7 @@ void EKF2Selector::Run()
 			// (has relative error less than selected instance and has not been the selected instance for at least 10 seconds
 			// OR
 			// selected instance has stopped updating
-			if (_instance[i].healthy.get_state() && (i != _selected_instance) && (_instance[i].vis_mode == _vis_mode_desired)) {
+			if (_instance[i].healthy.get_state() && (i != _selected_instance) && (_instance[i].vis_mode == _desired_vision_mode)) {
 				const float test_ratio = _instance[i].combined_test_ratio;
 				const float relative_error = _instance[i].relative_test_ratio;
 
@@ -773,7 +769,7 @@ void EKF2Selector::Run()
 			}
 		}
 
-		if (_instance[_selected_instance].vis_mode != _vis_mode_desired
+		if (_instance[_selected_instance].vis_mode != _desired_vision_mode
 		    && best_ekf != INVALID_INSTANCE) {
 			// switch to the best available instance with the desired vision mode
 			SelectInstance(best_ekf);

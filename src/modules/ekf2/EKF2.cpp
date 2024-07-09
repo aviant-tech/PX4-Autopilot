@@ -195,6 +195,7 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_optical_flow_perf);
 }
 
+// Human-friendly representation of the vision mode enum defined in estimator_status.msg
 const char *EKF2::VIS_MODE_TXT[] = {"Normal", "GNSS only ", "VIS only"};
 
 bool EKF2::multi_init(int imu, int mag, uint8_t vis_mode)
@@ -585,14 +586,14 @@ void EKF2::Run()
 		UpdateAuxVelSample(ekf2_timestamps);
 		UpdateBaroSample(ekf2_timestamps);
 
-		if (_vis_mode != VIS_ONLY_GNSS) {
+		if (_vis_mode != estimator_status_s::VISION_MODE_GNSS_ONLY) {
 			UpdateFlowSample(ekf2_timestamps);
 		}
 
 		// While we are disarmed, use GPS to initialize position and velocity estimates
-		if (!_armed || (_vis_mode != VIS_ONLY_VIS)) {
+		if (!_armed || (_vis_mode != estimator_status_s::VISION_MODE_VISION_ONLY)) {
 			UpdateGpsSample(ekf2_timestamps);
-		}
+        }
 
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
@@ -601,7 +602,7 @@ void EKF2::Run()
 
 		bool new_ev_odom = false;
 
-		if (_vis_mode != VIS_ONLY_GNSS) {
+		if (_vis_mode != estimator_status_s::VISION_MODE_GNSS_ONLY) {
 			new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
 		}
 
@@ -2138,10 +2139,10 @@ int EKF2::task_spawn(int argc, char *argv[])
 							if (!ekf2_instance_created[imu][mag][vis]) {
 								EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
 
-								int8_t vis_mode = VIS_NORMAL_OPERATION;
+								int8_t vis_mode = estimator_status_s::VISION_MODE_NORMAL;
 
-								if (ekf2_multi_vis) {
-									vis_mode = (vis == 1) ? VIS_ONLY_VIS : VIS_ONLY_GNSS;
+								if (ekf2_multi_vis == 1) {
+									vis_mode = (vis == 1) ? estimator_status_s::VISION_MODE_VISION_ONLY : estimator_status_s::VISION_MODE_GNSS_ONLY;
 								}
 
 								if (ekf2_inst && ekf2_inst->multi_init(imu, mag, vis_mode)) {
