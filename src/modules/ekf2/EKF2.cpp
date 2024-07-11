@@ -164,7 +164,8 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_pcoef_z(_params->static_pressure_coef_z),
 	_param_ekf2_mag_check(_params->check_mag_strength),
 	_param_ekf2_synthetic_mag_z(_params->synthesize_mag_z),
-	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
+	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default),
+	_param_ekf2_gd_gps_init(_params->init_denied_w_gnss)
 {
 	// advertise expected minimal topic set immediately to ensure logging
 	_attitude_pub.advertise();
@@ -592,7 +593,7 @@ void EKF2::Run()
 		}
 
 		// While we are disarmed, use GPS to initialize position and velocity estimates
-		if (!_armed || (_pos_est_mode != estimator_status_s::POS_EST_MODE_VISION_ONLY)) {
+		if ((!_armed && _params->init_denied_w_gnss == 1) || (_pos_est_mode != estimator_status_s::POS_EST_MODE_VISION_ONLY)) {
 			UpdateGpsSample(ekf2_timestamps);
 		}
 

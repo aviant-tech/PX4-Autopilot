@@ -56,17 +56,3 @@ PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 0);
  * @max 4
  */
 PARAM_DEFINE_INT32(EKF2_MULTI_MAG, 0);
-
-/**
- * Multi-EKF for testing of GNSS-denied navigation
- *
- * If enabled, run two sets of EKFs, one using GNSS data and the other using external vision and optical flow data.
- * Only has an effect if SENS_IMU_MODE=0.
- * Note: Currently, the GNSS-denied EKFs are not used for flight cntrol.
- *
- * @group EKF2
- * @reboot_required true
- * @value 0 Normal operation
- * @value 1 Multi-EKF for GNSS-denied operation
- */
-PARAM_DEFINE_INT32(EKF2_GNSS_DENIED, 0);
