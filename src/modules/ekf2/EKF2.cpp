@@ -247,7 +247,8 @@ bool EKF2::multi_init(int imu, int mag, uint8_t pos_est_mode)
 int EKF2::print_status()
 {
 	PX4_INFO_RAW("ekf2:%d VIS: %s EKF dt: %.4fs, IMU dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
-		     _instance, POS_EST_MODE_TXT[_pos_est_mode], (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
+		     _instance, POS_EST_MODE_TXT[_pos_est_mode], (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(),
+		     _ekf.attitude_valid(),
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
 
 	perf_print_counter(_ecl_ekf_update_perf);
@@ -2118,7 +2119,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-            // ekf2_gnss_denied is a bool, so we get either one or two iterations here
+			// ekf2_gnss_denied is a bool, so we get either one or two iterations here
 			for (uint8_t use_gnss = 0; use_gnss <= ekf2_gnss_denied; use_gnss++) {
 
 				for (uint8_t mag = 0; mag < mag_instances; mag++) {
@@ -2138,7 +2139,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 								int8_t pos_est_mode = estimator_status_s::POS_EST_MODE_NORMAL;
 
 								if (ekf2_gnss_denied == 1) {
-									pos_est_mode = (use_gnss == 1) ? estimator_status_s::POS_EST_MODE_VISION_ONLY : estimator_status_s::POS_EST_MODE_GNSS_ONLY;
+									pos_est_mode = (use_gnss == 1) ? estimator_status_s::POS_EST_MODE_VISION_ONLY :
+										       estimator_status_s::POS_EST_MODE_GNSS_ONLY;
 								}
 
 								if (ekf2_inst && ekf2_inst->multi_init(imu, mag, pos_est_mode)) {
