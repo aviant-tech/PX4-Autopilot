@@ -126,7 +126,7 @@ private:
 		uint32_t gyro_device_id{0};
 		uint32_t baro_device_id{0};
 		uint32_t mag_device_id{0};
-		uint8_t vis_mode{0};
+		uint8_t pos_est_mode{0};
 
 		hrt_abstime time_last_selected{0};
 		hrt_abstime time_last_no_warning{0};
@@ -182,7 +182,7 @@ private:
 	bool _gyro_fault_detected{false};
 	bool _accel_fault_detected{false};
 
-	int8_t _desired_vision_mode{estimator_status_s::VISION_MODE_NORMAL};
+	int8_t _desired_pos_est_mode{estimator_status_s::POS_EST_MODE_NORMAL};
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};
 	px4::atomic<uint8_t> _request_instance{INVALID_INSTANCE};
@@ -250,7 +250,7 @@ private:
 		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_angle,
 		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_accel,
 		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity,
-		(ParamInt<px4::params::EKF2_MULTI_VIS>) _param_ekf2_multi_vis
+		(ParamInt<px4::params::EKF2_GNSS_DENIED>) _param_ekf2_gnss_denied
 	)
 };
 #endif // !EKF2SELECTOR_HPP

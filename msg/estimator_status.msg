@@ -124,10 +124,10 @@ uint32 gyro_device_id
 uint32 baro_device_id
 uint32 mag_device_id
 
-uint8 vision_mode
-uint8 VISION_MODE_NORMAL = 0
-uint8 VISION_MODE_GNSS_ONLY = 1
-uint8 VISION_MODE_VISION_ONLY = 2
+uint8 pos_est_mode
+uint8 POS_EST_MODE_NORMAL = 0
+uint8 POS_EST_MODE_GNSS_ONLY = 1
+uint8 POS_EST_MODE_VISION_ONLY = 2
 
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)

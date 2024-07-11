@@ -124,7 +124,7 @@ public:
 	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
-	bool multi_init(int imu, int mag, uint8_t vis_mode);
+	bool multi_init(int imu, int mag, uint8_t pos_est_mode);
 
 	int instance() const { return _instance; }
 
@@ -132,11 +132,9 @@ private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
-	// MAX_NUM_VIS_GNSS should probably always be 2. One for GPS-only and one for vision-only
-	static constexpr uint8_t MAX_NUM_VIS_GNSS = 2;
 
-	static const char *VIS_MODE_TXT[];
-	uint8_t _vis_mode = estimator_status_s::VISION_MODE_NORMAL;
+	static const char *POS_EST_MODE_TXT[];
+	uint8_t _pos_est_mode = estimator_status_s::POS_EST_MODE_NORMAL;
 
 	void Run() override;
 

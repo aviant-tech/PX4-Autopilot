@@ -195,12 +195,12 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_optical_flow_perf);
 }
 
-// Human-friendly representation of the vision mode enum defined in estimator_status.msg
-const char *EKF2::VIS_MODE_TXT[] = {"Normal", "GNSS only ", "VIS only"};
+// Human-friendly representation of the position estimation mode enum defined in estimator_status.msg
+const char *EKF2::POS_EST_MODE_TXT[] = {"Normal", "GNSS only ", "VIS only"};
 
-bool EKF2::multi_init(int imu, int mag, uint8_t vis_mode)
+bool EKF2::multi_init(int imu, int mag, uint8_t pos_est_mode)
 {
-	_vis_mode = vis_mode;
+	_pos_est_mode = pos_est_mode;
 	// advertise all topics to ensure consistent uORB instance numbering
 	_ekf2_timestamps_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
@@ -247,7 +247,7 @@ bool EKF2::multi_init(int imu, int mag, uint8_t vis_mode)
 int EKF2::print_status()
 {
 	PX4_INFO_RAW("ekf2:%d VIS: %s EKF dt: %.4fs, IMU dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
-		     _instance, VIS_MODE_TXT[_vis_mode], (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
+		     _instance, POS_EST_MODE_TXT[_pos_est_mode], (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
 
 	perf_print_counter(_ecl_ekf_update_perf);
@@ -586,12 +586,12 @@ void EKF2::Run()
 		UpdateAuxVelSample(ekf2_timestamps);
 		UpdateBaroSample(ekf2_timestamps);
 
-		if (_vis_mode != estimator_status_s::VISION_MODE_GNSS_ONLY) {
+		if (_pos_est_mode != estimator_status_s::POS_EST_MODE_GNSS_ONLY) {
 			UpdateFlowSample(ekf2_timestamps);
 		}
 
 		// While we are disarmed, use GPS to initialize position and velocity estimates
-		if (!_armed || (_vis_mode != estimator_status_s::VISION_MODE_VISION_ONLY)) {
+		if (!_armed || (_pos_est_mode != estimator_status_s::POS_EST_MODE_VISION_ONLY)) {
 			UpdateGpsSample(ekf2_timestamps);
 		}
 
@@ -602,7 +602,7 @@ void EKF2::Run()
 
 		bool new_ev_odom = false;
 
-		if (_vis_mode != estimator_status_s::VISION_MODE_GNSS_ONLY) {
+		if (_pos_est_mode != estimator_status_s::POS_EST_MODE_GNSS_ONLY) {
 			new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
 		}
 
@@ -1260,7 +1260,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.gyro_device_id = _device_id_gyro;
 	status.mag_device_id = _device_id_mag;
 
-	status.vision_mode = _vis_mode;
+	status.pos_est_mode = _pos_est_mode;
 
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
@@ -2045,9 +2045,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 	bool multi_mode = false;
 	int32_t imu_instances = 0;
 	int32_t mag_instances = 0;
-	int32_t vis_gnss_instances = 1;
 
-	int32_t ekf2_multi_vis = 0;
+	int32_t ekf2_gnss_denied = 0;
 
 	int32_t sens_imu_mode = 1;
 	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
@@ -2056,12 +2055,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// ekf selector requires SENS_IMU_MODE = 0
 		multi_mode = true;
 
-		// External Vision / GNSS separate instances
-		param_get(param_find("EKF2_MULTI_VIS"), &ekf2_multi_vis);
-
-		if (ekf2_multi_vis == 1) {
-			vis_gnss_instances = 2;
-		}
+		// Separate EKF instances for testing GNSS-denied navigation
+		param_get(param_find("EKF2_GNSS_DENIED"), &ekf2_gnss_denied);
 
 		// IMUs (1 - 4 supported)
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
@@ -2107,14 +2102,14 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances * vis_gnss_instances,
+		const int multi_instances = math::min(imu_instances * mag_instances * (ekf2_gnss_denied + 1),
 						      static_cast<int32_t>(EKF2_MAX_INSTANCES));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
-		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS][MAX_NUM_VIS_GNSS] {}; // IMUs * mags * EV/GNSS
+		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS][2] {}; // IMUs * mags * 2 (with/without GNSS)
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
@@ -2123,7 +2118,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-			for (uint8_t vis = 0; vis < vis_gnss_instances; vis++) {
+            // ekf2_gnss_denied is a bool, so we get either one or two iterations here
+			for (uint8_t use_gnss = 0; use_gnss <= ekf2_gnss_denied; use_gnss++) {
 
 				for (uint8_t mag = 0; mag < mag_instances; mag++) {
 					uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
@@ -2136,23 +2132,23 @@ int EKF2::task_spawn(int argc, char *argv[])
 						// Mag & IMU data must be valid, first mag can be ignored initially
 						if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
 
-							if (!ekf2_instance_created[imu][mag][vis]) {
+							if (!ekf2_instance_created[imu][mag][use_gnss]) {
 								EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
 
-								int8_t vis_mode = estimator_status_s::VISION_MODE_NORMAL;
+								int8_t pos_est_mode = estimator_status_s::POS_EST_MODE_NORMAL;
 
-								if (ekf2_multi_vis == 1) {
-									vis_mode = (vis == 1) ? estimator_status_s::VISION_MODE_VISION_ONLY : estimator_status_s::VISION_MODE_GNSS_ONLY;
+								if (ekf2_gnss_denied == 1) {
+									pos_est_mode = (use_gnss == 1) ? estimator_status_s::POS_EST_MODE_VISION_ONLY : estimator_status_s::POS_EST_MODE_GNSS_ONLY;
 								}
 
-								if (ekf2_inst && ekf2_inst->multi_init(imu, mag, vis_mode)) {
+								if (ekf2_inst && ekf2_inst->multi_init(imu, mag, pos_est_mode)) {
 									int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
 									if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
 										_objects[actual_instance].store(ekf2_inst);
 										success = true;
 										multi_instances_allocated++;
-										ekf2_instance_created[imu][mag][vis] = true;
+										ekf2_instance_created[imu][mag][use_gnss] = true;
 
 										PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
 											  imu, vehicle_imu_sub.get().accel_device_id,
