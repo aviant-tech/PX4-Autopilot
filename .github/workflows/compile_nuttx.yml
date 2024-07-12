@@ -14,6 +14,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-nuttx-focal:2021-09-08
+    outputs:
+      version: ${{ steps.version_step.outputs.VERSION }}
+      new_sha: ${{ steps.new_sha.outputs.SHA }}
     strategy:
       fail-fast: false
       matrix:
@@ -84,3 +87,19 @@ jobs:
         files: |
           build/cubepilot_cubeorange_default/*.px4
           build/cubepilot_cubeorange_default/*.bin
+
+    - id: version_step
+      run: |
+        echo "VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+    - id: new_sha
+      run: |
+        echo "SHA=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+  tag_deploy:
+    needs: build
+    uses: ./.github/workflows/deploy.yaml
+    with:
+      tag: ${{ needs.build.outputs.version }}
+      ref: ${{ needs.build.outputs.new_sha }}
+      is_latest: ${{ github.ref == 'refs/heads/aviant/1.13' }}
+    secrets: inherit

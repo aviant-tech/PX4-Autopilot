@@ -1,0 +1,65 @@
+name: Deploy
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'The tag for the image.'
+        required: true
+        type: string
+      ref:
+        description: 'The reference to check out (can be a commit hash, branch or tag name).'
+        default: ''
+        required: false
+        type: string
+      is_latest:
+        description: 'If this is to be tagged as the "latest" docker image.'
+        default: false
+        required: false
+        type: boolean
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Fail if tag is 'latest'
+        if: ${{ inputs.tag == 'latest' }}
+        run: exit 1
+
+      - name: Build docker images as latest
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        if: ${{ inputs.is_latest }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ inputs.tag }} -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -f .github/docker/Dockerfile --build-arg="MAVLINK_ROUTER_VERISON=v3" .
+
+      - name: Build docker images (not as latest)
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        if: ${{ !inputs.is_latest }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ inputs.tag }} -f .github/docker/Dockerfile --build-arg="MAVLINK_ROUTER_VERISON=v3" .
+
+      - name: Push docker images to AWS ecr
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
