@@ -8,11 +8,13 @@ fi
   
 
 if [ ! -z "${MULTI_VEHICLE}" ]; then
-  # Use last byte of IP address as mavlink system ID
-  export SYSTEM_ID=$(ip addr show eth0 | grep inet | sed 's,.*10[.]8[.]1[.]\([0-9]\+\)/.*,\1,')
+  if [ -z "${SYSTEM_ID}" ]; then
+    # Use last byte of IP address as mavlink system ID
+    export SYSTEM_ID=$(ip addr show eth0 | grep inet | sed 's,.*10[.]8[.]1[.]\([0-9]\+\)/.*,\1,')
+    # Move each vehicle a bit, so they do not stack
+    export PX4_HOME_LON=$(echo "$PX4_HOME_LON+(0.001*$SYSTEM_ID)" | bc)
+  fi
   sed -i "s,param set MAV_SYS_ID .*,param set MAV_SYS_ID $SYSTEM_ID," ROMFS/px4fmu_common/init.d-posix/rcS
-  # Move each vehicle a bit, so they do not stack
-  export PX4_HOME_LON=$(echo "$PX4_HOME_LON+(0.001*$SYSTEM_ID)" | bc)
   mavlink-routerd -c /etc/mavlink-router/multi.conf &
 else
   mavlink-routerd &
