@@ -398,11 +398,17 @@ else
 		if param compare -s BAT1_SOURCE 2
 		then
 			esc_battery start
-		fi
-
-		if ! param compare BAT1_SOURCE 1
-		then
-			battery_status start
+            battery_status start
+        else
+            if param compare -s BAT1_SOURCE 0
+            then
+                battery_status start
+            else
+                if param compare -s BAT2_SOURCE 0
+                then
+                    battery_status start
+                fi
+            fi
 		fi
 
 		sensors start

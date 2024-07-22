@@ -53,6 +53,7 @@ Batmon::Batmon(const I2CSPIDriverConfig &config, SMBus *interface):
 
 I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
+    PX4_WARN("Batmon::instantiate runtime_instance: %d", runtime_instance);
 	SMBus *interface = new SMBus(config.devid_driver_index, config.bus, config.i2c_address);
 
 	int32_t batmon_en_param = 0;
@@ -74,6 +75,7 @@ I2CSPIDriverBase *Batmon::instantiate(const I2CSPIDriverConfig &config, int runt
 		return nullptr;
 	}
 
+    PX4_WARN("Batmon get startup info running now");
 	int ret = instance->get_startup_info();
 	ret |= instance->get_batmon_startup_info();
 

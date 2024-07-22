@@ -51,10 +51,8 @@ BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
 	I2CSPIDriver(config),
 	_interface(interface)
 {
-	int32_t battsource = 1;
 	int32_t batt_device_type = static_cast<int32_t>(SMBUS_DEVICE_TYPE::UNDEFINED);
 
-	param_set(param_find("BAT1_SOURCE"), &battsource);
 	param_get(param_find("BAT1_SMBUS_MODEL"), &batt_device_type);
 
 
@@ -85,9 +83,6 @@ BATT_SMBUS::~BATT_SMBUS()
 	if (_interface != nullptr) {
 		delete _interface;
 	}
-
-	int32_t battsource = 0;
-	param_set(param_find("BAT1_SOURCE"), &battsource);
 }
 
 void BATT_SMBUS::RunImpl()
@@ -132,10 +127,6 @@ void BATT_SMBUS::RunImpl()
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
 	new_report.current_average_a = average_current;
-
-	// If current is high, turn under voltage protection off. This is neccessary to prevent
-	// a battery from cutting off while flying with high current near the end of the packs capacity.
-	set_undervoltage_protection(average_current);
 
 	// Read run time to empty (minutes).
 	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);
