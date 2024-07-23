@@ -51,10 +51,7 @@ BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
 	I2CSPIDriver(config),
 	_interface(interface)
 {
-	int32_t battsource = 1;
 	int32_t batt_device_type = static_cast<int32_t>(SMBUS_DEVICE_TYPE::UNDEFINED);
-
-	param_set(param_find("BAT1_SOURCE"), &battsource);
 	param_get(param_find("BAT1_SMBUS_MODEL"), &batt_device_type);
 
 
@@ -85,9 +82,6 @@ BATT_SMBUS::~BATT_SMBUS()
 	if (_interface != nullptr) {
 		delete _interface;
 	}
-
-	int32_t battsource = 0;
-	param_set(param_find("BAT1_SOURCE"), &battsource);
 }
 
 void BATT_SMBUS::RunImpl()
@@ -132,10 +126,6 @@ void BATT_SMBUS::RunImpl()
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
 	new_report.current_average_a = average_current;
-
-	// If current is high, turn under voltage protection off. This is neccessary to prevent
-	// a battery from cutting off while flying with high current near the end of the packs capacity.
-	set_undervoltage_protection(average_current);
 
 	// Read run time to empty (minutes).
 	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);
@@ -312,44 +302,6 @@ int BATT_SMBUS::get_cell_voltages()
 				  (0.5f * _last_report.max_cell_voltage_delta);
 
 	return ret;
-}
-
-void BATT_SMBUS::set_undervoltage_protection(float average_current)
-{
-	// Disable undervoltage protection if armed. Enable if disarmed and cell voltage is above limit.
-	if (average_current > BATT_CURRENT_UNDERVOLTAGE_THRESHOLD) {
-		if (_cell_undervoltage_protection_status != 0) {
-			// Disable undervoltage protection
-			uint8_t protections_a_tmp = BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED;
-			uint16_t address = BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS;
-
-			if (dataflash_write(address, &protections_a_tmp, 1) == PX4_OK) {
-				_cell_undervoltage_protection_status = 0;
-				PX4_WARN("Disabled CUV");
-
-			} else {
-				PX4_WARN("Failed to disable CUV");
-			}
-		}
-
-	} else {
-		if (_cell_undervoltage_protection_status == 0) {
-			if (_min_cell_voltage > BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD) {
-				// Enable undervoltage protection
-				uint8_t protections_a_tmp = BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT;
-				uint16_t address = BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS;
-
-				if (dataflash_write(address, &protections_a_tmp, 1) == PX4_OK) {
-					_cell_undervoltage_protection_status = 1;
-					PX4_WARN("Enabled CUV");
-
-				} else {
-					PX4_WARN("Failed to enable CUV");
-				}
-			}
-		}
-	}
-
 }
 
 //@NOTE: Currently unused, could be helpful for debugging a parameter set though.
