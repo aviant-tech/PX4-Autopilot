@@ -70,9 +70,6 @@ using namespace time_literals;
 #define BATT_CELL_VOLTAGE_THRESHOLD_RTL                 0.5f            ///< Threshold in volts to RTL if cells are imbalanced
 #define BATT_CELL_VOLTAGE_THRESHOLD_FAILED              1.5f            ///< Threshold in volts to Land if cells are imbalanced
 
-#define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f            ///< Threshold in amps to disable undervoltage protection
-#define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f            ///< Threshold in volts to re-enable undervoltage protection
-
 #define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
 
 #define BATT_SMBUS_TEMP                                 0x08            ///< temperature register
@@ -218,11 +215,6 @@ public:
 	 * @return Returns PX4_OK on success or associated read error code on failure.
 	 */
 	int get_cell_voltages();
-
-	/**
-	 * @brief Enables or disables the cell under voltage protection emergency shut off.
-	 */
-	void set_undervoltage_protection(float average_current);
 
 	void suspend();
 
