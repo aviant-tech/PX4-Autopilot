@@ -2837,7 +2837,7 @@ Commander::run()
 				}
 
 				if (fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt || fd_status_flags.ext
-				    || fd_status_flags.mpc_vz) {
+				    || fd_status_flags.mpc_vz || fd_status_flags.nav_state) {
 					const bool is_right_after_takeoff = hrt_elapsed_time(&_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
 
 					if (is_right_after_takeoff && !_lockdown_triggered) {
@@ -2857,7 +2857,7 @@ Commander::run()
 						events::send(events::ID("commander_fd_lockdown"), {events::Log::Emergency, events::LogInternal::Warning},
 							     "Critical failure detected: lockdown");
 
-					} else if (_failure_detector.getTerminationAllowed() &&
+					} else if (isTerminationAllowed() &&
 						   !_status_flags.circuit_breaker_flight_termination_disabled &&
 						   !_flight_termination_triggered && !_lockdown_triggered) {
 
@@ -2961,8 +2961,10 @@ Commander::run()
 						       static_cast<quadchute_actions_t>(_param_com_qc_act.get()),
 						       static_cast<offboard_loss_rc_actions_t>(_param_com_obl_rc_act.get()),
 						       static_cast<position_nav_loss_actions_t>(_param_com_posctl_navl.get()),
+						       static_cast<global_position_loss_response_t>(_param_com_glb_pos_loss.get()),
 						       _param_com_rcl_act_t.get(),
-						       _param_com_rcl_except.get());
+						       _param_com_rcl_except.get(),
+						       isTerminationAllowed());
 
 		if (nav_state_changed) {
 			_status.nav_state_timestamp = hrt_absolute_time();
@@ -3440,9 +3442,8 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-		/* disable all controllers on termination */
-		_vehicle_control_mode.flag_control_termination_enabled = true;
-		break;
+		/* Exit the function. We are handling flight termination inside commander. */
+		return;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		_vehicle_control_mode.flag_control_offboard_enabled = true;
@@ -4474,6 +4475,22 @@ void Commander::checkWindAndWarn()
 			_last_wind_warning = hrt_absolute_time();
 		}
 	}
+}
+
+bool Commander::isTerminationAllowed()
+{
+	vehicle_local_position_s local_position;
+	_local_position_sub.copy(&local_position);
+
+	bool termination_allowed = true;
+
+	// If the measurement is valid and under the distance threshold, flight termination is not allowed, otherwise it is.
+	if (local_position.dist_bottom_valid && (local_position.dist_bottom < _param_fd_min_dist_trm.get())) {
+		termination_allowed = false;
+
+	}
+
+	return termination_allowed;
 }
 
 int Commander::print_usage(const char *reason)

@@ -10,5 +10,6 @@ bool fd_high_wind
 bool fd_battery
 bool fd_imbalanced_prop
 bool fd_mpc_vz
+bool fd_nav_state
 
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
