@@ -1405,3 +1405,26 @@ PARAM_DEFINE_INT32(EKF2_SYNT_MAG_Z, 0);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);
+
+/**
+ * Multi-EKF for testing of GNSS-denied navigation
+ *
+ * If enabled, run two sets of EKFs, one using GNSS data and the other using external vision and optical flow data.
+ * Only has an effect if SENS_IMU_MODE=0.
+ * Note: Currently, the GNSS-denied EKFs are not used for flight cntrol.
+ *
+ * @group EKF2
+ * @reboot_required true
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_GNSS_DENIED, 0);
+
+/**
+ * If enabled, fuse GNSS data in GNSS-denied EFKs while disarmed.
+ *
+ * Only has an effect if EKF2_GNSS_DENIED=1.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_GD_GPS_INIT, 1);
