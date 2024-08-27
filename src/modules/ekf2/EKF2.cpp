@@ -2137,7 +2137,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-			for (uint8_t mode_counter = 0; mode_counter <= num_pos_est_modes; mode_counter++) {
+			for (uint8_t mode_counter = 0; mode_counter < num_pos_est_modes; mode_counter++) {
 
 				for (uint8_t mag = 0; mag < mag_instances; mag++) {
 					uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
@@ -2156,7 +2156,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								int8_t pos_est_mode = estimator_status_s::POS_EST_MODE_NORMAL;
 
 								if (ekf2_gnss_denied == 1) {
-									pos_est_mode = (mode_counter == 1) ? estimator_status_s::POS_EST_MODE_VISION_DENIED :
+									pos_est_mode = (mode_counter == 0) ? estimator_status_s::POS_EST_MODE_VISION_DENIED :
 										       estimator_status_s::POS_EST_MODE_GNSS_DENIED;
 								}
 
