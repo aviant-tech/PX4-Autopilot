@@ -1411,7 +1411,6 @@ PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);
  *
  * If enabled, run two sets of EKFs, one using GNSS data and the other using external vision and optical flow data.
  * Only has an effect if SENS_IMU_MODE=0.
- * Note: Currently, the GNSS-denied EKFs are not used for flight cntrol.
  *
  * @group EKF2
  * @reboot_required true

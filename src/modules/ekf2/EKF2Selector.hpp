@@ -231,6 +231,8 @@ private:
 	uint8_t _global_position_instance_prev{INVALID_INSTANCE};
 	uint8_t _odometry_instance_prev{INVALID_INSTANCE};
 
+	bool _latch_use_gnss{false};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
@@ -250,7 +252,8 @@ private:
 		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_angle,
 		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_accel,
 		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity,
-		(ParamInt<px4::params::EKF2_GNSS_DENIED>) _param_ekf2_gnss_denied
+		(ParamInt<px4::params::EKF2_GNSS_DENIED>) _param_ekf2_gnss_denied,
+		(ParamInt<px4::params::EKF2_SEL_GNSSDEN>) _param_ekf2_sel_gnss_denied
 	)
 };
 #endif // !EKF2SELECTOR_HPP
