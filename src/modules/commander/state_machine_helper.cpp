@@ -628,7 +628,31 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
-		if (status_flags.offboard_control_signal_lost) {
+		// AVIANT-SPECIFIC FIX!
+		// Enforce the following failsafes from AUTO_MISSION in OFFBOARD as well:
+		// - Global position estimate
+		// - Engine failure
+		// - VTOL transition failure
+		// - Data link loss
+		// We use setpoints in OFFBOARD and expect position estimate to be valid.
+		// Note that we require global position to be valid as well, this might need to be changed for GNSS-denied navigation.
+		// We also want data link loss to trigger failsafe.
+		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
+		} else if (status.engine_failure) {
+			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
+		} else if (status_flags.vtol_transition_failure) {
+
+			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
+
+		} else if (status.data_link_lost && data_link_loss_act_configured
+			   && is_armed && !landed) {
+			// Data link lost, data link loss reaction configured -> do configured reaction
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
+
+		} else if (status_flags.offboard_control_signal_lost) {
 			if (status.rc_signal_lost) {
 				// Offboard and RC are lost
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc_and_no_offboard);
