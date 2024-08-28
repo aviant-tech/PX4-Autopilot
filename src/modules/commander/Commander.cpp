@@ -52,6 +52,7 @@
 #include "esc_calibration.h"
 #include "px4_custom_mode.h"
 #include "state_machine_helper.h"
+#include "uORB/topics/estimator_selector_status.h"
 
 /* PX4 headers */
 #include <dataman/dataman.h>
@@ -2946,6 +2947,14 @@ Commander::run()
 			_imbalanced_propeller_check_triggered = false;
 		}
 
+
+		// No need to update here, since we updated in Commander::estimator_check,
+		// which is called earlier in Commander::run.
+		// If the first message is not yet published, the struct will remain zeroed,
+		// and the timestamp of 0 will mean that it is stale.
+		estimator_selector_status_s estimator_selector_status = {};
+		(void)_estimator_status_sub.copy(&estimator_selector_status);
+
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(_status,
 						       _armed,
@@ -2962,7 +2971,8 @@ Commander::run()
 						       static_cast<offboard_loss_rc_actions_t>(_param_com_obl_rc_act.get()),
 						       static_cast<position_nav_loss_actions_t>(_param_com_posctl_navl.get()),
 						       _param_com_rcl_act_t.get(),
-						       _param_com_rcl_except.get());
+						       _param_com_rcl_except.get(),
+						       estimator_selector_status);
 
 		if (nav_state_changed) {
 			_status.nav_state_timestamp = hrt_absolute_time();

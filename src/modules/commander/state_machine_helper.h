@@ -42,6 +42,7 @@
 #ifndef STATE_MACHINE_HELPER_H_
 #define STATE_MACHINE_HELPER_H_
 
+#include "uORB/topics/estimator_selector_status.h"
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
@@ -120,14 +121,16 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		   const quadchute_actions_t quadchute_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
-		   const float param_com_rcl_act_t, const int param_com_rcl_except);
+		   const float param_com_rcl_act_t, const int param_com_rcl_except,
+		   const estimator_selector_status_s &estimator_selector_status);
 
 /*
  * Checks the validty of position data against the requirements of the current navigation
  * mode and switches mode if position data required is not available.
  */
 bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
-				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos);
+				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos,
+				 const estimator_selector_status_s &estimator_selector_status);
 
 
 // COM_LOW_BAT_ACT parameter values

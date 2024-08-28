@@ -39,6 +39,7 @@
  * @author Julian Oes		<julian@oes.ch>
  * @author Sander Smeets	<sander@droneslab.com>
  */
+#include <ctime>
 #include <px4_platform_common/px4_config.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -49,6 +50,7 @@
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
+#include "uORB/topics/estimator_selector_status.h"
 
 using namespace time_literals;
 
@@ -298,7 +300,8 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		   const quadchute_actions_t quadchute_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
-		   const float param_com_rcl_act_t, const int param_com_rcl_except)
+		   const float param_com_rcl_act_t, const int param_com_rcl_except,
+		   const estimator_selector_status_s &estimator_selector_status)
 {
 	const navigation_state_t nav_state_old = status.nav_state;
 
@@ -368,7 +371,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 				 * For fixedwing, a global position is needed. */
 
 			} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
-							       rc_fallback_allowed, status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+							       rc_fallback_allowed, status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING, estimator_selector_status)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else if (status_flags.vtol_transition_failure) {
@@ -387,7 +390,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		 * - if we have vtol transition failure
 		 * - on data and RC link loss */
 
-		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		if (is_armed
+		    && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
+						   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
@@ -443,7 +448,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
+					   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else if (status_flags.vtol_transition_failure) {
@@ -484,7 +491,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
+					   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -499,7 +508,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
+					   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -517,7 +528,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			// is not possible and therefore the internal_state needs to be adjusted.
 			internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true,
+					   estimator_selector_status)) {
 			// failsafe: necessary position estimate lost; switching is done in check_invalid_pos_nav_state
 
 			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
@@ -559,7 +572,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false,
+					   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else if (status_flags.vtol_transition_failure) {
@@ -601,7 +616,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false,
+					   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -617,7 +634,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false,
+					   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -637,7 +656,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		// We use setpoints in OFFBOARD and expect position estimate to be valid.
 		// Note that we require global position to be valid as well, this might need to be changed for GNSS-denied navigation.
 		// We also want data link loss to trigger failsafe.
-		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		if (is_armed
+		    && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false,
+						   estimator_selector_status)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
@@ -691,8 +712,16 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 }
 
 bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
-				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos)
+				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos,
+				 const estimator_selector_status_s &estimator_selector_status)
 {
+	static hrt_abstime last_gnss_denied_ts = 0;
+
+	if (estimator_selector_status.gnss_denied_instance_selected) {
+		last_gnss_denied_ts = estimator_selector_status.timestamp;
+	}
+
+	static bool has_logged_waiting_for_gnss{false};  // This is needed to avoid spamming the log
 	bool fallback_required = false;
 
 	if (using_global_pos && !status_flags.global_position_valid) {
@@ -705,7 +734,15 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 	}
 
 	if (fallback_required) {
-		if (use_rc) {
+		// If GNSS-denied, the estimator_selector will attempt to enable GNSS in case of a failsafe
+		// We do not want to terminate until we are certain that enabling GNSS did not help
+		if (hrt_elapsed_time(&last_gnss_denied_ts) < 1_s) {
+			if (!has_logged_waiting_for_gnss) {
+				PX4_WARN("Invalid pos_nav_state, but failsafe is disabled while waiting for GNSS to enable");
+				has_logged_waiting_for_gnss = true;
+			}
+
+		} else if (use_rc) {
 			// fallback to a mode that gives the operator stick control
 			if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 			    && status_flags.local_position_valid) {
@@ -724,11 +761,11 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 			} else if (status_flags.local_altitude_valid) {
-
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 			} else {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+
 			}
 		}
 
@@ -739,6 +776,8 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_local_position);
 		}
 
+	} else {
+		has_logged_waiting_for_gnss = false;
 	}
 
 	return fallback_required;

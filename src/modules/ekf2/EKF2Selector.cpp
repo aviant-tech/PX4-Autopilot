@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "EKF2Selector.hpp"
+#include "uORB/topics/estimator_status.h"
 
 using namespace time_literals;
 using matrix::Quatf;
@@ -50,6 +51,13 @@ EKF2Selector::EKF2Selector() :
 	_vehicle_local_position_pub.advertise();
 	_vehicle_odometry_pub.advertise();
 	_wind_pub.advertise();
+
+	if (_param_ekf2_gnss_denied.get() == 1) {
+		_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
+
+	} else {
+		_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_NORMAL;
+	}
 }
 
 EKF2Selector::~EKF2Selector()
@@ -686,23 +694,28 @@ void EKF2Selector::Run()
 	}
 
 	if (_param_ekf2_gnss_denied.get() == 1) {
-		_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
-	}
+		if (_param_ekf2_sel_gnss_denied.get() != 1 || _latch_use_gnss) {
+			_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
 
-	// TODO: Use flight mode to determine GNSS/Vision mode, possibly with configurable param.
-	/*
-	if (_param_ekf2_gnss_denied.get() && _status_sub.updated()) {
-		vehicle_status_s vehicle_status;
+		} else if (_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
 
-		if (_status_sub.copy(&vehicle_status)) {
-			_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_GNSS_ONLY; // Default to GNSS only mode
+			if (_status_sub.copy(&vehicle_status)) {
 
-			if (vehicle_status.nav_state == vehicle_status.NAVIGATION_STATE_AUTO_MISSION) {
-				_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_ONLY;
+				if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+					_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_GNSS_DENIED;
+
+				} else {
+					_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
+				}
+
+				if (vehicle_status.failsafe == 1 && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+					PX4_WARN("Failsafe detected, latching GNSS-enabled mode");
+					_latch_use_gnss = true;
+				}
 			}
 		}
 	}
-	*/
 
 	// update combined test ratio for all estimators
 	const bool updated = UpdateErrorScores();
@@ -847,6 +860,9 @@ void EKF2Selector::PublishEstimatorSelectorStatus()
 	selector_status.mag_device_id = _instance[_selected_instance].mag_device_id;
 	selector_status.gyro_fault_detected = _gyro_fault_detected;
 	selector_status.accel_fault_detected = _accel_fault_detected;
+	selector_status.gnss_denied_instance_selected = _instance[_selected_instance].pos_est_mode ==
+			estimator_status_s::POS_EST_MODE_GNSS_DENIED;
+	selector_status.latched_gnss_enabled = _latch_use_gnss;
 
 	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 		selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
