@@ -4,6 +4,7 @@
 *.pyc
 *~
 .*.swp
+.cache
 .context
 .cproject
 .DS_Store
