@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "px4_platform_common/param.h"
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -45,7 +46,7 @@
 class FakeGps : public ModuleBase<FakeGps>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	FakeGps(double latitude_deg = 29.6603018, double longitude_deg = -82.3160500, float altitude_m = 30.1f);
+	FakeGps();
 
 	~FakeGps() override = default;
 
@@ -67,7 +68,9 @@ private:
 
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
-	int32_t _latitude{296603018};   // Latitude in 1e-7 degrees
-	int32_t _longitude{-823160500}; // Longitude in 1e-7 degrees
-	int32_t _altitude{30100};       // Altitude in 1e-3 meters above MSL, (millimetres)
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FAKE_GPS_LAT>) _param_fake_gps_lat,
+		(ParamFloat<px4::params::FAKE_GPS_LON>) _param_fake_gps_lon,
+		(ParamFloat<px4::params::FAKE_GPS_ALT>) _param_fake_gps_alt
+	)
 };

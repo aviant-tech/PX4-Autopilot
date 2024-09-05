@@ -198,3 +198,10 @@ then
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
+
+
+# Fake GPS measurements
+if param compare FAKE_GPS_EN 1
+then
+    fake_gps start
+fi
