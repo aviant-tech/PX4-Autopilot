@@ -930,7 +930,7 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 
 	// FALLTHROUGH
 	case offboard_loss_actions_t::AUTO_LAND:
-		if (status_flags.global_position_valid) {
+		if (status_flags.global_position_valid || status_flags.local_position_valid) {
 			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
@@ -1010,7 +1010,7 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &
 
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::AUTO_LAND:
-		if (status_flags.global_position_valid) {
+		if (status_flags.global_position_valid || status_flags.local_position_valid) {
 			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
