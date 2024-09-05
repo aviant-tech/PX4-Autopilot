@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(FGPS_LON, 8.545572);
  *
  * This value is used as the fake GPS altitude
  *
- * @unit deg
+ * @unit m
  * @min -100
  * @max 1000
  * @decimal 2
