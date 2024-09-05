@@ -79,3 +79,15 @@ PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_ACC, 1.0f);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_VEL, 2.0f);
+
+/**
+ * Whether to select GNSS-denied EKF2 instances or not
+ *
+ * If set to 1, the EKF2 selector will select GNSS-denied EKF2 instances.
+ * Else, GNSS-denied EKF2 instances will never be selected.
+ * Only has an effect if EKF2_GNSS_DENIED is set to 1.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_SEL_GNSSDEN, 0);
