@@ -42,6 +42,8 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 
 class FakeGps : public ModuleBase<FakeGps>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -67,10 +69,14 @@ private:
 	void Run() override;
 
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	bool _armed{false};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FAKE_GPS_LAT>) _param_fake_gps_lat,
-		(ParamFloat<px4::params::FAKE_GPS_LON>) _param_fake_gps_lon,
-		(ParamFloat<px4::params::FAKE_GPS_ALT>) _param_fake_gps_alt
+		(ParamInt<px4::params::FGPS_INIT_ONLY>) _param_fake_gps_init_only,
+		(ParamFloat<px4::params::FGPS_LAT>) _param_fake_gps_lat,
+		(ParamFloat<px4::params::FGPS_LON>) _param_fake_gps_lon,
+		(ParamFloat<px4::params::FGPS_ALT>) _param_fake_gps_alt
 	)
 };

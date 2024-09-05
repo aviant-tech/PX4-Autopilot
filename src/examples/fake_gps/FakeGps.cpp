@@ -55,6 +55,20 @@ void FakeGps::Run()
 		return;
 	}
 
+	if (_param_fake_gps_init_only.get() == 1) {
+		// Just use fake GPS to init while unarmed
+
+		vehicle_status_s vehicle_status = {};
+
+		if (_vehicle_status_sub.update(&vehicle_status)) {
+			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		}
+
+		if (_armed) {
+			return;
+		}
+	}
+
 	const float altitude = _param_fake_gps_alt.get() * 1e3f;
 
 	sensor_gps_s sensor_gps{};

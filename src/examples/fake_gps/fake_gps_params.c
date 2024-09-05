@@ -18,6 +18,15 @@
  */
 PARAM_DEFINE_INT32(FAKE_GPS_EN, 0);
 
+/**
+ * Use fake GPS just for initiailization
+ *
+ * If set to 1, the fake GPS will be disabled on arm
+ *
+ * @boolean
+ * @group Fake GPS
+ */
+PARAM_DEFINE_INT32(FGPS_INIT_ONLY, 1);
 
 /**
  * Fake GPS Latitude
@@ -31,7 +40,7 @@ PARAM_DEFINE_INT32(FAKE_GPS_EN, 0);
  * @increment 0.000001
  * @group Fake GPS
  */
-PARAM_DEFINE_FLOAT(FAKE_GPS_LAT, 47.398039);
+PARAM_DEFINE_FLOAT(FGPS_LAT, 47.398039);
 
 /**
  * Fake GPS Longitude
@@ -45,7 +54,7 @@ PARAM_DEFINE_FLOAT(FAKE_GPS_LAT, 47.398039);
  * @increment 0.000001
  * @group Fake GPS
  */
-PARAM_DEFINE_FLOAT(FAKE_GPS_LON, 8.545572);
+PARAM_DEFINE_FLOAT(FGPS_LON, 8.545572);
 
 /**
  * Fake GPS altitude
@@ -59,4 +68,4 @@ PARAM_DEFINE_FLOAT(FAKE_GPS_LON, 8.545572);
  * @increment 0.01
  * @group Fake GPS
  */
-PARAM_DEFINE_FLOAT(FAKE_GPS_ALT, 10.0);
+PARAM_DEFINE_FLOAT(FGPS_ALT, 10.0);
