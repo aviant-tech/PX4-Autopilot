@@ -97,7 +97,8 @@ void reset_link_loss_globals(actuator_armed_s &armed, const bool old_failsafe, c
 
 void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 				 const vehicle_status_flags_s &status_flags,
-				 const offboard_loss_actions_t offboard_loss_act);
+				 const offboard_loss_actions_t offboard_loss_act,
+				 commander_state_s &internal_state);
 
 void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 			     const vehicle_status_flags_s &status_flags,
@@ -105,7 +106,8 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 
 void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 				    const vehicle_status_flags_s &status_flags,
-				    const offboard_loss_rc_actions_t offboard_loss_rc_act);
+				    const offboard_loss_rc_actions_t offboard_loss_rc_act,
+				    commander_state_s &internal_state);
 
 void reset_offboard_loss_globals(actuator_armed_s &armed, const bool old_failsafe,
 				 const offboard_loss_actions_t offboard_loss_act,
@@ -677,17 +679,17 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			if (status.rc_signal_lost) {
 				// Offboard and RC are lost
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc_and_no_offboard);
-				set_offboard_loss_nav_state(status, armed, status_flags, offb_loss_act);
+				set_offboard_loss_nav_state(status, armed, status_flags, offb_loss_act, internal_state);
 
 			} else {
 				// Offboard is lost, RC is ok
 				if (param_com_rcl_except & RCLossExceptionBits::RCL_EXCEPT_OFFBOARD) {
 					enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_offboard);
-					set_offboard_loss_nav_state(status, armed, status_flags, offb_loss_act);
+					set_offboard_loss_nav_state(status, armed, status_flags, offb_loss_act, internal_state);
 
 				} else {
 					enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_offboard);
-					set_offboard_loss_rc_nav_state(status, armed, status_flags, offb_loss_rc_act);
+					set_offboard_loss_rc_nav_state(status, armed, status_flags, offb_loss_rc_act, internal_state);
 
 				}
 
@@ -894,7 +896,8 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 
 void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 				 const vehicle_status_flags_s &status_flags,
-				 const offboard_loss_actions_t offboard_loss_act)
+				 const offboard_loss_actions_t offboard_loss_act,
+				 commander_state_s &internal_state)
 {
 	switch (offboard_loss_act) {
 	case offboard_loss_actions_t::DISABLED:
@@ -912,6 +915,7 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 
 	case offboard_loss_actions_t::AUTO_RTL:
 		if (status_flags.global_position_valid && status_flags.home_position_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 			return;
 		}
@@ -919,13 +923,15 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 	// FALLTHROUGH
 	case offboard_loss_actions_t::AUTO_LOITER:
 		if (status_flags.global_position_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_actions_t::AUTO_LAND:
-		if (status_flags.global_position_valid) {
+		if (status_flags.global_position_valid || status_flags.local_position_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
 		}
@@ -942,7 +948,8 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 
 void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 				    const vehicle_status_flags_s &status_flags,
-				    const offboard_loss_rc_actions_t offboard_loss_rc_act)
+				    const offboard_loss_rc_actions_t offboard_loss_rc_act,
+				    commander_state_s &internal_state)
 {
 	switch (offboard_loss_rc_act) {
 	case offboard_loss_rc_actions_t::DISABLED:
@@ -962,10 +969,12 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &
 		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 		    && status_flags.local_position_valid) {
 
+			main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 			return;
 
 		} else if (status_flags.global_position_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 			return;
 		}
@@ -973,17 +982,20 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::MANUAL_ALTITUDE:
 		if (status_flags.local_altitude_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_ALTCTL, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::MANUAL_ATTITUDE:
+		main_state_transition(status, commander_state_s::MAIN_STATE_MANUAL, status_flags, internal_state);
 		status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 		return;
 
 	case offboard_loss_rc_actions_t::AUTO_RTL:
 		if (status_flags.global_position_valid && status_flags.home_position_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 			return;
 		}
@@ -991,13 +1003,15 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::AUTO_LOITER:
 		if (status_flags.global_position_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::AUTO_LAND:
-		if (status_flags.global_position_valid) {
+		if (status_flags.global_position_valid || status_flags.local_position_valid) {
+			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
 		}
