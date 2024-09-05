@@ -14,6 +14,7 @@
  *
  * @boolean
  * @group Fake GPS
+ * @reboot_required true
  */
 PARAM_DEFINE_INT32(FAKE_GPS_EN, 0);
 
