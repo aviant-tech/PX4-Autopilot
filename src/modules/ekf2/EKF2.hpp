@@ -161,6 +161,7 @@ private:
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom);
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
+	void FakeGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -551,8 +552,11 @@ private:
 		_param_ekf2_gsf_tas_default,	///< default value of true airspeed assumed during fixed wing operation
 		//
 		// Used when testing GNSS-denied EKFs
-		(ParamExtInt<px4::params::EKF2_GD_GPS_INIT>)
-		_param_ekf2_gd_gps_init	///< (Only for GNSS-denied EKFs) Allow GPS fusion while disarmed for initialisation
+		(ParamExtInt<px4::params::EKF2_GD_INIT>)
+		_param_ekf2_gd_init,	///< (Only for GNSS-denied EKFs) Allow GPS fusion while disarmed for initialisation
+		(ParamExtFloat<px4::params::EKF2_GD_LAT>) _param_ekf2_gd_lat, ///< GNSS-denied init latitude
+		(ParamExtFloat<px4::params::EKF2_GD_LON>) _param_ekf2_gd_lon, ///< GNSS-denied init longitude
+		(ParamExtFloat<px4::params::EKF2_GD_ALT>) _param_ekf2_gd_alt ///< GNSS-denied init altitude
 	)
 };
 

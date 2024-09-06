@@ -1419,11 +1419,54 @@ PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);
 PARAM_DEFINE_INT32(EKF2_GNSS_DENIED, 0);
 
 /**
- * If enabled, fuse GNSS data in GNSS-denied EFKs while disarmed.
+ * How to initialize the GNSS-denied navigation origin
  *
  * Only has an effect if EKF2_GNSS_DENIED=1.
  *
  * @group EKF2
- * @boolean
+ * @value 0 No origin
+ * @value 1 GPS measurements
+ * @value 2 Fake origin (parameters EKF2_GD_LAT, EKF2_GD_LON, EKF2_GD_ALT)
+ * @decimal 0
  */
-PARAM_DEFINE_INT32(EKF2_GD_GPS_INIT, 1);
+PARAM_DEFINE_INT32(EKF2_GD_INIT, 1);
+
+/**
+ * Latitude of the origin for GNSS-denied navigation
+ *
+ * Only has an effect if EKF2_GD_INIT=2
+ *
+ * @group EKF2
+ * @unit deg
+ * @decimal 6
+ * @reboot_required true
+ * @min -90.0
+ * @max 90.0
+ */
+PARAM_DEFINE_FLOAT(EKF2_GD_LAT, 47.398039);
+
+/**
+ * Longitude of the origin for GNSS-denied navigation
+ *
+ * Only has an effect if EKF2_GD_INIT=2
+ *
+ * @group EKF2
+ * @unit deg
+ * @decimal 6
+ * @reboot_required true
+ * @min -90.0
+ * @max 90.0
+ */
+PARAM_DEFINE_FLOAT(EKF2_GD_LON, 8.545572);
+
+/**
+ * Altitude of the origin for GNSS-denied navigation
+ *
+ * Only has an effect if EKF2_GD_INIT=2
+ *
+ * @group EKF2
+ * @unit m
+ * @decimal 1
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(EKF2_GD_ALT, 1.0);
