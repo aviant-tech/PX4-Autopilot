@@ -166,7 +166,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_mag_check(_params->check_mag_strength),
 	_param_ekf2_synthetic_mag_z(_params->synthesize_mag_z),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default),
-	_param_ekf2_gd_gps_init(_params->init_denied_w_gnss)
+	_param_ekf2_gd_init(_params->gnss_denied_init_type),
+	_param_ekf2_gd_lat(_params->gnss_denied_origin_lat),
+	_param_ekf2_gd_lon(_params->gnss_denied_origin_lon),
+	_param_ekf2_gd_alt(_params->gnss_denied_origin_alt)
 {
 	// advertise expected minimal topic set immediately to ensure logging
 	_attitude_pub.advertise();
@@ -597,11 +600,28 @@ void EKF2::Run()
 			UpdateFlowSample(ekf2_timestamps);
 		}
 
-		// While we are disarmed, use GPS to initialize position and velocity estimates
-		const bool using_gnss_to_init = !_armed && _params->init_denied_w_gnss == 1;
-
-		if (_pos_est_mode != estimator_status_s::POS_EST_MODE_GNSS_DENIED || using_gnss_to_init) {
+		if (_pos_est_mode != estimator_status_s::POS_EST_MODE_GNSS_DENIED) {
 			UpdateGpsSample(ekf2_timestamps);
+
+		} else if (!_armed) {
+			switch (_params->gnss_denied_init_type) {
+			case 0:
+				break;
+
+			case 1:
+				UpdateGpsSample(ekf2_timestamps);
+				break;
+
+			case 2:
+				const bool inited = _ekf.get_filter_initialised();
+				const bool gpos = _ekf.global_position_is_valid();
+
+				if (inited && !gpos) {
+					FakeGpsSample(ekf2_timestamps);
+				}
+
+				break;
+			}
 		}
 
 		UpdateMagSample(ekf2_timestamps);
@@ -1751,6 +1771,35 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 
 	return new_optical_flow;
+}
+
+void EKF2::FakeGpsSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	gps_message gps_msg{
+		.time_usec = hrt_absolute_time(),
+		.lat = static_cast<int32_t>(_params->gnss_denied_origin_lat * 1e7f),
+		.lon = static_cast<int32_t>(_params->gnss_denied_origin_lon * 1e7f),
+		.alt = static_cast<int32_t>(_params->gnss_denied_origin_alt * 1e3f),
+		.yaw = NAN,
+		.yaw_offset = 0.0f,
+		.fix_type = 4,
+		.eph = 1.0f,
+		.epv = 1.0f,
+		.sacc = 0.3f,
+		.vel_m_s = 0.0420f,
+		.vel_ned = Vector3f{
+			0.0370f,
+			0.0200f,
+			-0.0570f
+		},
+		.vel_ned_valid = true,
+		.nsats = 14,
+		.pdop = 1.594f
+	};
+	_ekf.setGpsData(gps_msg);
+
+	_gps_time_usec = gps_msg.time_usec;
+	_gps_alttitude_ellipsoid = gps_msg.alt;
 }
 
 void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)

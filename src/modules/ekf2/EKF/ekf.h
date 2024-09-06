@@ -336,6 +336,8 @@ public:
 
 	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 
+    bool get_filter_initialised() const { return _filter_initialised; }
+
 private:
 
 	// set the internal states and status to their default value
