@@ -129,7 +129,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 	}
 }
 
-void EstimatorInterface::setGpsData(const gps_message &gps)
+void EstimatorInterface::setGpsData(const gps_message &gps, const bool silent)
 {
 	if (!_initialised) {
 		return;
@@ -184,7 +184,9 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 
 		_gps_buffer->push(gps_sample_new);
 	} else {
-		ECL_ERR("GPS data too fast %" PRIu64, gps.time_usec - _time_last_gps);
+        if (!silent) {
+		    ECL_ERR("GPS data too fast %" PRIu64, gps.time_usec - _time_last_gps);
+        }
 	}
 }
 

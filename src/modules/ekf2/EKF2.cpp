@@ -1796,7 +1796,8 @@ void EKF2::FakeGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		.nsats = 14,
 		.pdop = 1.594f
 	};
-	_ekf.setGpsData(gps_msg);
+
+	_ekf.setGpsData(gps_msg, true);
 
 	_gps_time_usec = gps_msg.time_usec;
 	_gps_alttitude_ellipsoid = gps_msg.alt;

@@ -84,7 +84,7 @@ public:
 
 	void setMagData(const magSample &mag_sample);
 
-	void setGpsData(const gps_message &gps);
+	void setGpsData(const gps_message &gps, const bool silent = false);
 
 	void setBaroData(const baroSample &baro_sample);
 
