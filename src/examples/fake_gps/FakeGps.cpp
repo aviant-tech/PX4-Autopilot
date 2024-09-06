@@ -69,14 +69,19 @@ void FakeGps::Run()
 		}
 	}
 
-	const float altitude = _param_fake_gps_alt.get() * 1e3f;
+	(void)_param_fake_gps_alt.update();
+	const float alt = _param_fake_gps_alt.get() * 1e3f;
+	(void)_param_fake_gps_lat.update();
+	const float lat = _param_fake_gps_lat.get() * 1e7f;
+	(void)_param_fake_gps_lon.update();
+	const float lon = _param_fake_gps_lon.get() * 1e7f;
 
 	sensor_gps_s sensor_gps{};
 	sensor_gps.time_utc_usec = hrt_absolute_time() + 1613692609599954;
-	sensor_gps.lat = _param_fake_gps_lat.get() * 1e7f;
-	sensor_gps.lon = _param_fake_gps_lon.get() * 1e7f;
-	sensor_gps.alt = altitude;
-	sensor_gps.alt_ellipsoid = altitude;
+	sensor_gps.lat = lat;
+	sensor_gps.lon = lon;
+	sensor_gps.alt = alt;
+	sensor_gps.alt_ellipsoid = alt;
 	sensor_gps.s_variance_m_s = 0.3740f;
 	sensor_gps.c_variance_rad = 0.6737f;
 	sensor_gps.eph = 2.1060f;
