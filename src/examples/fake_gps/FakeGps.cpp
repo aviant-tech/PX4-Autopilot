@@ -55,17 +55,19 @@ void FakeGps::Run()
 		return;
 	}
 
+	(void)_param_fake_gps_init_only.update();
+
 	if (_param_fake_gps_init_only.get() == 1) {
-		// Just use fake GPS to init while unarmed
-
-		vehicle_status_s vehicle_status = {};
-
-		if (_vehicle_status_sub.update(&vehicle_status)) {
-			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
-		}
-
-		if (_armed) {
+		if (_has_been_armed) {
 			return;
+
+		} else {
+			vehicle_status_s vehicle_status = {};
+
+			if (_vehicle_status_sub.update(&vehicle_status)
+			    && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				_has_been_armed = true;
+			}
 		}
 	}
 

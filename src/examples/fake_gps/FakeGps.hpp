@@ -71,7 +71,7 @@ private:
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	bool _armed{false};
+	bool _has_been_armed{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FGPS_INIT_ONLY>) _param_fake_gps_init_only,

@@ -21,7 +21,7 @@ PARAM_DEFINE_INT32(FAKE_GPS_EN, 0);
 /**
  * Use fake GPS just for initiailization
  *
- * If set to 1, the fake GPS will be disabled on arm
+ * If set to 1, the fake GPS will be disabled after the first arm
  *
  * @boolean
  * @group Fake GPS

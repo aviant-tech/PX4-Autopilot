@@ -200,7 +200,6 @@ then
 fi
 
 
-# Fake GPS measurements
 if param compare FAKE_GPS_EN 1
 then
     fake_gps start
