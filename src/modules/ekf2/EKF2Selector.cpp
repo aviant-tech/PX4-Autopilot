@@ -694,24 +694,45 @@ void EKF2Selector::Run()
 	}
 
 	if (_param_ekf2_gnss_denied.get() == 1) {
-		if (_param_ekf2_sel_gnss_denied.get() != 1 || _latch_use_gnss) {
+		(void)_param_ekf2_sel_gnss_denied.update();
+
+		if (_param_ekf2_sel_gnss_denied.get() == 0 || _latch_use_gnss) {
 			_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
 
 		} else if (_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
 
 			if (_status_sub.copy(&vehicle_status)) {
+				const bool is_offboard = vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+				const bool is_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
-				if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-					_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_GNSS_DENIED;
+				if (vehicle_status.failsafe == 1 && is_armed) {
+					PX4_WARN("Failsafe detected while armed, latching GNSS-enabled mode");
+					_latch_use_gnss = true;
+					_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
 
 				} else {
-					_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
-				}
+					bool should_gnss_denied = false;
 
-				if (vehicle_status.failsafe == 1 && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-					PX4_WARN("Failsafe detected, latching GNSS-enabled mode");
-					_latch_use_gnss = true;
+					switch (_param_ekf2_sel_gnss_denied.get()) {
+					case 0:  // Never
+						break;
+
+					case 1:  // Offboard only
+						should_gnss_denied = is_offboard;
+						break;
+
+					case 2:  // Offboard or disarmed
+						should_gnss_denied = is_offboard || !is_armed;
+						break;
+
+					case 3:  // Always
+						should_gnss_denied = true;
+						break;
+					}
+
+					_desired_pos_est_mode = should_gnss_denied ? estimator_status_s::POS_EST_MODE_GNSS_DENIED :
+								estimator_status_s::POS_EST_MODE_VISION_DENIED;
 				}
 			}
 		}
