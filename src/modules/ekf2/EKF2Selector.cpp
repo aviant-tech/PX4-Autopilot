@@ -694,26 +694,47 @@ void EKF2Selector::Run()
 	}
 
 	if (_param_ekf2_gnss_denied.get() == 1) {
-		if (_param_ekf2_sel_gnss_denied.get() != 1 || _latch_use_gnss) {
-			_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
 
-		} else if (_status_sub.updated()) {
+		if (_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
 
 			if (_status_sub.copy(&vehicle_status)) {
-
-				if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-					_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_GNSS_DENIED;
-
-				} else {
-					_desired_pos_est_mode = estimator_status_s::POS_EST_MODE_VISION_DENIED;
-				}
-
-				if (vehicle_status.failsafe == 1 && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-					PX4_WARN("Failsafe detected, latching GNSS-enabled mode");
-					_latch_use_gnss = true;
-				}
+				_is_offboard = vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+				_is_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+				_is_failsafe = vehicle_status.failsafe == 1;
 			}
+		}
+
+		(void)_param_ekf2_sel_gnss_denied.update();
+		const auto sel = static_cast<gnss_denied_selection_t>(_param_ekf2_sel_gnss_denied.get());
+
+		if (sel != gnss_denied_selection_t::ALWAYS && _is_failsafe && _is_armed) {
+			PX4_WARN("Failsafe detected while armed, latching GNSS-enabled mode");
+			_latch_use_gnss = true;
+
+		} else {
+
+			bool should_gnss_denied = false;
+
+			switch (sel) {
+			case gnss_denied_selection_t::NEVER:
+				break;
+
+			case gnss_denied_selection_t::OFFBOARD:
+				should_gnss_denied = !_latch_use_gnss && _is_offboard;
+				break;
+
+			case gnss_denied_selection_t::OFFBOARD_OR_DISARMED:
+				should_gnss_denied = !_latch_use_gnss && (_is_offboard || !_is_armed);
+				break;
+
+			case gnss_denied_selection_t::ALWAYS:
+				should_gnss_denied = true;  // Ignore _latch_use_gnss
+				break;
+			}
+
+			_desired_pos_est_mode = should_gnss_denied ? estimator_status_s::POS_EST_MODE_GNSS_DENIED :
+						estimator_status_s::POS_EST_MODE_VISION_DENIED;
 		}
 	}
 

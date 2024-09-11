@@ -387,7 +387,11 @@ struct parameters {
 	const float EKFGSF_yaw_err_max{0.262f}; 	///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
 	const unsigned EKFGSF_reset_count_limit{3};	///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
 
-    int32_t init_denied_w_gnss{1}; ///< Allow fusion of GNSS even in GNSS-denied EFKs while disarmed
+    int32_t gnss_denied_init_type{0}; ///< GNSS denied initialization type (see parameter definition for details)
+
+    float gnss_denied_origin_lat{0.0f}; ///< Latitude of the origin used for GNSS denied initialization (deg)
+    float gnss_denied_origin_lon{0.0f}; ///< Longitude of the origin used for GNSS denied initialization (deg)
+    float gnss_denied_origin_alt{0.0f}; ///< Altitude of the origin used for GNSS denied initialization (m)
 };
 
 struct stateSample {

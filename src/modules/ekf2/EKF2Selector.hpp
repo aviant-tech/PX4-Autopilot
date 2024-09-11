@@ -65,6 +65,14 @@
 
 using namespace time_literals;
 
+// Matches EKF2_SEL_GNSSDEN
+enum class gnss_denied_selection_t {
+	NEVER = 0,
+	OFFBOARD = 1,
+	OFFBOARD_OR_DISARMED = 2,
+	ALWAYS = 3
+};
+
 class EKF2Selector : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
@@ -231,6 +239,9 @@ private:
 	uint8_t _global_position_instance_prev{INVALID_INSTANCE};
 	uint8_t _odometry_instance_prev{INVALID_INSTANCE};
 
+	bool _is_armed{false};
+	bool _is_offboard{false};
+	bool _is_failsafe{false};
 	bool _latch_use_gnss{false};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
