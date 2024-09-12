@@ -6,7 +6,7 @@ board_adc start
 
 # SPI4
 ms5611 -s -b 4 start
-icm20602 -s -b 4 -R 12 start
+#icm20602 -s -b 4 -R 12 start # Disable one of the internal IMUs, cannot do it in params with multi-ekf
 icm20948 -s -b 4 -R 10 -M start
 
 # SPI1
