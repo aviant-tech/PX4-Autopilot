@@ -708,34 +708,33 @@ void EKF2Selector::Run()
 		(void)_param_ekf2_sel_gnss_denied.update();
 		const auto sel = static_cast<gnss_denied_selection_t>(_param_ekf2_sel_gnss_denied.get());
 
-		if (sel != gnss_denied_selection_t::ALWAYS && _is_failsafe && _is_armed) {
+		if (!_latch_use_gnss && sel != gnss_denied_selection_t::ALWAYS && _is_failsafe && _is_armed) {
 			PX4_WARN("Failsafe detected while armed, latching GNSS-enabled mode");
 			_latch_use_gnss = true;
 
-		} else {
-
-			bool should_gnss_denied = false;
-
-			switch (sel) {
-			case gnss_denied_selection_t::NEVER:
-				break;
-
-			case gnss_denied_selection_t::OFFBOARD:
-				should_gnss_denied = !_latch_use_gnss && _is_offboard;
-				break;
-
-			case gnss_denied_selection_t::OFFBOARD_OR_DISARMED:
-				should_gnss_denied = !_latch_use_gnss && (_is_offboard || !_is_armed);
-				break;
-
-			case gnss_denied_selection_t::ALWAYS:
-				should_gnss_denied = true;  // Ignore _latch_use_gnss
-				break;
-			}
-
-			_desired_pos_est_mode = should_gnss_denied ? estimator_status_s::POS_EST_MODE_GNSS_DENIED :
-						estimator_status_s::POS_EST_MODE_VISION_DENIED;
 		}
+
+		bool should_gnss_denied = false;
+
+		switch (sel) {
+		case gnss_denied_selection_t::NEVER:
+			break;
+
+		case gnss_denied_selection_t::OFFBOARD:
+			should_gnss_denied = !_latch_use_gnss && _is_offboard;
+			break;
+
+		case gnss_denied_selection_t::OFFBOARD_OR_DISARMED:
+			should_gnss_denied = !_latch_use_gnss && (_is_offboard || !_is_armed);
+			break;
+
+		case gnss_denied_selection_t::ALWAYS:
+			should_gnss_denied = true;  // Ignore _latch_use_gnss
+			break;
+		}
+
+		_desired_pos_est_mode = should_gnss_denied ? estimator_status_s::POS_EST_MODE_GNSS_DENIED :
+					estimator_status_s::POS_EST_MODE_VISION_DENIED;
 	}
 
 	// update combined test ratio for all estimators
