@@ -117,6 +117,25 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 
 bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 {
+
+	auto ignore_id = _param_ekf2_sel_ign_id.get();
+
+	if (ignore_id > 0) {
+		uint32_t ignore_id_unsigned = static_cast<uint32_t>(ignore_id);
+
+		if (_instance[ekf_instance].accel_device_id == ignore_id_unsigned
+		    || _instance[ekf_instance].gyro_device_id == ignore_id_unsigned
+		    || _instance[ekf_instance].baro_device_id == ignore_id_unsigned
+		    || _instance[ekf_instance].mag_device_id == ignore_id_unsigned) {
+			_instance[ekf_instance].ignored_device_id = true;
+			return false;
+
+		} else {
+			_instance[ekf_instance].ignored_device_id = false;
+		}
+	}
+
+
 	if ((ekf_instance != _selected_instance) && (ekf_instance < _available_instances)) {
 		// update sensor_selection immediately
 		sensor_selection_s sensor_selection{};
@@ -782,6 +801,25 @@ void EKF2Selector::Run()
 			// (has relative error less than selected instance and has not been the selected instance for at least 10 seconds
 			// OR
 			// selected instance has stopped updating
+
+			// Skip any instances ignored based on device ID
+			const int32_t ignore_id = _param_ekf2_sel_ign_id.get();
+
+			if (ignore_id > 0) {
+				uint32_t ignore_id_unsigned = static_cast<uint32_t>(ignore_id);
+
+				if (_instance[i].accel_device_id == ignore_id_unsigned
+				    || _instance[i].gyro_device_id == ignore_id_unsigned
+				    || _instance[i].baro_device_id == ignore_id_unsigned
+				    || _instance[i].mag_device_id == ignore_id_unsigned) {
+					_instance[i].ignored_device_id = true;
+					continue;
+
+				} else {
+					_instance[i].ignored_device_id = false;
+				}
+			}
+
 			if (_instance[i].healthy.get_state() && (i != _selected_instance)
 			    && (_instance[i].pos_est_mode == _desired_pos_est_mode)) {
 				const float test_ratio = _instance[i].combined_test_ratio;
@@ -912,10 +950,11 @@ void EKF2Selector::PrintStatus()
 		const EstimatorInstance &inst = _instance[i];
 
 		PX4_INFO("%" PRIu8 ": MODE: %" PRIu8 " ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32
-			 ", %s, test ratio: %.7f (%.5f) %s",
+			 ", %s%s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.pos_est_mode,
 			 inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
 			 inst.healthy.get_state() ? "healthy" : "unhealthy",
+			 inst.ignored_device_id ? ", ignored" : "",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
 			 (_selected_instance == i) ? "*" : "");
 	}
