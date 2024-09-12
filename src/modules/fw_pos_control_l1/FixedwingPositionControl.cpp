@@ -2394,9 +2394,11 @@ FixedwingPositionControl::Run()
 				}
 
 				if (!valid_setpoint) {
-					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint\t");
-					events::send(events::ID("fixedwing_position_control_invalid_offboard_sp"), events::Log::Error,
-						     "Invalid offboard setpoint");
+					if (!_vehicle_status.in_transition_mode) {  // Hack to avoid spamming QGC when transitioning
+						mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint\t");
+						events::send(events::ID("fixedwing_position_control_invalid_offboard_sp"), events::Log::Error,
+							     "Invalid offboard setpoint");
+					}
 
 				} else {
 					_pos_sp_triplet.current.valid = valid_setpoint;
