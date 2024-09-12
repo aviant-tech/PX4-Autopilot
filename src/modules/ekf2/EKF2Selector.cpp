@@ -117,6 +117,21 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 
 bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 {
+
+	auto ignore_id = _param_ekf2_sel_ign_id.get();
+
+	if (ignore_id > 0) {
+		uint32_t ignore_id_unsiged = static_cast<uint32_t>(ignore_id);
+
+		if (_instance[ekf_instance].accel_device_id == ignore_id_unsiged
+		    || _instance[ekf_instance].gyro_device_id == ignore_id_unsiged
+		    || _instance[ekf_instance].baro_device_id == ignore_id_unsiged
+		    || _instance[ekf_instance].mag_device_id == ignore_id_unsiged) {
+			return false;
+		}
+	}
+
+
 	if ((ekf_instance != _selected_instance) && (ekf_instance < _available_instances)) {
 		// update sensor_selection immediately
 		sensor_selection_s sensor_selection{};
@@ -782,6 +797,21 @@ void EKF2Selector::Run()
 			// (has relative error less than selected instance and has not been the selected instance for at least 10 seconds
 			// OR
 			// selected instance has stopped updating
+
+			// Skip any instances ignored based on device ID
+			auto ignore_id = _param_ekf2_sel_ign_id.get();
+
+			if (ignore_id > 0) {
+				uint32_t ignore_id_unsiged = static_cast<uint32_t>(ignore_id);
+
+				if (_instance[i].accel_device_id == ignore_id_unsiged
+				    || _instance[i].gyro_device_id == ignore_id_unsiged
+				    || _instance[i].baro_device_id == ignore_id_unsiged
+				    || _instance[i].mag_device_id == ignore_id_unsiged) {
+					continue;
+				}
+			}
+
 			if (_instance[i].healthy.get_state() && (i != _selected_instance)
 			    && (_instance[i].pos_est_mode == _desired_pos_est_mode)) {
 				const float test_ratio = _instance[i].combined_test_ratio;

@@ -93,3 +93,13 @@ PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_VEL, 2.0f);
  *
  */
 PARAM_DEFINE_INT32(EKF2_SEL_GNSSDEN, 0);
+
+/**
+ * Ignore EKF2 instances with specific device ID.
+ *
+ * Set to -1 to disable this feature.
+ *
+ * @group EKF2
+ *
+ */
+PARAM_DEFINE_INT32(EKF2_SEL_IGN_ID, -1);
