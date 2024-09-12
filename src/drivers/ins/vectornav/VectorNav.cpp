@@ -38,6 +38,9 @@
 
 #include <fcntl.h>
 
+#undef PX4_DEBUG
+#define PX4_DEBUG PX4_INFO
+
 using matrix::Vector2f;
 
 VectorNav::VectorNav(const char *port) :
@@ -61,10 +64,6 @@ VectorNav::VectorNav(const char *port) :
 		// EKF2_EN 0 (disabled)
 		v = 0;
 		param_set(param_find("EKF2_EN"), &v);
-
-		// SYS_MC_EST_GROUP 0 (disabled)
-		v = 0;
-		param_set(param_find("SYS_MC_EST_GROUP"), &v);
 
 		// SENS_IMU_MODE (VN handles sensor selection)
 		v = 0;
@@ -152,7 +151,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				      GPSGROUP_NONE)
 	   ) {
 		// TIMEGROUP_TIMESTARTUP
-		//uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		(void)time_startup;
 
 		// IMUGROUP_ACCEL
 		vec3f accel = VnUartPacket_extractVec3f(packet);
@@ -182,7 +182,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				      GPSGROUP_NONE)
 	   ) {
 		// TIMEGROUP_TIMESTARTUP
-		//const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		(void)time_startup;
 
 		// IMUGROUP_TEMP
 		const float temperature = VnUartPacket_extractFloat(packet);
@@ -236,10 +237,10 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		// publish attitude
 		vehicle_attitude_s attitude{};
 		attitude.timestamp_sample = time_now_us;
-		attitude.q[0] = quaternion.c[0];
-		attitude.q[1] = quaternion.c[1];
-		attitude.q[2] = quaternion.c[2];
-		attitude.q[3] = quaternion.c[3];
+		attitude.q[0] = quaternion.c[3];
+		attitude.q[1] = quaternion.c[0];
+		attitude.q[2] = quaternion.c[1];
+		attitude.q[3] = quaternion.c[2];
 		attitude.timestamp = hrt_absolute_time();
 		_attitude_pub.publish(attitude);
 		perf_count(_attitude_pub_interval_perf);
@@ -325,9 +326,6 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.evh = velocityUncertaintyEstimated;
 			local_position.evv = velocityUncertaintyEstimated;
 
-			local_position.xy_valid = true;
-			local_position.heading_good_for_control = mode_tracking;
-
 			//local_position.dead_reckoning = false; // TODO: Aviant: We don't need this for SPRING, ingoring
 
 			local_position.vxy_max = INFINITY;
@@ -336,7 +334,6 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.hagl_max = INFINITY;
 
 			// local_position.unaided_heading = NAN; // TODO: Aviant: We don't need this for SPRING, ingoring
-
 			local_position.timestamp = hrt_absolute_time();
 			_local_position_pub.publish(local_position);
 			perf_count(_local_position_pub_interval_perf);
@@ -357,6 +354,35 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			_global_position_pub.publish(global_position);
 			perf_count(_global_position_pub_interval_perf);
 		}
+
+		// publish estimator_status (VN_MODE 1 only)
+		if (_param_vn_mode.get() == 1) {
+
+			estimator_status_s estimator_status{};
+			estimator_status.timestamp_sample = time_now_us;
+
+			float test_ratio = 0.f;
+
+			if (mode_aligning) {
+				test_ratio = 0.99f;
+
+			} else if (mode_tracking) {
+				// very good
+				test_ratio = 0.1f;
+			}
+
+			//estimator_status.hdg_test_ratio = test_ratio; // TODO: Aviant: We don't need this for SPRING, ingoring
+			estimator_status.vel_test_ratio = test_ratio;
+			estimator_status.pos_test_ratio = test_ratio;
+			estimator_status.hgt_test_ratio = test_ratio;
+
+			estimator_status.accel_device_id = _px4_accel.get_device_id();
+			estimator_status.gyro_device_id = _px4_gyro.get_device_id();
+
+			estimator_status.timestamp = hrt_absolute_time();
+			_estimator_status_pub.publish(estimator_status);
+
+		}
 	}
 
 	// binary output 3
@@ -371,17 +397,15 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				      GPSGROUP_NONE)
 	   ) {
 		// TIMEGROUP_TIMESTARTUP
-		//const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		(void)time_startup;
 
+				/**
+		 * TODO: Aviant: We don't need this for SPRIND, GPS format has changed. Commenting out to compile
+		 *
 		// GPSGROUP_UTC
-		// TimeUtc timeUtc;
-		// timeUtc.year = VnUartPacket_extractInt8(packet);
-		// timeUtc.month = VnUartPacket_extractUint8(packet);
-		// timeUtc.day = VnUartPacket_extractUint8(packet);
-		// timeUtc.hour = VnUartPacket_extractUint8(packet);
-		// timeUtc.min = VnUartPacket_extractUint8(packet);
-		// timeUtc.sec = VnUartPacket_extractUint8(packet);
-		// timeUtc.ms = VnUartPacket_extractUint16(packet);
+		TimeUtc timeUtc = VnUartPacket_extractTimeUtc(packet);
+		(void)timeUtc;
 
 		// GPSGROUP_NUMSATS
 		const uint8_t numSats = VnUartPacket_extractUint8(packet);
@@ -407,8 +431,9 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 		// publish sensor_gnss
 		if (gpsFix > 0) {
+
 			sensor_gps_s sensor_gps{};
-			//sensor_gps.timestamp_sample = time_now_us; // TODO: Aviant: We don't need this for SPRIND anyway
+			sensor_gps.timestamp_sample = time_now_us;
 
 			sensor_gps.device_id = 0; // TODO
 
@@ -418,15 +443,16 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			sensor_gps.fix_type = gpsFix;
 
-			sensor_gps.lat = positionGpsLla.c[0] * 1e7;
-			sensor_gps.lon = positionGpsLla.c[1] * 1e7;
-			sensor_gps.alt = positionGpsLla.c[2] * 1e3;
-			sensor_gps.alt_ellipsoid = sensor_gps.alt;
+			sensor_gps.latitude_deg = positionGpsLla.c[0];
+			sensor_gps.longitude_deg = positionGpsLla.c[1];
+			sensor_gps.altitude_msl_m = positionGpsLla.c[2];
+			sensor_gps.altitude_ellipsoid_m = sensor_gps.altitude_msl_m;
 
-			sensor_gps.vel_ned_valid = true;
+			sensor_gps.vel_m_s = matrix::Vector3f(velocityGpsNed.c).length();
 			sensor_gps.vel_n_m_s = velocityGpsNed.c[0];
 			sensor_gps.vel_e_m_s = velocityGpsNed.c[1];
 			sensor_gps.vel_d_m_s = velocityGpsNed.c[2];
+			sensor_gps.vel_ned_valid = true;
 
 			sensor_gps.hdop = dop.hDOP;
 			sensor_gps.vdop = dop.vDOP;
@@ -439,7 +465,9 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			sensor_gps.timestamp = hrt_absolute_time();
 			_sensor_gps_pub.publish(sensor_gps);
 			perf_count(_gnss_pub_interval_perf);
+
 		}
+		*/
 	}
 }
 
@@ -454,13 +482,15 @@ bool VectorNav::init()
 
 	if ((VnSensor_connect(&_vs, _port, DEFAULT_BAUDRATE) != E_NONE) || !VnSensor_verifySensorConnectivity(&_vs)) {
 
+		VnSensor_disconnect(&_vs);
+
 		static constexpr uint32_t BAUDRATES[] {9600, 19200, 38400, 57600, 115200, 128000, 230400, 460800, 921600};
 
 		for (auto &baudrate : BAUDRATES) {
 			VnSensor_initialize(&_vs);
 
 			if (VnSensor_connect(&_vs, _port, baudrate) == E_NONE && VnSensor_verifySensorConnectivity(&_vs)) {
-				PX4_DEBUG("found baudrate %d", baudrate);
+				PX4_DEBUG("found baudrate %d", (int)baudrate);
 				break;
 			}
 
@@ -469,11 +499,19 @@ bool VectorNav::init()
 		}
 	}
 
+	if (!VnSensor_verifySensorConnectivity(&_vs)) {
+		PX4_ERR("Error verifying sensor connectivity");
+		VnSensor_disconnect(&_vs);
+		return false;
+	}
+
 	VnError error = E_NONE;
 
 	// change baudrate to max
 	if ((error = VnSensor_changeBaudrate(&_vs, DESIRED_BAUDRATE)) != E_NONE) {
-		PX4_WARN("Error changing baud rate failed: %d", error);
+		PX4_ERR("Error changing baud rate failed: %d", error);
+		VnSensor_disconnect(&_vs);
+		return false;
 	}
 
 	// query the sensor's model number
@@ -481,6 +519,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readModelNumber(&_vs, model_number, sizeof(model_number))) != E_NONE) {
 		PX4_ERR("Error reading model number %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -489,6 +528,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readHardwareRevision(&_vs, &hardware_revision)) != E_NONE) {
 		PX4_ERR("Error reading HW revision %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -497,6 +537,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readSerialNumber(&_vs, &serial_number)) != E_NONE) {
 		PX4_ERR("Error reading serial number %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -505,6 +546,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readFirmwareVersion(&_vs, firmware_version, sizeof(firmware_version))) != E_NONE) {
 		PX4_ERR("Error reading firmware version %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -552,7 +594,6 @@ bool VectorNav::configure()
 		PX4_ERR("Error reading VPE basic control %d", error);
 	}
 
-
 	VnError VnSensor_readImuFilteringConfiguration(VnSensor * sensor, ImuFilteringConfigurationRegister * fields);
 	// VnError VnSensor_writeImuFilteringConfiguration(VnSensor *sensor, ImuFilteringConfigurationRegister fields, bool waitForReply);
 
@@ -575,7 +616,7 @@ bool VectorNav::configure()
 	// binary output 1: max rate IMU
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_1,
-		ASYNCMODE_PORT1,
+		ASYNCMODE_PORT2,
 		1, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
@@ -598,7 +639,7 @@ bool VectorNav::configure()
 	// binary output 2: medium rate AHRS, INS, baro, mag
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_2,
-		ASYNCMODE_PORT1,
+		ASYNCMODE_PORT2,
 		8, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
@@ -617,7 +658,7 @@ bool VectorNav::configure()
 	// binary output 3: low rate GNSS
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_3,
-		ASYNCMODE_PORT1,
+		ASYNCMODE_PORT2,
 		80, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
@@ -800,7 +841,7 @@ Serial bus driver for the VectorNav VN-100, VN-200, VN-300.
 
 Most boards are configured to enable/start the driver on a specified UART using the SENS_VN_CFG parameter.
 
-Setup/usage information: https://docs.px4.io/master/en/sensor/vectornav.html
+Setup/usage information: https://docs.px4.io/main/en/sensor/vectornav.html
 
 ### Examples
 
