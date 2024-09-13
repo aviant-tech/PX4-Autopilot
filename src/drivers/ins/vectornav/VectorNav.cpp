@@ -281,6 +281,12 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		const uint64_t time_startup = VnUartPacket_extractUint64(packet);
 		(void)time_startup;
 
+		/*
+		 * Aviant: We won't use the GPS on the Vectornav, so it's easier to just
+		 * comment out this block instead of porting it to 1.14. The GPS message formats
+		 * have changed since, so it would require some work to port this.
+		 *
+
 		// GPSGROUP_UTC
 		TimeUtc timeUtc = VnUartPacket_extractTimeUtc(packet);
 		(void)timeUtc;
@@ -340,7 +346,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			sensor_gps.timestamp = hrt_absolute_time();
 			_sensor_gps_pub.publish(sensor_gps);
-		}
+		}*/
 	}
 }
 
