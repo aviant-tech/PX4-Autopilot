@@ -327,7 +327,8 @@ TEST(ControlAllocationSequentialDesaturationTest, AirmodeDisabledReducedThrustAn
 	const auto &actuator_sp = allocator.getActuatorSetpoint();
 	// In the case of yaw saturation, thrust per motor will be reduced by the hard-coded
 	// magic-number yaw margin of 0.15f.
-	constexpr float YAW_MARGIN{0.15f}; // get this from a centralized source when available.
+	// Aviant specific: We have set this to 0 to prioritize thrust over yaw.
+	constexpr float YAW_MARGIN{0.0f}; // get this from a centralized source when available.
 	constexpr float YAW_DIFF_PER_MOTOR{1.0f + YAW_MARGIN - DESIRED_THRUST_Z_PER_MOTOR};
 	// At control set point, there will be 2 different actuator values.
 	constexpr float HIGH_THRUST_Z_PER_MOTOR{DESIRED_THRUST_Z_PER_MOTOR + YAW_DIFF_PER_MOTOR - YAW_MARGIN};
