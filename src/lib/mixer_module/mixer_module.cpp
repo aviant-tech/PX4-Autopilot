@@ -127,6 +127,11 @@ void MixingOutput::initParamHandles()
 
 	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "REV");
 	_param_handle_rev_range = param_find(param_name);
+	// Dynamic actuator limiting based on battery
+	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "DRNG");
+	_param_handle_dynamic_range = param_find(param_name);
+	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "DCHNS");
+	_param_handle_dynamic_channels = param_find(param_name);
 }
 
 void MixingOutput::printStatus() const
@@ -141,9 +146,10 @@ void MixingOutput::printStatus() const
 	PX4_INFO_RAW("Channel Configuration:\n");
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
-		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+		PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d/%d, dynalim: %s\n", i,
 			     (int)_function_assignment[i], _current_output_value[i],
-			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
+			     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _dynamic_max_value[i], _max_value[i],
+			     _dynamic_channels & (1 << i) ? "true" : "false");
 	}
 }
 
@@ -193,6 +199,18 @@ void MixingOutput::updateParams()
 	if (_param_handle_rev_range != PARAM_INVALID && param_get(_param_handle_rev_range, &rev_range_param) == 0) {
 		_reverse_output_mask = rev_range_param;
 	}
+
+	// Dynamic output limiting based on battery
+	if (_param_handle_dynamic_channels == PARAM_INVALID
+	    || param_get(_param_handle_dynamic_channels, &_dynamic_channels) != 0) {
+		_dynamic_channels = 0;
+	}
+
+	if (_param_handle_dynamic_range == PARAM_INVALID || param_get(_param_handle_dynamic_range, &_dynamic_range) != 0) {
+		_dynamic_range = 0.f;
+	}
+
+	_dynamic_range = math::constrain(_dynamic_range, 0.f, 1.f);
 
 	if (function_changed) {
 		_need_function_update = true;
@@ -455,6 +473,27 @@ bool MixingOutput::update()
 		}
 	}
 
+	// Update dynamic max limit
+	battery_status_s battery_status;
+
+	if (_battery_sub.update(&battery_status)) {
+		// Constrain to sane values, this also interprets the error/disabled value "-1" as 0
+		_dynamic_actuator = math::constrain(battery_status.dynamic_actuator, 0.f, 1.f);
+	}
+
+	float dynamic_limit = math::interpolate(_dynamic_actuator, 0.f, 1.f, _dynamic_range, 0.f);
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		if (_dynamic_channels & (1 << i)) {
+			uint16_t dynamic_max = _max_value[i] - uint16_t(float(_max_value[i] - _min_value[i]) * dynamic_limit);
+			dynamic_max = math::max(_min_value[i], dynamic_max);
+			_dynamic_max_value[i] = dynamic_max;
+
+		} else {
+			_dynamic_max_value[i] = _max_value[i];
+		}
+	}
+
 	// Send output if any function mapped or one last disabling sample
 	if (!all_disabled || !_was_all_disabled) {
 		if (!_armed.armed && !_armed.manual_lockdown) {
@@ -532,7 +571,7 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 	}
 
 	const float output = math::interpolate(value, -1.f, 1.f,
-					       static_cast<float>(_min_value[i]), static_cast<float>(_max_value[i]));
+					       static_cast<float>(_min_value[i]), static_cast<float>(_dynamic_max_value[i]));
 
 	return math::constrain(lroundf(output), 0L, static_cast<long>(UINT16_MAX));
 }

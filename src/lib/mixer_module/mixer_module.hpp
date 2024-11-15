@@ -58,6 +58,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
@@ -233,6 +234,7 @@ private:
 		param_t min{PARAM_INVALID};
 		param_t max{PARAM_INVALID};
 		param_t failsafe{PARAM_INVALID};
+		param_t dynamic_range{PARAM_INVALID};
 	};
 
 	void lock() { do {} while (px4_sem_wait(&_lock) != 0); }
@@ -244,6 +246,7 @@ private:
 	uint16_t _disarmed_value[MAX_ACTUATORS] {};
 	uint16_t _min_value[MAX_ACTUATORS] {};
 	uint16_t _max_value[MAX_ACTUATORS] {};
+	uint16_t _dynamic_max_value[MAX_ACTUATORS] {};
 	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
 
@@ -257,6 +260,8 @@ private:
 	const bool _output_ramp_up; ///< if true, motors will ramp up from disarmed to min_output after arming
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	// Only subscribe to the first battery instance
+	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 
 	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
 
@@ -285,6 +290,11 @@ private:
 	const char *const _param_prefix;
 	ParamHandles _param_handles[MAX_ACTUATORS];
 	param_t _param_handle_rev_range{PARAM_INVALID};
+	param_t _param_handle_dynamic_range{PARAM_INVALID};
+	param_t _param_handle_dynamic_channels{PARAM_INVALID};
+	float _dynamic_actuator = 0.f;  // from battery subscription. Init to 0 assumes full battery until data is received.
+	float _dynamic_range = 0.f;
+	int32_t _dynamic_channels = 0;
 	hrt_abstime _lowrate_schedule_interval{300_ms};
 	ActuatorTest _actuator_test{_function_assignment};
 	uint32_t _reversible_mask{0}; ///< per-output bits. If set, the output is configured to be reversible (motors only)
