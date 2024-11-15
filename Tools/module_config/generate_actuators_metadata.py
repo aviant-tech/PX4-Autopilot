@@ -153,6 +153,9 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             param = {
                     'name': config_param['param'],
                 }
+            if 'param_prefix' in config_param:
+                param_prefix = process_param_prefix(config_param['param_prefix'])
+                param['name'] = param_prefix + '_' + config_param['param']
             if 'label' in config_param:
                 param['label'] = config_param['label']
             if 'function' in config_param:
@@ -264,6 +267,12 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             }
         per_channel_params.append(param)
 
+        per_channel_params.append({
+                'label': 'Dynalim',
+                'name': param_prefix+'_DCHNS',
+                'index-offset': -1,
+                'show-as': 'bitset',
+        })
         custom_params = group.get('custom_params', [])
         for custom_param in custom_params:
             # Simply pulls all custom params, assuming they are valid ones

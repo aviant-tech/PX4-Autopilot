@@ -1,6 +1,9 @@
 
 module_name: SIM
 actuator_output:
+  config_parameters:
+        - param: 'PWM_MAIN_DRNG'
+          label: 'Dynamic Range'
   output_groups:
     - param_prefix: PWM_MAIN
       channel_label: Channel

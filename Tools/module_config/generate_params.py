@@ -351,6 +351,41 @@ Note: this is only useful for servos.
             }
         add_local_param(param_prefix+'_REV', param)
 
+        param = {
+            'description': {
+                'short': f'Outputs with dynamic max limiting for {param_prefix}',
+                'long':
+f'''
+The selected outputs will reduce the max output
+based on {param_prefix}_DRNG and the dynamic allocator
+signal received from the battery module.
+'''
+            },
+            'type': 'bitmask',
+            'default': 0,
+            'bit': channel_bits
+        }
+        add_local_param(param_prefix+'_DCHNS', param)
+
+        param = {
+            'description': {
+                'short': f'Amount to reduce max limit, given a full battery for {param_prefix} outputs',
+                'long':
+f'''
+The outputs given by {param_prefix}_DCHNS will have a reduction
+in output range (max-min) given by this scalar when the
+battery is full. The output will gradually be scaled up
+as the battery is drained.
+'''
+            },
+            'type': 'float',
+            'min': 0,
+            'max': 1,
+            'decimal': 2,
+            'default': 0
+        }
+        add_local_param(param_prefix+'_DRNG', param)
+
     if verbose: print('adding actuator params: {:}'.format(all_params))
     return all_params
 

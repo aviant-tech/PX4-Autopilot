@@ -246,6 +246,10 @@ actuator_output:
                       # parameter name
                       type: string
                       required: true
+                  param_prefix:
+                      # prefix to apply to the parameter name
+                      type: string
+                      required: false
                   label:
                       # human-readable label
                       type: string
@@ -428,6 +432,10 @@ actuator_output:
                                   # parameter name
                                   type: string
                                   required: true
+                              param_prefix:
+                                  # prefix to apply to the parameter name
+                                  type: string
+                                  required: false
                               label:
                                   # human-readable label
                                   type: string
