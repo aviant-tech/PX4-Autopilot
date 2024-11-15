@@ -228,6 +228,11 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);
 	failed = failed || !parachuteCheck(mavlink_log_pub, report_failures, status_flags);
 
+	// Check first instance of battery status for dynamic actuator,
+	// since only first instance is curretly used in mixer module.
+	// Need to expand this if we ever subscribe to other intances in mixer module.
+	failed = failed || !dynamicActuatorCheck(mavlink_log_pub, 0, true, report_failures);
+
 	/* Report status */
 	return !failed;
 }

@@ -6,6 +6,39 @@ parameters:
     - group: PWM Outputs
       definitions:
 
+        PWM_EXTRA_DCHNS:
+            description:
+                short: Outputs with dynamic max limiting
+                long: |
+                    The selected outputs will reduce the max output
+                    based on PWM_EXTRA_DRNG and the dynamic allocator
+                    signal received from the battery module.
+            type: bitmask
+            bit:
+                0: Channel 1
+                1: Channel 2
+                2: Channel 3
+                3: Channel 4
+                4: Channel 5
+                5: Channel 6
+                6: Channel 7
+                7: Channel 8
+            default: 0
+
+        PWM_EXTRA_DRNG:
+            description:
+                short: Amount to reduce max limit, given a full battery
+                long: |
+                    The outputs given by PWM_EXTRA_DCHNS will have a reduction
+                    in output range (max-min) given by this scalar when the
+                    battery is full. The output will gradually be scaled up
+                    as the battery is drained.
+            type: float
+            min: 0
+            max: 1
+            decimal: 2
+            default: 0
+
         PWM_EXTRA_RATE:
             description:
                 short: PWM extra output frequency

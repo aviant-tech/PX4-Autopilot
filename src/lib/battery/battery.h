@@ -121,6 +121,8 @@ protected:
 		param_t emergen_thr;
 		param_t source;
 		param_t bat_avrg_current;
+		param_t dynact;
+		param_t q_maxact;
 	} _param_handles{};
 
 	struct {
@@ -135,6 +137,8 @@ protected:
 		float emergen_thr;
 		int32_t source;
 		float bat_avrg_current;
+		int32_t dynact;
+		float q_maxact;
 	} _params{};
 
 	const int _index;
@@ -147,6 +151,7 @@ private:
 	void estimateStateOfCharge(const float voltage_v, const float current_a);
 	uint8_t determineWarning(float state_of_charge);
 	void computeScale();
+	void computeDynamicActuator();
 	float computeRemainingTime(float current_a);
 
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
@@ -168,6 +173,8 @@ private:
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
+	float _dynamic_actuator{-1.f};
+	bool _battery_was_full{false};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
