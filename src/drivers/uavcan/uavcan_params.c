@@ -411,3 +411,39 @@ PARAM_DEFINE_INT32(UAVCAN_LOG_LEVEL, 1);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_GPS1_ID, 0);
+
+/**
+ * Outputs with dynamic max limiting
+ *
+ * The selected outputs will reduce the max output
+ * based on UAVCAN_EC_DRNG and the dynamic allocator
+ * signal received from the battery module.
+ *
+ * @group UAVCAN
+ * @min 0
+ * @max 255
+ * @bit 0 Channel 1
+ * @bit 1 Channel 2
+ * @bit 2 Channel 3
+ * @bit 3 Channel 4
+ * @bit 4 Channel 5
+ * @bit 5 Channel 6
+ * @bit 6 Channel 7
+ * @bit 7 Channel 8
+ */
+PARAM_DEFINE_INT32(UAVCAN_EC_DCHNS, 0);
+
+/**
+ * Amount to reduce max limit, given a full battery
+ *
+ * The outputs given by UAVCAN_EC_DCHNS will have a reduction
+ * in output range (max-min) given by this scalar when the
+ * battery is full. The output will gradually be scaled up
+ * as the battery is drained.
+ *
+ * @group UAVCAN
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_EC_DRNG, 0);
