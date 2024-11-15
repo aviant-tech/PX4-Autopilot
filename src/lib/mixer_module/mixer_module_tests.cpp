@@ -488,6 +488,7 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 
 	mixing_output.setAllMinValues(MIN_VALUE); // default range [1000,2000]
 	mixing_output.setAllMaxValues(MAX_VALUE);
+	mixing_output.update(); // Needed for recalculating dynamic range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 1000); // In range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 1250);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 1500);
@@ -503,6 +504,7 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 
 	mixing_output.setAllMinValues(0); // lower range [0,20]
 	mixing_output.setAllMaxValues(20);
+	mixing_output.update(); // Needed for recalculating dynamic range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 0); // In range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 5);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 10);
@@ -518,6 +520,7 @@ TEST_F(MixerModuleTest, OutputLimitCalcSingle)
 
 	mixing_output.setAllMinValues(20); // inverted range [20,0]
 	mixing_output.setAllMaxValues(0);
+	mixing_output.update(); // Needed for recalculating dynamic range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -1.f), 20); // In range
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, -.5f), 15);
 	EXPECT_EQ(mixing_output.output_limit_calc_single(0, 0.f), 10);
