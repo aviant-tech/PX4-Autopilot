@@ -340,9 +340,10 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 		if (_armed && (_mag_comp_type == MagCompensationType::Throttle)) {
 			actuator_controls_s controls;
 
-			if (_actuator_controls_0_sub.update(&controls)) {
+			if (_actuator_controls_1_sub.update(&controls)) {
 				for (auto &cal : _calibration) {
-					cal.UpdatePower(controls.control[actuator_controls_s::INDEX_THROTTLE]);
+					const float throttle = controls.control[actuator_controls_s::INDEX_THROTTLE];
+					cal.UpdatePower(throttle * throttle);
 				}
 			}
 
