@@ -43,6 +43,7 @@ void PositionSmoothing::_generateSetpoints(
 	const Vector3f &feedforward_velocity,
 	float delta_time,
 	bool force_zero_velocity_setpoint,
+	bool disable_time_stretch,
 	PositionSmoothingSetpoints &out_setpoints)
 {
 	Vector3f velocity_setpoint{0.f, 0.f, 0.f};
@@ -57,6 +58,7 @@ void PositionSmoothing::_generateSetpoints(
 		position,
 		velocity_setpoint,
 		delta_time,
+		disable_time_stretch,
 		out_setpoints
 	);
 }
@@ -262,6 +264,7 @@ void PositionSmoothing::_generateTrajectory(
 	const Vector3f &position,
 	const Vector3f &velocity_setpoint,
 	float delta_time,
+	bool disable_time_stretch,
 	PositionSmoothingSetpoints &out_setpoints)
 {
 	if (!velocity_setpoint.isAllFinite()) {
@@ -295,6 +298,11 @@ void PositionSmoothing::_generateTrajectory(
 		out_setpoints.acceleration(i) = _trajectory[i].getCurrentAcceleration();
 		out_setpoints.velocity(i) = _trajectory[i].getCurrentVelocity();
 		out_setpoints.position(i) = _trajectory[i].getCurrentPosition();
+	}
+
+	// Don't stretch time if explicitly disabled
+	if (disable_time_stretch) {
+		time_stretch = 1.f;
 	}
 
 	for (int i = 0; i < 3; ++i) {

@@ -66,6 +66,31 @@ public:
 		Vector3f unsmoothed_velocity;
 	};
 
+		/**
+	 * @brief Generates new setpoints for jerk, acceleration, velocity and position
+	 * to reach the given waypoint triplet smoothly from current position
+	 *
+	 * @param position Current position of the vehicle
+	 * @param waypoints 0: Past waypoint, 1: target, 2: Target after next target
+	 * @param feedforward_velocity FF velocity
+	 * @param delta_time Time since last invocation of the function
+	 * @param force_zero_velocity_setpoint Force vehicle to stop. Generate trajectory that ends with still vehicle.
+	 * @param disable_time_stretch Disable time stretching
+	 * @param out_setpoints Output of the generated setpoints
+	 */
+	inline void generateSetpoints(
+		const Vector3f &position,
+		const Vector3f(&waypoints)[3],
+		const Vector3f &feedforward_velocity,
+		float delta_time,
+		bool force_zero_velocity_setpoint,
+		bool disable_time_stretch,
+		PositionSmoothingSetpoints &out_setpoints
+	){
+		_generateSetpoints(position, waypoints, false, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
+				   disable_time_stretch, out_setpoints);
+	}
+
 	/**
 	 * @brief Generates new setpoints for jerk, acceleration, velocity and position
 	 * to reach the given waypoint triplet smoothly from current position
@@ -87,7 +112,7 @@ public:
 	)
 	{
 		_generateSetpoints(position, waypoints, false, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
-				   out_setpoints);
+				   false, out_setpoints);
 	}
 
 	/**
@@ -111,7 +136,7 @@ public:
 	)
 	{
 		Vector3f waypoints[3] = {waypoint, waypoint, waypoint};
-		_generateSetpoints(position, waypoints, true, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
+		generateSetpoints(position, waypoints, feedforward_velocity, delta_time, force_zero_velocity_setpoint,
 				   out_setpoints);
 	}
 
@@ -432,6 +457,7 @@ private:
 		const Vector3f &feedforward_velocity,
 		float delta_time,
 		bool force_zero_velocity_setpoint,
+		bool disable_time_stretch,
 		PositionSmoothingSetpoints &out_setpoints
 	);
 
@@ -447,5 +473,6 @@ private:
 		const Vector3f &position,
 		const Vector3f &velocity_setpoint,
 		float delta_time,
+		bool disable_time_stretch,
 		PositionSmoothingSetpoints &out_setpoints);
 };
