@@ -4155,9 +4155,9 @@ void Commander::estimator_check()
 							if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 2_s) {
 								// if the innovation test has failed continuously, declare the nav as failed
 								_nav_test_failed = true;
-								mavlink_log_emergency(&_mavlink_log_pub, "Navigation failure! Land and recalibrate sensors\t");
+								mavlink_log_emergency(&_mavlink_log_pub, "Compass failure! Land when suitable\t");
 								events::send(events::ID("commander_navigation_failure"), events::Log::Emergency,
-									     "Navigation failure! Land and recalibrate the sensors");
+									     "Compass failure! When suitable, land and recalibrate the sensors");
 							}
 						}
 					}
@@ -4184,8 +4184,12 @@ void Commander::estimator_check()
 			}
 		}
 
-		bool xy_valid = lpos.xy_valid && !_nav_test_failed;
-		bool v_xy_valid = lpos.v_xy_valid && !_nav_test_failed;
+		// Aviant: We don't want the nav tests to do anything other than warn.
+		// They trigger slowly, so we are pretty high in the air anyway.
+		// Better to complete takeoff and let compass calibrate/get to parachute altitude,
+		// or let EKF switch to GSF backup estimator.
+		bool xy_valid = lpos.xy_valid; // && !_nav_test_failed;
+		bool v_xy_valid = lpos.v_xy_valid; // && !_nav_test_failed;
 
 		if (!_armed.armed) {
 			if (pre_flt_fail_innov_heading || pre_flt_fail_innov_vel_horiz) {
