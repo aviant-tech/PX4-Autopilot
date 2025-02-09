@@ -4087,16 +4087,16 @@ void Commander::estimator_check()
 
 		// Check for a magnetomer fault and notify the user
 		if (!mag_fault_prev && estimator_status_flags.cs_mag_fault) {
-			mavlink_log_critical(&_mavlink_log_pub, "Compass needs calibration - Land now!\t");
+			mavlink_log_critical(&_mavlink_log_pub, "Compass needs calibration - Land when possible!\t");
 			events::send(events::ID("commander_stopping_mag_use"), events::Log::Critical,
-				     "Stopping compass use! Land now and calibrate the compass");
+				     "Stopping compass use! Land when possible and calibrate the compass");
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, true, true, false, _status);
 		}
 
 		if (!gnss_heading_fault_prev && estimator_status_flags.cs_gps_yaw_fault) {
-			mavlink_log_critical(&_mavlink_log_pub, "GNSS heading not reliable - Land now!\t");
+			mavlink_log_critical(&_mavlink_log_pub, "GNSS heading not reliable - Land when possible!\t");
 			events::send(events::ID("commander_stopping_gnss_heading_use"), events::Log::Critical,
-				     "GNSS heading not reliable. Land now!");
+				     "GNSS heading not reliable. Land when possible!");
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, false, _status);
 		}
 	}
@@ -4155,9 +4155,9 @@ void Commander::estimator_check()
 							if (!_nav_test_failed && hrt_elapsed_time(&_time_last_innov_pass) > 2_s) {
 								// if the innovation test has failed continuously, declare the nav as failed
 								_nav_test_failed = true;
-								mavlink_log_emergency(&_mavlink_log_pub, "Compass failure! Land when suitable\t");
+								mavlink_log_emergency(&_mavlink_log_pub, "Compass failure! Land when possible\t");
 								events::send(events::ID("commander_navigation_failure"), events::Log::Emergency,
-									     "Compass failure! When suitable, land and recalibrate the sensors");
+									     "Compass failure! When possible, land and recalibrate the sensors");
 							}
 						}
 					}
