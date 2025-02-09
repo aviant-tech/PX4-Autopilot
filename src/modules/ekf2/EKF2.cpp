@@ -357,6 +357,39 @@ void EKF2::Run()
 					_ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
 					PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude, static_cast<double>(altitude));
 				}
+
+			} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+				bool handled = false;
+				bool supported = false;
+
+				const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+				const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+				const int failure_instance = static_cast<int>(vehicle_command.param3 + 0.5f);
+
+				if (failure_unit == vehicle_command_s::FAILURE_UNIT_SYSTEM_EKF) {
+					// This is an error for one or all EKF instances
+					// 0 to signal all, note that the instance is 1 indexed
+					if (failure_instance == _instance + 1 || failure_instance == 0) {
+						if (failure_instance != 0 || _instance == 0) {
+							// In the case where all instances are triggered,
+							// only first instance should send the ack
+							handled = true;
+						}
+
+						supported = _ekf.injectFailure(failure_type);
+					}
+				}
+
+				if (handled) {
+					vehicle_command_ack_s ack{};
+					ack.command = vehicle_command.command;
+					ack.from_external = false;
+					ack.result = supported ?
+						     vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED :
+						     vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+					ack.timestamp = hrt_absolute_time();
+					_command_ack_pub.publish(ack);
+				}
 			}
 		}
 	}

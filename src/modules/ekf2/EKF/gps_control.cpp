@@ -100,6 +100,10 @@ void Ekf::controlGpsFusion()
 
 						resetVelocityToGps(_gps_sample_delayed);
 						resetHorizontalPositionToGps(_gps_sample_delayed);
+
+						// Clear GPS reset fault flags, as they would have been injected by now
+						_inject_failure_gnss_reset = false;
+						_inject_failure_gnss_reset_bad_heading = false;
 					}
 
 				} else {
@@ -190,13 +194,19 @@ bool Ekf::shouldResetGpsFusion() const
 					     && (_time_last_hor_vel_fuse > _time_last_on_ground_us)
 					     && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
 
-	return (is_reset_required || is_recent_takeoff_nav_failure || is_inflight_nav_failure);
+	const bool is_injected_fault = _inject_failure_gnss_reset || _inject_failure_gnss_reset_bad_heading;
+	return (is_reset_required || is_recent_takeoff_nav_failure || is_inflight_nav_failure || is_injected_fault);
 }
 
 bool Ekf::isYawFailure() const
 {
 	if (!isYawEmergencyEstimateAvailable()) {
+
 		return false;
+	}
+
+	if (_inject_failure_gnss_reset_bad_heading) {
+		return true;
 	}
 
 	const float euler_yaw = getEulerYaw(_R_to_earth);

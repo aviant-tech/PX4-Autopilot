@@ -501,6 +501,19 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	return true;
 }
 
+bool EstimatorInterface::injectFailure(uint8_t failure_type)
+{
+	if (failure_type == vehicle_command_s::FAILURE_TYPE_GNSS_RESET) {
+		_inject_failure_gnss_reset = true;
+
+	} else if (failure_type == vehicle_command_s::FAILURE_TYPE_GNSS_RESET_BAD_HEADING) {
+		_inject_failure_gnss_reset_bad_heading = true;
+		return true;
+	}
+
+	return false;
+}
+
 bool EstimatorInterface::isOnlyActiveSourceOfHorizontalAiding(const bool aiding_flag) const
 {
 	return aiding_flag && !isOtherSourceOfHorizontalAidingThan(aiding_flag);

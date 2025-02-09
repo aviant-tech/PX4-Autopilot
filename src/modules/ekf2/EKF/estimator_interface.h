@@ -72,6 +72,8 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/AlphaFilter.hpp>
 
+#include <uORB/topics/vehicle_command.h>
+
 using namespace estimator;
 
 class EstimatorInterface
@@ -260,6 +262,8 @@ public:
 	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
 	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
 
+	bool injectFailure(uint8_t failure_type);
+
 protected:
 
 	EstimatorInterface() = default;
@@ -406,6 +410,9 @@ protected:
 	// state logic becasue they will be cleared externally after being read.
 	warning_event_status_u _warning_events{};
 	information_event_status_u _information_events{};
+
+	bool _inject_failure_gnss_reset{false};
+	bool _inject_failure_gnss_reset_bad_heading{false};
 
 private:
 
