@@ -739,6 +739,18 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 
 /**
+ * Global postion loss response.
+ *
+ * This sets the response that will be used if global postion is loss
+ *
+ * @value 0 Terminate. Response for flight termination in case of global position loss.
+ * @value 1 Descend. Response to make vehicle descend in case of global position loss.
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_GLB_POS_LOSS, 0);
+
+/**
  * Require arm authorization to arm
  *
  * By default off. The default allows to arm the vehicle without a arm authorization.
