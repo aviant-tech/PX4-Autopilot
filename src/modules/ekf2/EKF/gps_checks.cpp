@@ -145,7 +145,14 @@ bool Ekf::gps_is_good(const gps_message &gps)
 {
 	// Check the fix type
 	const int32_t min_fixtype = 3;
-	_gps_check_fail_status.flags.fix = (gps.fix_type < math::max(min_fixtype, _params.req_fixtype));
+
+	if (!_NED_origin_initialised) {
+		// Only use EKF2_REQ_FIXTYPE if the origin has not been set
+		_gps_check_fail_status.flags.fix = (gps.fix_type < math::max(min_fixtype, _params.req_fixtype));
+
+	} else {
+		_gps_check_fail_status.flags.fix = (gps.fix_type < min_fixtype);
+	}
 
 	// Check the number of satellites
 	_gps_check_fail_status.flags.nsats = (gps.nsats < _params.req_nsats);

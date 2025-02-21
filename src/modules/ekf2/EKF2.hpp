@@ -84,6 +84,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_imu.h>
@@ -297,6 +298,7 @@ private:
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::PublicationMulti<vehicle_odometry_s>           _estimator_visual_odometry_aligned_pub{ORB_ID(estimator_visual_odometry_aligned)};
 	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
+	uORB::Publication<vehicle_command_ack_s>             _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	// publications with topic dependent on multi-mode
 	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;

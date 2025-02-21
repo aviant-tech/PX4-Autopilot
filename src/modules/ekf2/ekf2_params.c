@@ -254,8 +254,9 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_HDRIFT, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_REQ_VDRIFT, 0.2f);
 
 /**
- * Required minimum GNSS fix type.
+ * Required minimum GNSS fix type for initializing EKF origin.
  *
+ * Note that this doesn't affect GPS checks after the origin has been initialized.
  * These match the MAVLink enum type GPS_FIX_TYPE.
  *
  * @group EKF2
