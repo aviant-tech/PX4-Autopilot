@@ -95,8 +95,9 @@ _param_prefix(param_prefix)
 
 	_use_dynamic_mixing = _param_sys_ctrl_alloc.get();
 
+	initParamHandles();
+
 	if (_use_dynamic_mixing) {
-		initParamHandles();
 
 		for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 			_failsafe_value[i] = UINT16_MAX;
@@ -126,21 +127,31 @@ void MixingOutput::initParamHandles()
 {
 	char param_name[17];
 
-	for (unsigned i = 0; i < _max_num_outputs; ++i) {
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FUNC", i + 1);
-		_param_handles[i].function = param_find(param_name);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "DIS", i + 1);
-		_param_handles[i].disarmed = param_find(param_name);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MIN", i + 1);
-		_param_handles[i].min = param_find(param_name);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MAX", i + 1);
-		_param_handles[i].max = param_find(param_name);
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + 1);
-		_param_handles[i].failsafe = param_find(param_name);
+	if (_use_dynamic_mixing) {
+		for (unsigned i = 0; i < _max_num_outputs; ++i) {
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FUNC", i + 1);
+			_param_handles[i].function = param_find(param_name);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "DIS", i + 1);
+			_param_handles[i].disarmed = param_find(param_name);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MIN", i + 1);
+			_param_handles[i].min = param_find(param_name);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MAX", i + 1);
+			_param_handles[i].max = param_find(param_name);
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + 1);
+			_param_handles[i].failsafe = param_find(param_name);
+		}
+
+		snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "REV");
+		_param_handle_rev_range = param_find(param_name);
 	}
 
-	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "REV");
-	_param_handle_rev_range = param_find(param_name);
+	// Dynamic actuator limiting based on battery
+	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "DRNG");
+	PX4_INFO("Param: %s", param_name);
+	_param_handle_dynamic_range = param_find(param_name);
+	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "DCHNS");
+	PX4_INFO("Param: %s", param_name);
+	_param_handle_dynamic_channels = param_find(param_name);
 }
 
 void MixingOutput::printStatus() const
@@ -162,17 +173,18 @@ void MixingOutput::printStatus() const
 
 	if (_use_dynamic_mixing) {
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+			PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d/%d\n", i,
 				     (int)_function_assignment[i], _current_output_value[i],
-				     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
+				     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _dynamic_max_value[i], _max_value[i]);
 		}
 
 	} else {
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
 			int reordered_i = reorderedMotorIndex(i);
-			PX4_INFO_RAW("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", reordered_i,
+			PX4_INFO_RAW("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d/%d\n", reordered_i,
 				     _current_output_value[i],
-				     _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
+				     _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _dynamic_max_value[reordered_i],
+				     _max_value[reordered_i]);
 		}
 	}
 }
@@ -190,6 +202,18 @@ void MixingOutput::updateParams()
 		_mixers->set_thrust_factor(_param_thr_mdl_fac.get());
 		_mixers->set_airmode((Mixer::Airmode)_param_mc_airmode.get());
 	}
+
+	// Dynamic output limiting based on battery
+	if (_param_handle_dynamic_channels == PARAM_INVALID
+	    || param_get(_param_handle_dynamic_channels, &_dynamic_channels) != 0) {
+		_dynamic_channels = 0;
+	}
+
+	if (_param_handle_dynamic_range == PARAM_INVALID || param_get(_param_handle_dynamic_range, &_dynamic_range) != 0) {
+		_dynamic_range = 0.f;
+	}
+
+	_dynamic_range = math::constrain(_dynamic_range, 0.f, 1.f);
 
 	if (_use_dynamic_mixing) {
 		_param_mot_ordering.set(0); // not used with dynamic mixing
@@ -555,7 +579,7 @@ void MixingOutput::updateOutputSlewrateMultirotorMixer()
 
 	// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
 	// factor 2 is needed because actuator outputs are in the range [-1,1]
-	const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
+	const float delta_out_max = 2.0f * 1000.0f * dt / (_dynamic_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
 	_mixers->set_max_delta_out_once(delta_out_max);
 }
 
@@ -600,8 +624,8 @@ unsigned MixingOutput::motorTest()
 
 				} else {
 					_current_output_value[reorderedMotorIndex(idx)] =
-						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
-									  _min_value[idx], _max_value[idx]);
+						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_dynamic_max_value[idx] - _min_value[idx]) * test_motor.value),
+									  _min_value[idx], _dynamic_max_value[idx]);
 				}
 			}
 
@@ -634,6 +658,27 @@ unsigned MixingOutput::motorTest()
 
 bool MixingOutput::update()
 {
+	// Update dynamic max limit
+	battery_status_s battery_status;
+
+	if (_battery_sub.update(&battery_status)) {
+		// Constrain to sane values, this also interprets the error/disabled value "-1" as 0
+		_dynamic_actuator = math::constrain(battery_status.dynamic_actuator, 0.f, 1.f);
+	}
+
+	float dynamic_limit = math::gradual(_dynamic_actuator, 0.f, 1.f, _dynamic_range, 0.f);
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		if (_dynamic_channels & (1 << i)) {
+			uint16_t dynamic_max = _max_value[i] - uint16_t(float(_max_value[i] - _min_value[i]) * dynamic_limit);
+			dynamic_max = math::max(_min_value[i], dynamic_max);
+			_dynamic_max_value[i] = dynamic_max;
+
+		} else {
+			_dynamic_max_value[i] = _max_value[i];
+		}
+	}
+
 	if (_use_dynamic_mixing) {
 		return updateDynamicMixer();
 
@@ -857,10 +902,11 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	uint16_t effective_output = value * (_max_value[i] - _min_value[i]) / 2 + (_max_value[i] + _min_value[i]) / 2;
+	uint16_t effective_output = value * (_dynamic_max_value[i] - _min_value[i]) / 2 + (_dynamic_max_value[i] +
+				    _min_value[i]) / 2;
 
 	// last line of defense against invalid inputs
-	return math::constrain(effective_output, _min_value[i], _max_value[i]);
+	return math::constrain(effective_output, _min_value[i], _dynamic_max_value[i]);
 }
 
 void
@@ -987,11 +1033,12 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 					control_value = -1.f * control_value;
 				}
 
-				_current_output_value[i] = control_value * (_max_value[i] - ramp_min_output) / 2 + (_max_value[i] + ramp_min_output) /
+				_current_output_value[i] = control_value * (_dynamic_max_value[i] - ramp_min_output) / 2 +
+							   (_dynamic_max_value[i] + ramp_min_output) /
 							   2;
 
 				/* last line of defense against invalid inputs */
-				_current_output_value[i] = math::constrain(_current_output_value[i], ramp_min_output, _max_value[i]);
+				_current_output_value[i] = math::constrain(_current_output_value[i], ramp_min_output, _dynamic_max_value[i]);
 			}
 		}
 		break;

@@ -142,3 +142,36 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0, -1]
+
+        BAT${i}_Q_MAXACT:
+            description:
+                short: Battery ${i} consumption limit for scaling dynamic actuator output.
+                long: |
+                    Defines a battery consumption limit for battery ${i} in mAh, after which
+                    the full dynamic actuator limit will be used. Below this limit,
+                    the dynamic range is linearly unlocked according to consumption.
+                    Set BAT${i}_DYNACT to "Consumption based" to use.
+            type: float
+            unit: mAh
+            min: 0.0
+            max: 100000
+            decimal: 0
+            increment: 50
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0.0, 0.0]
+
+        BAT${i}_DYNACT:
+            description:
+                short: Dynamic actuator range mode for battery ${i}.
+                long: |
+                    Select the dynamic acruator range mode for the battery.
+            type: enum
+            values:
+                -1: Disabled - dynamic range always disabled
+                0: Disabled - dynamic range always enabled
+                1: Consumption based - require full battery
+                2: Consumption based - do not require full battery
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [0, 0]
