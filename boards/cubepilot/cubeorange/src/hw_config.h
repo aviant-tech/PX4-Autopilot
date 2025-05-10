@@ -108,8 +108,6 @@
 #define BOARD_LED_ON                   0
 #define BOARD_LED_OFF                  1
 
-#define SERIAL_BREAK_DETECT_DISABLED   1
-
 #if !defined(ARCH_SN_MAX_LENGTH)
 # define ARCH_SN_MAX_LENGTH 12
 #endif
