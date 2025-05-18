@@ -122,7 +122,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("wind", 1000);
 
 	// multi topics
-	add_optional_topic_multi("actuator_outputs", 100, 3);
+	add_optional_topic_multi("actuator_outputs", 100, 4); // UAVCAN servo, UAVCAN ESC, PWM MAIN, PWM AUX
 	add_optional_topic_multi("airspeed_wind", 1000, 4);
 	// By making it non-optional, we don't need to start uavcan before the logger module
 	add_topic_multi("can_interface_status", 100, 2);
@@ -264,7 +264,7 @@ void LoggedTopics::add_high_rate_topics()
 void LoggedTopics::add_aviant_high_rate_topics()
 {
 	add_topic("actuator_controls_0");
-	add_topic("actuator_outputs");
+	add_optional_topic_multi("actuator_outputs", 0, 4); // UAVCAN servo, UAVCAN ESC, PWM MAIN, PWM AUX
 	add_topic("sensor_combined");
 	add_topic("sensor_accel", 0, 2);
 	add_topic("sensor_gyro", 0, 2);
