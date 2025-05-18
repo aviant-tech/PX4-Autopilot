@@ -58,7 +58,7 @@ static constexpr unsigned int DSHOT1200 = 1200000u;
 
 static constexpr int DSHOT_DISARM_VALUE = 0;
 static constexpr int DSHOT_MIN_THROTTLE = 1;
-static constexpr int DSHOT_MAX_THROTTLE = 1999;
+static constexpr int DSHOT_MAX_THROTTLE = 1718;
 
 class DShot : public cdev::CDev, public ModuleBase<DShot>, public OutputModuleInterface
 {
