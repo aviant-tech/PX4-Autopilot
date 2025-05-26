@@ -666,7 +666,7 @@ bool MixingOutput::update()
 		_dynamic_actuator = math::constrain(battery_status.dynamic_actuator, 0.f, 1.f);
 	}
 
-	float dynamic_limit = math::gradual(_dynamic_actuator, 0.f, 1.f, _dynamic_range, 0.f);
+	float dynamic_limit = math::gradual(_dynamic_actuator, 0.f, 1.f, 0.f, _dynamic_range);
 
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		if (_dynamic_channels & (1 << i)) {
