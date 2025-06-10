@@ -58,7 +58,7 @@ static constexpr unsigned int DSHOT1200 = 1200000u;
 
 static constexpr int DSHOT_DISARM_VALUE = 0;
 static constexpr int DSHOT_MIN_THROTTLE = 1;
-static constexpr int DSHOT_MAX_THROTTLE = 1435; // 1718 PWM = 71.2% duty cycle = 1435 on 1999 DShot scale
+static constexpr int DSHOT_MAX_THROTTLE = 1699; // 1850 PWM = 85.0% duty cycle = 1699 on 1999 DShot scale
 
 class DShot : public cdev::CDev, public ModuleBase<DShot>, public OutputModuleInterface
 {
