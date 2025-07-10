@@ -92,6 +92,7 @@ public:
 	void setStateOfCharge(const float soc) { _state_of_charge = soc; _external_state_of_charge = true; }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
+	void updateTemperature(const float temperature_c);
 
 	/**
 	 * Update state of charge calculations
@@ -178,6 +179,7 @@ private:
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
+	float _temperature_c{NAN};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};

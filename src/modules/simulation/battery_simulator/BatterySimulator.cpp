@@ -111,6 +111,7 @@ void BatterySimulator::Run()
 	_battery.setConnected(true);
 	_battery.updateVoltage(vbatt);
 	_battery.updateCurrent(ibatt);
+	_battery.updateTemperature(42.0f);  // Placeholder value just to ensure it's sent over mavlink as expected
 	_battery.updateAndPublishBatteryStatus(now_us);
 
 	perf_end(_loop_perf);
