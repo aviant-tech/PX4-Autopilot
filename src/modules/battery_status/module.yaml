@@ -61,3 +61,62 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [-1, -1]
+
+        BAT${i}_T_CHANNEL:
+            description:
+                short: Battery ${i} Temperature ADC Channel
+                long: |
+                    This parameter specifies the ADC channel used to monitor temperature of main power battery.
+                    The ADC is assumed to be reading from a voltage divider with a thermistor and pullup resistor,
+                    using system power as the voltage source. See the other BAT{i}_T_* parameters for configuration.
+                    A value of -1 means no channel. Note that this is different from voltage and current configuration.
+
+            type: int32
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: [-1, -1]
+
+        BAT${i}_T_R_PU:
+            description:
+                short: Battery ${i} Temperature pull-up resistor
+                long: |
+                    This parameter specifies the pull-up resistor wired in series with the NTC thermistor.
+                    The value is in ohms.
+
+            type: float
+            unit: Ohm
+            decimal: 8
+            min: 1
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 5148
+
+        BAT${i}_T_R_25C:
+            description:
+                short: Battery ${i} NTC Thermistor resistance at 25 degrees C
+                long: |
+                    This parameter specifies the thermistor resistance at 25 degrees C.
+                    An NTC thermistor is assumed.
+
+            type: float
+            unit: Ohm
+            decimal: 8
+            min: 1
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 10000
+
+        BAT${i}_T_BETA:
+            description:
+                short: Battery ${i} Thermistor Beta
+                long: |
+                    This parameter specifies the beta value for the battery thermistor,
+                    which indicates the shape of the temperature vs resistance curve.
+                    An NTC thermistor is assumed.
+
+            type: float
+            decimal: 8
+            min: 1
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 3988
