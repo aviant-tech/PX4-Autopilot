@@ -177,6 +177,7 @@ BatteryStatus::adc_poll()
 	/* Per Brick readings with default unread channels at 0 */
 	float bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
 	float bat_voltage_adc_readings[BOARD_NUMBER_BRICKS] {};
+	float bat_temperature_adc_readings[BOARD_NUMBER_BRICKS] {NAN};
 	bool has_bat_voltage_adc_channel[BOARD_NUMBER_BRICKS] {};
 
 	int selected_source = -1;
@@ -214,9 +215,13 @@ BatteryStatus::adc_poll()
 						bat_current_adc_readings[b] = adc_report.raw_data[i] *
 									      adc_report.v_ref /
 									      adc_report.resolution;
+
+					} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_temperature_channel()) {
+						bat_temperature_adc_readings[b] = adc_report.raw_data[i] *
+										  adc_report.v_ref /
+										  adc_report.resolution;
 					}
 				}
-
 			}
 		}
 
@@ -226,7 +231,8 @@ BatteryStatus::adc_poll()
 				_analogBatteries[b]->updateBatteryStatusADC(
 					hrt_absolute_time(),
 					bat_voltage_adc_readings[b],
-					bat_current_adc_readings[b]
+					bat_current_adc_readings[b],
+					bat_temperature_adc_readings[b]
 				);
 			}
 		}
