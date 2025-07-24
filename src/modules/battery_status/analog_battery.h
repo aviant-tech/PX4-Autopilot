@@ -35,6 +35,8 @@
 
 #include <battery/battery.h>
 #include <parameters/param.h>
+#include <uORB/topics/system_power.h>
+#include <uORB/Subscription.hpp>
 
 class AnalogBattery : public Battery
 {
@@ -47,11 +49,12 @@ public:
 	 *
 	 * @param voltage_raw Battery voltage read from ADC, volts
 	 * @param current_raw Voltage of current sense resistor, volts
+	 * @param temperature_raw Voltage of battery thermistor, volts
 	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
 	 * @param source The source as defined by param BAT%d_SOURCE
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 */
-	void updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw);
+	void updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw, float temperature_raw);
 
 	/**
 	 * Whether the ADC channel for the voltage of this battery is valid.
@@ -69,6 +72,11 @@ public:
 	 */
 	int get_current_channel();
 
+	/**
+	 * Which ADC channel is used for temperature reading of this battery
+	 */
+	int get_temperature_channel();
+
 protected:
 
 	struct {
@@ -77,6 +85,10 @@ protected:
 		param_t a_per_v;
 		param_t v_channel;
 		param_t i_channel;
+		param_t t_channel;
+		param_t t_r_pu;
+		param_t t_r_25c;
+		param_t t_beta;
 	} _analog_param_handles;
 
 	struct {
@@ -85,7 +97,13 @@ protected:
 		float a_per_v;
 		int32_t v_channel;
 		int32_t i_channel;
+		int32_t t_channel;
+		float t_r_pu;
+		float t_r_25c;
+		float t_beta;
 	} _analog_params;
+
+	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
 
 	virtual void updateParams() override;
 };
