@@ -172,7 +172,7 @@ void MS4525DO::RunImpl()
 				perf_count(_fault_perf);
 
 			} else if ((status_1 == (uint8_t)STATUS::Normal_Operation) && (status_2 == (uint8_t)STATUS::Stale_Data)
-				   && (bridge_data_1_msb == bridge_data_2_msb) && (temperature_1 == temperature_2)) {
+				   && (bridge_data_1 == bridge_data_2) && (temperature_1 == temperature_2)) {
 
 				float temperature_c = ((200.f * temperature_1) / 2047) - 50.f;
 
