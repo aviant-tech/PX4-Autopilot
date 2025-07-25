@@ -93,5 +93,6 @@ private:
 
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": communication errors")};
-	perf_counter_t _fault_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": fault detected")};
+	perf_counter_t _fault_perf{perf_alloc(PC_COUNT, MODULE_NAME": fault detected")};
+	perf_counter_t _corrupted_samples_perf{perf_alloc(PC_COUNT, MODULE_NAME": corrupted samples detected")};
 };

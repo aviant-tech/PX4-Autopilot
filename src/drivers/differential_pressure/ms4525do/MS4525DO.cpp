@@ -46,6 +46,7 @@ MS4525DO::~MS4525DO()
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_fault_perf);
+	perf_free(_corrupted_samples_perf);
 }
 
 int MS4525DO::probe()
@@ -109,6 +110,7 @@ void MS4525DO::print_status()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_fault_perf);
+	perf_print_counter(_corrupted_samples_perf);
 }
 
 void MS4525DO::RunImpl()
@@ -172,7 +174,7 @@ void MS4525DO::RunImpl()
 				perf_count(_fault_perf);
 
 			} else if ((status_1 == (uint8_t)STATUS::Normal_Operation) && (status_2 == (uint8_t)STATUS::Stale_Data)
-				   && (bridge_data_1_msb == bridge_data_2_msb) && (temperature_1 == temperature_2)) {
+				   && (bridge_data_1 == bridge_data_2) && (temperature_1 == temperature_2)) {
 
 				float temperature_c = ((200.f * temperature_1) / 2047) - 50.f;
 
@@ -209,6 +211,7 @@ void MS4525DO::RunImpl()
 				}
 
 			} else {
+				perf_count(_corrupted_samples_perf);
 				PX4_DEBUG("status:%X|%X, B:%X|%X, T:%X|%X", status_1, status_2, bridge_data_1, bridge_data_2, temperature_1,
 					  temperature_2);
 			}
