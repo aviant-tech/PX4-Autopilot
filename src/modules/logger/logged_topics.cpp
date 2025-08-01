@@ -271,6 +271,12 @@ void LoggedTopics::add_aviant_high_rate_topics()
 	add_topic("sensor_accel", 0, 2);
 	add_topic("sensor_gyro", 0, 2);
 	add_topic("vehicle_attitude");
+
+	// For troubleshooting
+	add_topic("adc_report");
+	add_topic("system_power");
+	add_topic_multi("battery_status");
+	add_topic("differential_pressure");
 }
 
 void LoggedTopics::add_debug_topics()
