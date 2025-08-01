@@ -271,6 +271,10 @@ void LoggedTopics::add_aviant_high_rate_topics()
 	add_topic("sensor_accel", 0, 2);
 	add_topic("sensor_gyro", 0, 2);
 	add_topic("vehicle_attitude");
+
+	// For troubleshooting
+	add_topic("adc_report");  // Direct ADC readings
+	add_topic("differential_pressure"); // Direct ms4525do measurements
 }
 
 void LoggedTopics::add_debug_topics()
