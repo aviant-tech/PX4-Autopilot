@@ -127,7 +127,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_constraints", 1000);
 	add_topic("vehicle_control_mode");
 	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_gps_position", 100);
+	add_topic("vehicle_gps_position", 0);
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
@@ -217,8 +217,8 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("distance_sensor", 1000, 2);
 	add_optional_topic_multi("sensor_accel", 1000, 4);
 	add_optional_topic_multi("sensor_baro", 1000, 4);
-	add_topic_multi("sensor_gps", 1000, 2);
-	add_topic_multi("sensor_gnss_relative", 1000, 1);
+	add_topic_multi("sensor_gps", 0, 2);
+	add_topic_multi("sensor_gnss_relative", 0, 2);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("sensor_optical_flow", 1000, 2);
