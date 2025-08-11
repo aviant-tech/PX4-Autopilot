@@ -41,7 +41,7 @@ using matrix::Quatf;
 using matrix::Vector3f;
 
 static constexpr float kDefaultExternalPosAccuracy = 50.0f; // [m]
-static constexpr float kMaxDelaySecondsExternalPosMeasurement = 15.0f; // [s]
+static constexpr uint64_t kMaxAgeExternalPosMeasurement = 15_s;
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
@@ -485,9 +485,24 @@ void EKF2::Run()
 				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning) &&
 				    PX4_ISFINITE(vehicle_command.param2) && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)) {
 
-					const float measurement_delay_seconds = math::constrain(vehicle_command.param2, 0.0f,
-										kMaxDelaySecondsExternalPosMeasurement);
-					const uint64_t timestamp_observation = vehicle_command.timestamp - measurement_delay_seconds * 1_s;
+					// Trust the transmission_time from the message to be in flight controller time, ignoring
+					// processing_time.
+					// Cast to double first to avoid unnecessary precission loss
+					const uint64_t cmd_timestamp = static_cast<uint64_t>(static_cast<double>(vehicle_command.param1) * 1_s);
+					bool cmd_timestamp_valid{true};
+
+					// Basic validation of the timestamp
+					if (!PX4_ISFINITE(vehicle_command.param1)) {
+						cmd_timestamp_valid = false;
+					}
+
+					if (cmd_timestamp > hrt_absolute_time()) {
+						cmd_timestamp_valid = false; // Cannot be into the future
+					}
+
+					if (cmd_timestamp < math::max(kMaxAgeExternalPosMeasurement, hrt_absolute_time() - kMaxAgeExternalPosMeasurement)) {
+						cmd_timestamp_valid = false; // Too old
+					}
 
 					float accuracy = kDefaultExternalPosAccuracy;
 
@@ -496,8 +511,12 @@ void EKF2::Run()
 					}
 
 					// TODO add check for lat and long validity
-					_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-							accuracy, timestamp_observation);
+					if (cmd_timestamp_valid) {
+						_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
+								accuracy, cmd_timestamp);
+					}
+
+
 				}
 			}
 		}
