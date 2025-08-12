@@ -89,6 +89,7 @@ protected:
 		param_t t_r_pu;
 		param_t t_r_25c;
 		param_t t_beta;
+		param_t t_v_src;
 	} _analog_param_handles;
 
 	struct {
@@ -101,6 +102,7 @@ protected:
 		float t_r_pu;
 		float t_r_25c;
 		float t_beta;
+		float t_v_src;
 	} _analog_params;
 
 	uORB::Subscription _system_power_sub{ORB_ID(system_power)};

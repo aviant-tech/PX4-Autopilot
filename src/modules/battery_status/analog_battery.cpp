@@ -85,6 +85,9 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_T_BETA", index);
 	_analog_param_handles.t_beta = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_T_V_SRC", index);
+	_analog_param_handles.t_v_src = param_find(param_name);
 }
 
 
@@ -97,24 +100,20 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 
 	static constexpr float zero_c_in_k = 273.15f;
 	static constexpr float epsilon = 1e-6f;
-	static constexpr hrt_abstime system_power_stale_timeout = 2_s;
 
 	float temperature_c = NAN;
-	system_power_s system_power{};
 
-	if (_system_power_sub.copy(&system_power) && hrt_elapsed_time(&system_power.timestamp) < system_power_stale_timeout) {
-		const float thermistor_pullup_v = system_power.voltage5v_v - temperature_raw;
-		const float thermistor_ohm_inf = _analog_params.t_r_25c * expf(-_analog_params.t_beta / (zero_c_in_k + 25.f));
+	const float thermistor_pullup_v = _analog_params.t_v_src - temperature_raw;
+	const float thermistor_ohm_inf = _analog_params.t_r_25c * expf(-_analog_params.t_beta / (zero_c_in_k + 25.f));
 
-		if (thermistor_pullup_v > epsilon && thermistor_ohm_inf > epsilon) {
-			const float thermistor_ohm = _analog_params.t_r_pu * temperature_raw / thermistor_pullup_v;
-			const float thermistor_ohm_ratio = thermistor_ohm / thermistor_ohm_inf;
+	if (thermistor_pullup_v > epsilon && thermistor_ohm_inf > epsilon) {
+		const float thermistor_ohm = _analog_params.t_r_pu * temperature_raw / thermistor_pullup_v;
+		const float thermistor_ohm_ratio = thermistor_ohm / thermistor_ohm_inf;
 
-			const float log_thermistor_ohm_ratio = thermistor_ohm_ratio > epsilon ? logf(thermistor_ohm_ratio) : NAN;
+		const float log_thermistor_ohm_ratio = thermistor_ohm_ratio > epsilon ? logf(thermistor_ohm_ratio) : NAN;
 
-			if (PX4_ISFINITE(log_thermistor_ohm_ratio) && log_thermistor_ohm_ratio > epsilon) {
-				temperature_c = _analog_params.t_beta / log_thermistor_ohm_ratio - zero_c_in_k;
-			}
+		if (PX4_ISFINITE(log_thermistor_ohm_ratio) && log_thermistor_ohm_ratio > epsilon) {
+			temperature_c = _analog_params.t_beta / log_thermistor_ohm_ratio - zero_c_in_k;
 		}
 	}
 
@@ -181,6 +180,7 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.t_r_pu, &_analog_params.t_r_pu);
 	param_get(_analog_param_handles.t_r_25c, &_analog_params.t_r_25c);
 	param_get(_analog_param_handles.t_beta, &_analog_params.t_beta);
+	param_get(_analog_param_handles.t_v_src, &_analog_params.t_v_src);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
 	Battery::updateParams();
