@@ -120,3 +120,17 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 3988
+
+        BAT${i}_T_V_SRC:
+            description:
+                short: Battery ${i} Thermistor Voltage divider source voltage
+                long: |
+                    This parameter specifies the source voltage for the voltage divider
+                    which the thermistor is in.
+
+            type: float
+            decimal: 3
+            min: 1
+            num_instances: *max_num_config_instances
+            instance_start: 1
+            default: 3.3
