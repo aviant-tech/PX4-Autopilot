@@ -45,6 +45,7 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	// Estimated bandwidth: 45 kbps
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 50);
@@ -291,6 +292,7 @@ void LoggedTopics::add_debug_topics()
 
 void LoggedTopics::add_estimator_replay_topics()
 {
+	// Estimated bandwidth: 15 kbps
 	// for estimator replay (need to be at full rate)
 	add_topic("ekf2_timestamps");
 
