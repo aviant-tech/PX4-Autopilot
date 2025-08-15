@@ -261,6 +261,8 @@ void LoggedTopics::add_high_rate_topics()
 
 void LoggedTopics::add_aviant_high_rate_topics()
 {
+	// Estimated bandwidth: 40 kbps
+	add_topic_multi("sensor_mag"); // High-rate internal/external compass for mag placement, est. 20 kbps
 	add_topic("sensor_accel", 0, 2); // High-rate undamped IMU for vibration, 11 kbps
 	add_topic("adc_report");  // Direct ADC readings for CF voltage troubleshoot, 8 kbps
 	add_topic("differential_pressure"); // Direct ms4525do measurements for dropout troubleshoot, 2 kbps
