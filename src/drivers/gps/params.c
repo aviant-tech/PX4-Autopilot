@@ -231,3 +231,39 @@ PARAM_DEFINE_INT32(GPS_1_GNSS, 0);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_2_GNSS, 0);
+
+/**
+ * u-blox MB rover position fallback
+ *
+ * If enabled, automatically reconfigure a u-blox F9P receiver in moving base rover mode to normal
+ * operation if it's selected as the EKF position source (including when used in blending).
+ * This is in order to avoid position delay issues that happen when an MB rover loses connection to
+ * its moving base, so that it can be used for position redundancy.
+ *
+ * NB! Only effective when GPS_UBX_MODE = 1
+ *
+ * When triggered, the receiver will be reconfigured to normal operation until the next boot.
+ *
+ * @boolean
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @group GPS
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(GPS_UBX_MBR_FB, 0);
+
+/**
+ * u-blox MB rover position fallback delay
+ *
+ * Seconds after boot before PX4 may reconfigure a u-blox F9P rover out of Rover With Moving Base.
+ * Prevents premature resets and gives the receiver time to initialize.
+ *
+ * NB! Only effective when GPS_UBX_MBR_FB = 1
+ *
+ * @min 0
+ * @max 120
+ * @unit s
+ * @group GPS
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(GPS_UBX_MBR_FB_D, 15.0f);
