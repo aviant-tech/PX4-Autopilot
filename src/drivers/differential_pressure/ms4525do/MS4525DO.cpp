@@ -47,6 +47,7 @@ MS4525DO::~MS4525DO()
 	perf_free(_comms_errors);
 	perf_free(_fault_perf);
 	perf_free(_corrupted_samples_perf);
+	perf_free(_corrupted_accepted_lsb_samples_perf);
 }
 
 int MS4525DO::probe()
@@ -111,6 +112,7 @@ void MS4525DO::print_status()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_fault_perf);
 	perf_print_counter(_corrupted_samples_perf);
+	perf_print_counter(_corrupted_accepted_lsb_samples_perf);
 }
 
 void MS4525DO::RunImpl()
@@ -174,9 +176,13 @@ void MS4525DO::RunImpl()
 				perf_count(_fault_perf);
 
 			} else if ((status_1 == (uint8_t)STATUS::Normal_Operation) && (status_2 == (uint8_t)STATUS::Stale_Data)
-				   && (bridge_data_1 == bridge_data_2) && (temperature_1 == temperature_2)) {
+				   && (bridge_data_1_msb == bridge_data_2_msb) && (temperature_1 == temperature_2)) {
 
 				float temperature_c = ((200.f * temperature_1) / 2047) - 50.f;
+
+				if (bridge_data_1_lsb != bridge_data_2_lsb) {
+					perf_count(_corrupted_accepted_lsb_samples_perf);
+				}
 
 				// Output is proportional to the difference between Port 1 and Port 2. Output swings
 				// positive when Port 1> Port 2. Output is 50% of supply voltage when Port 1=Port 2.
@@ -203,7 +209,8 @@ void MS4525DO::RunImpl()
 					differential_pressure.device_id = get_device_id();
 					differential_pressure.differential_pressure_pa = diff_press_pa;
 					differential_pressure.temperature = temperature_c;
-					differential_pressure.error_count = perf_event_count(_comms_errors);
+					differential_pressure.error_count = perf_event_count(_fault_perf);
+					differential_pressure.accepted_corrupted_msgs_count = perf_event_count(_corrupted_accepted_lsb_samples_perf);
 					differential_pressure.timestamp = hrt_absolute_time();
 					_differential_pressure_pub.publish(differential_pressure);
 
