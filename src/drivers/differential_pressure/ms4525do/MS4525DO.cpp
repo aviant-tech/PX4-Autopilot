@@ -209,7 +209,8 @@ void MS4525DO::RunImpl()
 					differential_pressure.device_id = get_device_id();
 					differential_pressure.differential_pressure_pa = diff_press_pa;
 					differential_pressure.temperature = temperature_c;
-					differential_pressure.error_count = perf_event_count(_comms_errors);
+					differential_pressure.error_count = perf_event_count(_fault_perf);
+					differential_pressure.accepted_corrupted_msgs_count = perf_event_count(_corrupted_accepted_lsb_samples_perf);
 					differential_pressure.timestamp = hrt_absolute_time();
 					_differential_pressure_pub.publish(differential_pressure);
 
