@@ -317,6 +317,7 @@ Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float a
 	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
 
 	resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+	_time_last_aiding = _time_last_imu;
 }
 
 /*
