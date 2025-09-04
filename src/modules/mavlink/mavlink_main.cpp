@@ -1535,6 +1535,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SCALED_PRESSURE", 10.0f);
 		configure_stream_local("RAW_IMU", 10.0f);
 		configure_stream_local("HIGHRES_IMU", 10.0f);
+		configure_stream_local("ODOMETRY", 10.0f);
 
 #if !defined(CONSTRAINED_FLASH)
 		configure_stream_local("DEBUG", 1.0f);
