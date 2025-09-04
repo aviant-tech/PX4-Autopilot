@@ -45,7 +45,7 @@ void Ekf::controlFakePosFusion()
 	const bool fake_pos_data_ready = isTimedOut(_time_last_fake_pos_fuse, (uint64_t)2e5); // Fuse fake position at a limited rate
 
 	if (fake_pos_data_ready) {
-		const bool continuing_conditions_passing = !isHorizontalAidingActive();
+		const bool continuing_conditions_passing = !_control_status.flags.tilt_align && !isHorizontalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing;
 
 		if (_using_synthetic_position) {
