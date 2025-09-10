@@ -211,7 +211,11 @@ private:
 	static px4::atomic<GPS *> _secondary_instance;
 
 	px4::atomic<int> _scheduled_reset{(int)GPSRestartType::None};
-	GPSDriverUBX::UBXMode _ubx_mode{GPSDriverUBX::UBXMode::Normal};
+
+	// State for u-blox rover fallback
+	bool _rover_temporarily_in_normal_mode{false};
+	bool _rover_used_for_position{false};
+	hrt_abstime _rover_allowed_return_to_rover_mode_at{0};
 
 	/**
 	 * Publish the gps struct
@@ -738,6 +742,7 @@ GPS::run()
 	}
 
 	handle = param_find("GPS_UBX_MODE");
+	GPSDriverUBX::UBXMode ubx_mode{GPSDriverUBX::UBXMode::Normal};
 
 	if (handle != PARAM_INVALID) {
 		int32_t gps_ubx_mode = 0;
@@ -745,25 +750,25 @@ GPS::run()
 
 		if (gps_ubx_mode == 1) { // heading
 			if (_instance == Instance::Main) {
-				_ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBase;
+				ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBase;
 
 			} else {
-				_ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
+				ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
 			}
 
 		} else if (gps_ubx_mode == 2) {
-			_ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
+			ubx_mode = GPSDriverUBX::UBXMode::MovingBase;
 
 		} else if (gps_ubx_mode == 3) {
 			if (_instance == Instance::Main) {
-				_ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1;
+				ubx_mode = GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1;
 
 			} else {
-				_ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
+				ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
 			}
 
 		} else if (gps_ubx_mode == 4) {
-			_ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
+			ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
 		}
 	}
 
@@ -785,14 +790,14 @@ GPS::run()
 		param_get(handle, &ubx_mbr_fb_enable);
 	}
 
-	float ubx_mbr_fb_delay_s = 15.0f;
-	handle = param_find("GPS_UBX_MBR_FB_D");
+	float ubx_mbr_fb_hysteresis_s = 15.0f;
+	handle = param_find("GPS_UBX_MBR_FB_H");
 
 	if (handle != PARAM_INVALID) {
-		param_get(handle, &ubx_mbr_fb_delay_s);
+		param_get(handle, &ubx_mbr_fb_hysteresis_s);
 	}
 
-	const hrt_abstime ubx_mbr_fb_delay_us = ubx_mbr_fb_delay_s * 1_s;
+	const hrt_abstime ubx_mbr_fb_hysteresis_us = ubx_mbr_fb_hysteresis_s * 1_s;
 
 	initializeCommunicationDump();
 
@@ -843,7 +848,7 @@ GPS::run()
 		/* FALLTHROUGH */
 		case gps_driver_mode_t::UBX:
 			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-						   gps_ubx_dynmodel, heading_offset, _ubx_mode);
+						   gps_ubx_dynmodel, heading_offset, ubx_mode);
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
 #ifndef CONSTRAINED_FLASH
@@ -936,8 +941,8 @@ GPS::run()
 			int helper_ret;
 			unsigned receive_timeout = TIMEOUT_5HZ;
 
-			if ((_ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase)
-			    || (_ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
+			if ((ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase)
+			    || (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
 				/* The MB rover will wait as long as possible to compute a navigation solution,
 				 * possibly lowering the navigation rate all the way to 1 Hz while doing so. */
 				receive_timeout = TIMEOUT_1HZ;
@@ -957,31 +962,40 @@ GPS::run()
 
 				reset_if_scheduled();
 
-				if (ubx_mbr_fb_enable
-				    && hrt_absolute_time() > ubx_mbr_fb_delay_us
-				    && _ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase) {
 
-					// Check vehicle_gps_position to see if this instance is used for position
-					// In that case, we want to disable MB rover mode
+				if (ubx_mbr_fb_enable && ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase) {
+					// MB Rover fallback: Reconfigure to normal mode if used for position.
+					// This is a safety measure to ensure reliable positioning. Rover mode
+					// has issues with variable measurement rate and delayed navigation info.
+
 					vehicle_gps_position_s vehicle_gps_position;
 
 					if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
-						bool should_disable_rover{false};
+						// In later PX4 versions, the actual device is in vehicle_gps_position.
+						// Since it's not in 1.13, we check the instance number instead
+						if (vehicle_gps_position.selected == 0 || vehicle_gps_position.selected == 3) {
+							// 0 = GPS1, which is always rover
+							// 3 = used in blending
+							_rover_used_for_position = true;
+							_rover_allowed_return_to_rover_mode_at = hrt_absolute_time() + ubx_mbr_fb_hysteresis_us;
 
-						if (vehicle_gps_position.selected == 0) {
-							// GPS1 is always rover in this mode
-							should_disable_rover = true;
-							PX4_WARN("Rover GPS selected as position source. Disabling RTK heading until shutdown");
-
-						} else if (vehicle_gps_position.selected == 3) {
-							should_disable_rover = true;
-							PX4_WARN("Rover GPS used in blended GPS position. Disabling RTK heading until shutdown");
+						} else {
+							_rover_used_for_position = false;
 						}
+					}
 
-						if (should_disable_rover) {
-							_ubx_mode = GPSDriverUBX::UBXMode::Normal;
-							_helper->disableUbxMBRover();
-						}
+					if (_rover_used_for_position && !_rover_temporarily_in_normal_mode) {
+						PX4_WARN("Rover receiver used as position source. Reconfiguring to normal mode.");
+						_helper->disableUbxMBRover();
+						_rover_temporarily_in_normal_mode = true;
+					}
+
+					if (!_rover_used_for_position
+					    && _rover_temporarily_in_normal_mode
+					    && hrt_absolute_time() > _rover_allowed_return_to_rover_mode_at) {
+						PX4_WARN("Rover receiver no longer used as position source. Reconfiguring to rover mode.");
+						_helper->enableUbxMBRover();
+						_rover_temporarily_in_normal_mode = false;
 					}
 				}
 

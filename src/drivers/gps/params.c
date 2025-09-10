@@ -240,10 +240,6 @@ PARAM_DEFINE_INT32(GPS_2_GNSS, 0);
  * This is in order to avoid position delay issues that happen when an MB rover loses connection to
  * its moving base, so that it can be used for position redundancy.
  *
- * NB! Only effective when GPS_UBX_MODE = 1
- *
- * When triggered, the receiver will be reconfigured to normal operation until the next boot.
- *
  * @boolean
  * @value 0 Disabled
  * @value 1 Enabled
@@ -253,12 +249,10 @@ PARAM_DEFINE_INT32(GPS_2_GNSS, 0);
 PARAM_DEFINE_INT32(GPS_UBX_MBR_FB, 0);
 
 /**
- * u-blox MB rover position fallback delay
+ * u-blox MB rover position reconfiguration hysteresis
  *
- * Seconds after boot before PX4 may reconfigure a u-blox F9P rover out of Rover With Moving Base.
- * Prevents premature resets and gives the receiver time to initialize.
- *
- * NB! Only effective when GPS_UBX_MBR_FB = 1
+ * A rover in fallback to normal mode will be reconfigured back to rover mode if it hasn't been
+ * used for position updates within this time period.
  *
  * @min 0
  * @max 120
@@ -266,4 +260,4 @@ PARAM_DEFINE_INT32(GPS_UBX_MBR_FB, 0);
  * @group GPS
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(GPS_UBX_MBR_FB_D, 15.0f);
+PARAM_DEFINE_FLOAT(GPS_UBX_MBR_FB_H, 15.0f);
