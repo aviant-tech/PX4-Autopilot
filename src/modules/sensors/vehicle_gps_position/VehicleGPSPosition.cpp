@@ -82,20 +82,13 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 
 		updateParams();
 
-		if (_param_sens_gps_mask.get() == 0) {
-			_sensor_gps_sub[0].registerCallback();
-
-		} else {
-			for (auto &sub : _sensor_gps_sub) {
-				sub.registerCallback();
-			}
+		for (auto &sub : _sensor_gps_sub) {
+			sub.registerCallback();
 		}
 
-		_gps_blending.setBlendingUseSpeedAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_SPD_ACC);
-		_gps_blending.setBlendingUseHPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_HPOS_ACC);
-		_gps_blending.setBlendingUseVPosAccuracy(_param_sens_gps_mask.get() & BLEND_MASK_USE_VPOS_ACC);
-		_gps_blending.setBlendingTimeConstant(_param_sens_gps_tau.get());
-		_gps_blending.setPrimaryInstance(_param_sens_gps_prime.get());
+		_gnss_selector.setPrimaryInstance(_param_sens_gps_prim.get());
+		_gnss_selector.setHysteresis(static_cast<uint64_t>(_param_sens_gps_hyst.get() * 1e6f));
+		_gnss_selector.setMsgTimeout(static_cast<uint64_t>(_param_sens_gps_timeout.get() * 1e6f));
 	}
 }
 
@@ -117,7 +110,7 @@ void VehicleGPSPosition::Run()
 			any_gps_updated = true;
 
 			_sensor_gps_sub[i].copy(&gps_data);
-			_gps_blending.setGpsData(gps_data, i);
+			_gnss_selector.setGnssData(gps_data, i);
 
 			if (!_sensor_gps_sub[i].registered()) {
 				_sensor_gps_sub[i].registerCallback();
@@ -126,10 +119,10 @@ void VehicleGPSPosition::Run()
 	}
 
 	if (any_gps_updated) {
-		_gps_blending.update(hrt_absolute_time());
+		_gnss_selector.update(hrt_absolute_time());
 
-		if (_gps_blending.isNewOutputDataAvailable()) {
-			Publish(_gps_blending.getOutputGpsData(), _gps_blending.getSelectedGps());
+		if (_gnss_selector.isNewOutputDataAvailable()) {
+			Publish(_gnss_selector.getOutputGnssData(), _gnss_selector.getSelectedGnss());
 		}
 	}
 
