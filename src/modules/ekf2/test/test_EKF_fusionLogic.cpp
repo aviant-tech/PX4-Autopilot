@@ -280,8 +280,8 @@ TEST_F(EkfFusionLogicTest, doVisionPositionFusion)
 
 	// WHEN: stop sending vision data
 	_sensor_simulator.stopExternalVision();
-	 // Need to wait for deadreckon time to exceed before fake position fusion starts
-	_sensor_simulator.runSeconds(7+5);
+	// Need to wait for deadreckon time to exceed before fake position fusion starts
+	_sensor_simulator.runSeconds(7 + 5);
 
 	// THEN: EKF should stop to intend to fuse vision position estimate
 	//       and EKF should not have a valid local position estimate anymore
