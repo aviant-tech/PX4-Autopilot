@@ -62,7 +62,8 @@ private:
 		vehicle_local_position_s lpos;
 
 		if (_lpos_sub.update(&lpos)) {
-			if (lpos.xy_valid && lpos.v_xy_valid) {
+			//if (lpos.xy_valid && lpos.v_xy_valid) {
+			{
 				mavlink_local_position_ned_t msg{};
 
 				msg.time_boot_ms = lpos.timestamp / 1000;

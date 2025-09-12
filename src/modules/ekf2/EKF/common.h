@@ -550,6 +550,7 @@ union information_event_status_u {
 		bool starting_vision_vel_fusion	: 1; ///< 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
 		bool starting_vision_yaw_fusion	: 1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
 		bool yaw_aligned_to_imu_gps	: 1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
+		bool reset_pos_to_ext_obs       : 1; ///< 13 - true when horizontal position was reset to an external observation while deadreckoning
 	} flags;
 	uint32_t value;
 };

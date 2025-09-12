@@ -299,6 +299,27 @@ void Ekf::predictState()
 	}
 }
 
+void
+Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy,
+		uint64_t timestamp_observation)
+{
+
+	if (!_pos_ref.isInitialized()) {
+		return;
+	}
+
+	// apply a first order correction using velocity at the delated time horizon and the delta time
+	timestamp_observation = math::min(_newest_high_rate_imu_sample.time_us, timestamp_observation);
+	const float dt = _imu_sample_delayed.time_us > timestamp_observation ? static_cast<float>
+			 (_imu_sample_delayed.time_us - timestamp_observation) * 1e-6f : -static_cast<float>(timestamp_observation -
+					 _imu_sample_delayed.time_us) * 1e-6f;
+
+	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
+
+	resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+	_time_last_aiding = _time_last_imu;
+}
+
 /*
  * Implement a strapdown INS algorithm using the latest IMU data at the current time horizon.
  * Buffer the INS states and calculate the difference with the EKF states at the delayed fusion time horizon.

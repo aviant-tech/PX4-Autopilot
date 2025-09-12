@@ -195,7 +195,7 @@ void Ekf::resetHorizontalPositionToLastKnown()
 	P.uncorrelateCovarianceSetVariance<2>(7, sq(_params.pos_noaid_noise));
 }
 
-void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos)
+void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var)
 {
 	const Vector2f delta_horz_pos{new_horz_pos - Vector2f{_state.pos}};
 	_state.pos.xy() = new_horz_pos;
@@ -206,11 +206,26 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos)
 
 	_output_new.pos.xy() += delta_horz_pos;
 
+	if (PX4_ISFINITE(new_horz_pos_var(0))) {
+		P.uncorrelateCovarianceSetVariance<1>(7, math::max(sq(0.01f), new_horz_pos_var(0)));
+	}
+
+	if (PX4_ISFINITE(new_horz_pos_var(1))) {
+		P.uncorrelateCovarianceSetVariance<1>(8, math::max(sq(0.01f), new_horz_pos_var(1)));
+	}
+
 	_state_reset_status.posNE_change = delta_horz_pos;
 	_state_reset_status.posNE_counter++;
 
 	// Reset the timout timer
 	_time_last_hor_pos_fuse = _time_last_imu;
+}
+
+void Ekf::resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy)
+{
+	_information_events.flags.reset_pos_to_ext_obs = true;
+	ECL_INFO("reset position to external observation");
+	resetHorizontalPositionTo(new_horiz_pos, sq(horiz_accuracy));
 }
 
 void Ekf::resetVerticalPositionTo(const float new_vert_pos)
