@@ -229,6 +229,7 @@ set(msg_files
 	VehicleConstraints.msg
 	VehicleControlMode.msg
 	VehicleGlobalPosition.msg
+	VehicleGnssHeading.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLandDetected.msg

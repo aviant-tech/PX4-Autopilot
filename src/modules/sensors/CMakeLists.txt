@@ -53,6 +53,10 @@ if(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 	add_subdirectory(vehicle_gps_position)
 endif()
 
+if (CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	add_subdirectory(vehicle_gnss_heading)
+endif()
+
 if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	add_subdirectory(vehicle_magnetometer)
 endif()
@@ -99,6 +103,10 @@ endif()
 
 if(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 	target_link_libraries(modules__sensors PRIVATE vehicle_gps_position)
+endif()
+
+if(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	target_link_libraries(modules__sensors PRIVATE vehicle_gnss_heading)
 endif()
 
 if(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
