@@ -122,6 +122,15 @@ Sensors::~Sensors()
 
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+
+	if (_vehicle_gnss_heading) {
+		_vehicle_gnss_heading->Stop();
+		delete _vehicle_gnss_heading;
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
+
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 
 	if (_vehicle_magnetometer) {
@@ -245,6 +254,10 @@ int Sensors::parameters_update()
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 	InitializeVehicleGPSPosition();
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	InitializeVehicleGNSSHeading();
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	InitializeVehicleMagnetometer();
@@ -446,6 +459,21 @@ void Sensors::InitializeVehicleGPSPosition()
 	}
 }
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+void Sensors::InitializeVehicleGNSSHeading()
+{
+	if (_param_sys_has_gps.get()) {
+		if (_vehicle_gnss_heading == nullptr) {
+			_vehicle_gnss_heading = new VehicleGNSSHeading();
+
+			if (_vehicle_gnss_heading) {
+				_vehicle_gnss_heading->Start();
+			}
+		}
+	}
+}
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 void Sensors::InitializeVehicleIMU()
 {
@@ -740,6 +768,15 @@ int Sensors::print_status()
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+
+	if (_vehicle_gnss_heading) {
+		PX4_INFO_RAW("\n");
+		_vehicle_gnss_heading->PrintStatus();
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 	PX4_INFO_RAW("\n");
 
