@@ -45,6 +45,7 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	// Estimated bandwidth: 45 kbps
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 50);
@@ -249,29 +250,21 @@ void LoggedTopics::add_default_topics()
 
 void LoggedTopics::add_high_rate_topics()
 {
-	// maximum rate to analyze fast maneuvers (e.g. for racing)
-	add_topic("actuator_controls_0");
-	add_topic("actuator_outputs");
-	add_topic("manual_control_setpoint");
-	add_topic("rate_ctrl_status", 20);
-	add_topic("sensor_combined");
-	add_topic("vehicle_angular_acceleration");
-	add_topic("vehicle_angular_velocity");
-	add_topic("vehicle_attitude");
-	add_topic("vehicle_attitude_setpoint");
-	add_topic("vehicle_rates_setpoint");
+	// Estimated bandwidth: 50 kbps
+	add_topic("vehicle_attitude_setpoint"); // From position controller, est. 7 kbps
+	add_topic("vehicle_attitude"); // To attitude controller, est. 7 kbps
+	add_topic("vehicle_rates_setpoint");  // From attitude controller, est. 10 kbps
+	add_topic("vehicle_angular_velocity"); // To rate controller, est. 7 kbps
+	add_topic("vehicle_torque_setpoint", 0, 0); // Torque setpoint of motors, 7 kbps
+	add_topic("vehicle_thrust_setpoint", 0, 0); // Thrust setpoint of motors, 7 kbps
+	add_topic("vehicle_torque_setpoint", 0, 1); // Torque setpoint of servos, 7 kbps
 }
 
 void LoggedTopics::add_aviant_high_rate_topics()
 {
-	add_topic("vehicle_torque_setpoint", 0, 0); // Torque setpoint of motors
-	add_topic("vehicle_thrust_setpoint", 0, 0); // Thrust setpoint of motors
-	add_topic("vehicle_torque_setpoint", 0, 1); // Torque setpoint of servos
-	// add_topic("vehicle_thrust_setpoint", 0, 1); // Thrust setpoint of servos, always 0
-	add_topic("sensor_combined");
-	add_topic("sensor_accel", 0, 2);
-	add_topic("sensor_gyro", 0, 2);
-	add_topic("vehicle_attitude");
+	// Estimated bandwidth: 20 kbps
+	add_topic("sensor_accel", 0, 2); // High-rate undamped IMU for vibration, 11 kbps
+	add_topic("adc_report");  // Direct ADC readings for battery/thermistor troubleshoot, 8 kbps
 }
 
 void LoggedTopics::add_debug_topics()
@@ -288,6 +281,7 @@ void LoggedTopics::add_debug_topics()
 
 void LoggedTopics::add_estimator_replay_topics()
 {
+	// Estimated bandwidth: 15 kbps
 	// for estimator replay (need to be at full rate)
 	add_topic("ekf2_timestamps");
 
