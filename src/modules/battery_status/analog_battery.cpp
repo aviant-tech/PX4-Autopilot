@@ -31,9 +31,14 @@
  *
  ****************************************************************************/
 
+#include <cmath>
 #include <stdio.h>
 #include <lib/battery/battery.h>
 #include "analog_battery.h"
+#include "drivers/drv_hrt.h"
+#include "px4_platform_common/defines.h"
+
+using namespace time_literals;
 
 // Defaults to use if the parameters are not set
 #if BOARD_NUMBER_BRICKS > 0
@@ -68,19 +73,57 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 
 	snprintf(param_name, sizeof(param_name), "BAT%d_I_CHANNEL", index);
 	_analog_param_handles.i_channel = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_T_CHANNEL", index);
+	_analog_param_handles.t_channel = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_T_R_PU", index);
+	_analog_param_handles.t_r_pu = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_T_R_25C", index);
+	_analog_param_handles.t_r_25c = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_T_BETA", index);
+	_analog_param_handles.t_beta = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_T_V_SRC", index);
+	_analog_param_handles.t_v_src = param_find(param_name);
 }
 
+
 void
-AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw)
+AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw,
+				      float temperature_raw)
 {
 	const float voltage_v = voltage_raw * _analog_params.v_div;
 	const float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
+
+	static constexpr float zero_c_in_k = 273.15f;
+	static constexpr float epsilon = 1e-6f;
+
+	float temperature_c = NAN;
+
+	const float thermistor_pullup_v = _analog_params.t_v_src - temperature_raw;
+	const float thermistor_ohm_inf = _analog_params.t_r_25c * expf(-_analog_params.t_beta / (zero_c_in_k + 25.f));
+
+	if (thermistor_pullup_v > epsilon && thermistor_ohm_inf > epsilon) {
+		const float thermistor_ohm = _analog_params.t_r_pu * temperature_raw / thermistor_pullup_v;
+		const float thermistor_ohm_ratio = thermistor_ohm / thermistor_ohm_inf;
+
+		const float log_thermistor_ohm_ratio = thermistor_ohm_ratio > epsilon ? logf(thermistor_ohm_ratio) : NAN;
+
+		if (PX4_ISFINITE(log_thermistor_ohm_ratio) && log_thermistor_ohm_ratio > epsilon) {
+			temperature_c = _analog_params.t_beta / log_thermistor_ohm_ratio - zero_c_in_k;
+		}
+	}
+
 
 	const bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			       (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
 	Battery::setConnected(connected);
 	Battery::updateVoltage(voltage_v);
+	Battery::updateTemperature(temperature_c);
 	Battery::updateCurrent(current_a);
 	Battery::updateAndPublishBatteryStatus(timestamp);
 }
@@ -116,6 +159,16 @@ int AnalogBattery::get_current_channel()
 	}
 }
 
+int AnalogBattery::get_temperature_channel()
+{
+	if (_analog_params.t_channel >= 0) {
+		return _analog_params.t_channel;
+
+	} else {
+		return -1; // No temperature channel
+	}
+}
+
 void
 AnalogBattery::updateParams()
 {
@@ -123,6 +176,11 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
 	param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
 	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
+	param_get(_analog_param_handles.t_channel, &_analog_params.t_channel);
+	param_get(_analog_param_handles.t_r_pu, &_analog_params.t_r_pu);
+	param_get(_analog_param_handles.t_r_25c, &_analog_params.t_r_25c);
+	param_get(_analog_param_handles.t_beta, &_analog_params.t_beta);
+	param_get(_analog_param_handles.t_v_src, &_analog_params.t_v_src);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
 	Battery::updateParams();

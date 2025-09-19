@@ -6,6 +6,45 @@ parameters:
     - group: PWM Outputs
       definitions:
 
+        PWM_MAIN_DCHNS:
+            description:
+                short: Outputs with dynamic max limiting
+                long: |
+                    The selected outputs will reduce the max output
+                    based on PWM_MAIN_DRNG and the dynamic allocator
+                    signal received from the battery module.
+            type: bitmask
+            bit:
+                0: Channel 1
+                1: Channel 2
+                2: Channel 3
+                3: Channel 4
+                4: Channel 5
+                5: Channel 6
+                6: Channel 7
+                7: Channel 8
+                8: Channel 9
+                9: Channel 10
+                10: Channel 11
+                11: Channel 12
+                12: Channel 13
+                13: Channel 14
+            default: 0
+
+        PWM_MAIN_DRNG:
+            description:
+                short: Amount to reduce max limit, given a full battery
+                long: |
+                    The outputs given by PWM_MAIN_DCHNS will have a reduction
+                    in output range (max-min) given by this scalar when the
+                    battery is full. The output will gradually be scaled up
+                    as the battery is drained.
+            type: float
+            min: 0
+            max: 1
+            decimal: 2
+            default: 0
+
         PWM_MAIN_OUT:
             description:
                 short: PWM channels used as ESC outputs

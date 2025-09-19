@@ -138,4 +138,6 @@ private:
 	static bool sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once, const bool report_fail);
 	static bool parachuteCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
 				   const vehicle_status_flags_s &status_flags);
+	static bool dynamicActuatorCheck(orb_advert_t *mavlink_log_pub, const uint8_t instance,
+					 const bool is_mandatory, const bool report_fail);
 };
