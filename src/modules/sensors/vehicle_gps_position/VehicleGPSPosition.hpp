@@ -46,7 +46,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 
-#include "gps_blending.hpp"
+#include "gnss_selector.hpp"
 
 using namespace time_literals;
 
@@ -69,15 +69,10 @@ private:
 
 	void ParametersUpdate(bool force = false);
 
-	// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
-	static constexpr uint8_t BLEND_MASK_USE_SPD_ACC  = 1;
-	static constexpr uint8_t BLEND_MASK_USE_HPOS_ACC = 2;
-	static constexpr uint8_t BLEND_MASK_USE_VPOS_ACC = 4;
-
 	// define max number of GPS receivers supported
 	static constexpr int GPS_MAX_RECEIVERS = 2;
-	static_assert(GPS_MAX_RECEIVERS == GpsBlending::GPS_MAX_RECEIVERS_BLEND,
-		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
+	static_assert(GPS_MAX_RECEIVERS == GnssSelector::GNSS_MAX_RECEIVERS,
+		      "GPS_MAX_RECEIVERS must match to GNSS_MAX_RECEIVERS");
 
 	uORB::Publication<sensor_gps_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
 
@@ -90,12 +85,12 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	GpsBlending _gps_blending;
+	GnssSelector _gnss_selector;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_GPS_MASK>) _param_sens_gps_mask,
-		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
-		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime
+		(ParamInt<px4::params::SENS_GPS_PRIM>) _param_sens_gps_prim,
+		(ParamFloat<px4::params::SENS_GPS_TOUT>) _param_sens_gps_timeout,
+		(ParamFloat<px4::params::SENS_GPS_HYST>) _param_sens_gps_hyst
 	)
 };
 }; // namespace sensors
