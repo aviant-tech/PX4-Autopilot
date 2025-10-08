@@ -111,6 +111,9 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 #if defined(CONFIG_EKF2_GNSS)
 	controlGpsFusion(imu_delayed);
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	controlGpsYawFusion(imu_delayed);
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
