@@ -690,6 +690,9 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
 		UpdateGpsSample(ekf2_timestamps);
+# if defined(CONFIG_EKF2_GNSS_YAW)
+		updateGnssHeadingSample(ekf2_timestamps);
+# endif //CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -2430,6 +2433,25 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		_gps_alttitude_ellipsoid = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3));
 	}
 }
+
+# if defined(CONFIG_EKF2_GNSS_YAW)
+void EKF2::updateGnssHeadingSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	vehicle_gnss_heading_s vehicle_gnss_heading;
+
+	if (_vehicle_gnss_heading_sub.update(&vehicle_gnss_heading)) {
+
+		gnssHeadingSample gnss_heading_sample{
+			.time_us = vehicle_gnss_heading.timestamp,
+			.heading = vehicle_gnss_heading.heading,
+			.heading_accuracy = vehicle_gnss_heading.heading_accuracy,
+		};
+
+		_ekf.setGnssHeadingData(gnss_heading_sample);
+	}
+}
+# endif //CONFIG_EKF2_GNSS_YAW
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

@@ -92,6 +92,9 @@ public:
 	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
 	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
 
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	void setGnssHeadingData(const gnssHeadingSample &gnssHeadingSample);
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -400,9 +403,13 @@ protected:
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
+	RingBuffer<gnssHeadingSample> *_gnss_heading_buffer{nullptr};
+	uint64_t _time_last_gnss_heading_buffer_push{0};
+
+	gnssHeadingSample _gnss_heading_sample_delayed{};
+
 	// innovation consistency check monitoring ratios
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
-	uint64_t _time_last_gps_yaw_buffer_push{0};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
