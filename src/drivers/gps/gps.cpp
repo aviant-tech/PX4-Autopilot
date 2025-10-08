@@ -207,6 +207,7 @@ private:
 
 	const Instance 			_instance;
 
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 	uORB::Publication<gps_dump_s>	     _dump_communication_pub{ORB_ID(gps_dump)};
@@ -220,6 +221,11 @@ private:
 	static px4::atomic<GPS *> _secondary_instance;
 
 	px4::atomic<int> _scheduled_reset{(int)GPSRestartType::None};
+
+	// State for u-blox rover fallback
+	bool _rover_temporarily_in_normal_mode{false};
+	bool _rover_used_for_position{false};
+	hrt_abstime _rover_allowed_return_to_rover_mode_at{0};
 
 	/**
 	 * Publish the gps struct
@@ -774,6 +780,22 @@ GPS::run()
 		param_get(handle, &gnssSystemsParam);
 	}
 
+	int32_t ubx_mbr_fb_enable = 0;
+	handle = param_find("GPS_UBX_MBR_FB");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &ubx_mbr_fb_enable);
+	}
+
+	float ubx_mbr_fb_hysteresis_s = 15.0f;
+	handle = param_find("GPS_UBX_MBR_FB_H");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &ubx_mbr_fb_hysteresis_s);
+	}
+
+	const hrt_abstime ubx_mbr_fb_hysteresis_us = ubx_mbr_fb_hysteresis_s * 1_s;
+
 	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
@@ -968,6 +990,39 @@ GPS::run()
 				}
 
 				reset_if_scheduled();
+
+				if (ubx_mbr_fb_enable && ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase) {
+					// MB Rover fallback: Reconfigure to normal mode if used for position.
+					// This is a safety measure to ensure reliable positioning. Rover mode
+					// has issues with variable measurement rate and delayed navigation info.
+
+					sensor_gps_s vehicle_gps_position;
+
+					if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+						// Check if this GPS instance is used as position source
+						if (vehicle_gps_position.device_id  == get_device_id()) {
+							_rover_used_for_position = true;
+							_rover_allowed_return_to_rover_mode_at = hrt_absolute_time() + ubx_mbr_fb_hysteresis_us;
+
+						} else {
+							_rover_used_for_position = false;
+						}
+					}
+
+					if (_rover_used_for_position && !_rover_temporarily_in_normal_mode) {
+						PX4_WARN("Rover receiver used as position source. Reconfiguring to normal mode.");
+						_helper->disableUbxMBRover();
+						_rover_temporarily_in_normal_mode = true;
+					}
+
+					if (!_rover_used_for_position
+					    && _rover_temporarily_in_normal_mode
+					    && hrt_absolute_time() > _rover_allowed_return_to_rover_mode_at) {
+						PX4_WARN("Rover receiver no longer used as position source. Reconfiguring to rover mode.");
+						_helper->enableUbxMBRover();
+						_rover_temporarily_in_normal_mode = false;
+					}
+				}
 
 				/* measure update rate every 5 seconds */
 				if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
