@@ -178,17 +178,50 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		_gps_buffer->push(gnss_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
-#if defined(CONFIG_EKF2_GNSS_YAW)
-		if (PX4_ISFINITE(gnss_sample.yaw)) {
-			_time_last_gps_yaw_buffer_push = _time_latest_us;
-		}
-#endif // CONFIG_EKF2_GNSS_YAW
-
 	} else {
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 #endif // CONFIG_EKF2_GNSS
+
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+void EstimatorInterface::setGnssHeadingData(const gnssHeadingSample &gnss_heading_sample){
+	if (!_initialised) {
+		return;
+	}
+
+		// Allocate the required buffer size if not previously done
+	if (_gnss_heading_buffer == nullptr) {
+		_gnss_heading_buffer = new RingBuffer<gnssHeadingSample>(_obs_buffer_length);
+
+		if (_gnss_heading_buffer == nullptr || !_gnss_heading_buffer->valid()) {
+			delete _gnss_heading_buffer;
+			_gnss_heading_buffer = nullptr;
+			printBufferAllocationFailed("GNSS heading");
+			return;
+		}
+	}
+
+	const int64_t time_us = gnss_heading_sample.time_us
+				// Currently use gps delay instead of a separate GNSS heading delay param
+				- static_cast<int64_t>(_params.gps_delay_ms * 1000)
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	if (time_us >= static_cast<int64_t>(_gnss_heading_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		gnssHeadingSample gnss_heading_sample_new(gnss_heading_sample);
+
+		gnss_heading_sample_new.time_us = time_us;
+
+		_gnss_heading_buffer->push(gnss_heading_sample_new);
+		_time_last_gnss_heading_buffer_push= _time_latest_us;
+
+	} else {
+		ECL_WARN("GNSS heading data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gnss_heading_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+#endif // CONFIG_EKF2_GNSS_YAW
 
 #if defined(CONFIG_EKF2_BAROMETER)
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
