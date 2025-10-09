@@ -111,6 +111,8 @@ public:
 
 	void add_icao_address_from_conflict_list(uint32_t icao_address);
 
+	void set_icao_ignore_range(uint32_t start_address, uint32_t count);
+
 	void get_traffic_state();
 
 	void set_conflict_detection_params(float crosstrack_separation, float vertical_separation,
@@ -157,4 +159,8 @@ private:
 	hrt_abstime _last_traffic_warning_time{0};
 
 	hrt_abstime _last_buffer_full_warning_time{0};
+
+	uint32_t _icao_ignore_start{0};
+
+	uint32_t _icao_ignore_count{0};
 };

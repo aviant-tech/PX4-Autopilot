@@ -144,6 +144,7 @@ void Navigator::params_update()
 	}
 
 	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+	_adsb_conflict.set_icao_ignore_range(_param_nav_traff_ignadr.get(), _param_nav_traff_igncnt.get());
 }
 
 void Navigator::run()

@@ -408,6 +408,8 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
 		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout,
-		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt
+		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt,
+		(ParamInt<px4::params::NAV_TRAFF_IGNADR>)  _param_nav_traff_ignadr,
+		(ParamInt<px4::params::NAV_TRAFF_IGNCNT>)  _param_nav_traff_igncnt
 	)
 };
