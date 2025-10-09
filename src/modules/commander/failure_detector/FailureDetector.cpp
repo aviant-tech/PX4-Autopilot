@@ -170,6 +170,13 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 
 	failure_detector_status_u status_prev = _status;
 
+	if (vehicle_control_mode.flag_multicopter_position_control_enabled && _param_fd_mpc_vz_thr.get() > 0) {
+		updateMpcVzStatus();
+
+	} else {
+		_status.flags.mpc_vz = false;
+	}
+
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
 		updateAttitudeStatus(vehicle_status);
 
@@ -470,5 +477,30 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 		_motor_failure_esc_under_current_mask = 0;
 		_status.flags.motor = false;
+	}
+}
+
+
+void FailureDetector::updateMpcVzStatus()
+{
+	vehicle_local_position_s position;
+	vehicle_local_position_setpoint_s position_sp;
+
+	if (_vehicle_local_position_sub.update(&position) &&
+	    _vehicle_local_position_setpoint_sub.copy(&position_sp)) {
+
+		const float max_z_velocity = _param_fd_mpc_vz_thr.get();
+
+		const bool is_descending_too_fast = position.v_z_valid && position.vz > max_z_velocity;
+		const bool is_trying_to_climb = PX4_ISFINITE(position_sp.vz) && position_sp.vz < -FLT_EPSILON;
+
+		const bool mpc_vz_status = is_trying_to_climb && is_descending_too_fast;
+
+		hrt_abstime time_now = hrt_absolute_time();
+
+		_mpc_vz_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_mpc_vz_ttri.get()));
+		_mpc_vz_failure_hysteresis.set_state_and_update(mpc_vz_status, time_now);
+
+		_status.flags.mpc_vz = _mpc_vz_failure_hysteresis.get_state();
 	}
 }

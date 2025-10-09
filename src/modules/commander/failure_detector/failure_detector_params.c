@@ -212,3 +212,32 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
  * @increment 100
  */
 PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
+
+/**
+ * Multicopter altitude rate fail threshold
+ *
+ * Maximum downwards vertical velocity before FailureDetector triggers the MR vertical_rate_failure flag.
+ * Will only be triggered if the setpoint is negative (ascending).
+ * Set to 0 to disable.
+ *
+ * @min 0
+ * @max 20
+ * @increment 1
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_MPC_VZ_THR, 0);
+
+/**
+ * Multicopter altitude rate fail trigger time
+ *
+ * Seconds (decimal) that MR vertical rate has to exceed FD_MPC_VZ_THR before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_MPC_VZ_TTRI, 0.3);
+

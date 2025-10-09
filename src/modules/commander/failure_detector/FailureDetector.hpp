@@ -60,7 +60,10 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
 
@@ -74,6 +77,7 @@ union failure_detector_status_u {
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
 		uint16_t motor : 1;
+		uint16_t mpc_vz : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -111,6 +115,7 @@ private:
 	void updateExternalAtsStatus();
 	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
+	void updateMpcVzStatus();
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _status{};
@@ -119,6 +124,7 @@ private:
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 	systemlib::Hysteresis _esc_failure_hysteresis{false};
+	systemlib::Hysteresis _mpc_vz_failure_hysteresis{false};
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -138,6 +144,8 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	FailureInjector _failure_injector;
 
@@ -155,6 +163,8 @@ private:
 		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_actuator_en,
 		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_motor_throttle_thres,
 		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_motor_current2throttle_thres,
-		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres
+		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres,
+		(ParamInt<px4::params::FD_MPC_VZ_THR>) _param_fd_mpc_vz_thr,
+		(ParamFloat<px4::params::FD_MPC_VZ_TTRI>) _param_fd_mpc_vz_ttri
 	)
 };
