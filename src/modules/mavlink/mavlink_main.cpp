@@ -1619,6 +1619,11 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		//stream nothing
 		break;
 
+	case MAVLINK_MODE_PARACHUTE:
+		configure_stream_local("ATTITUDE", 10.0f);
+		configure_stream_local("SYSTEM_TIME", 1.0f);
+		break;
+
 	case MAVLINK_MODE_CONFIG: // USB
 		// Note: streams requiring low latency come first
 		configure_stream_local("TIMESYNC", 10.0f);
@@ -2021,6 +2026,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "onboard_low_bandwidth") == 0) {
 						_mode = MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH;
+
+					} else if (strcmp(myoptarg, "parachute") == 0) {
+						_mode = MAVLINK_MODE_PARACHUTE;
 
 					} else if (strcmp(myoptarg, "uavionix") == 0) {
 						_mode = MAVLINK_MODE_UAVIONIX;
@@ -3267,7 +3275,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix|parachute",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
