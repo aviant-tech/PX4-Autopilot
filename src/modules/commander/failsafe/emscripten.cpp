@@ -167,6 +167,7 @@ void set_param_value_float(const std::string &name, float value)
 
 int failsafe_update(bool armed, bool vtol_in_transition_mode, bool mission_finished,
 		    bool user_override, uint8_t user_intended_mode, uint8_t vehicle_type,
+		    bool alt_too_low_for_fd_flightterm,
 		    failsafe_flags_s status_flags, bool defer_failsafes)
 {
 	uint64_t time_ms = emscripten_date_now();
@@ -176,6 +177,7 @@ int failsafe_update(bool armed, bool vtol_in_transition_mode, bool mission_finis
 	state.mission_finished = mission_finished;
 	state.user_intended_mode = user_intended_mode;
 	state.vehicle_type = vehicle_type;
+	state.alt_agl_too_low_for_fd_flightterm = alt_too_low_for_fd_flightterm;
 	mode_util::getModeRequirements(vehicle_type, status_flags);
 	failsafe_instance.current().deferFailsafes(defer_failsafes, 0);
 	return failsafe_instance.current().update(time_ms * 1000, state, false, user_override, status_flags);

@@ -168,6 +168,8 @@ private:
 
 	void checkForMissionUpdate();
 
+	void updateAltAglTooLowForFdFlightterm();
+
 	void handlePowerButtonState();
 
 	void systemPowerUpdate();
@@ -279,6 +281,8 @@ private:
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 
+	bool _alt_agl_too_low_for_fd_flightterm{false};
+
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
 	// commander publications
@@ -296,6 +300,7 @@ private:
 	uORB::Subscription					_vehicle_command_mode_executor_sub{ORB_ID(vehicle_command_mode_executor)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription					_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -347,6 +352,7 @@ private:
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_takeoff_finished_action,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
+		(ParamFloat<px4::params::COM_FDTRM_MINAGL>) _param_com_fdtrm_minagl
 	)
 };

@@ -1044,3 +1044,21 @@ PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_FLTT_LOW_ACT, 3);
+
+/**
+ * Minimum Ground Distance For Failure Detector Termination
+ *
+ * The value has implications for determining whether the
+ * failure detector can trigger flight termination.
+ * If a failure is detected and the vehicle's distance from the ground is less than this value,
+ * commander will not execute flight termination even if CBRK_FLIGHTTERM allows it.
+ * This is intended to avoid termination below the minimum parachute deployment altitude,
+ * where the parachute would not have time to deploy properly.
+ *
+ * @decimal 2
+ * @min 0.00
+ * @max 10000.00
+ * @unit m
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_FDTRM_MINAGL, 0.00);

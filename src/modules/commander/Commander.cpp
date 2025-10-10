@@ -44,6 +44,7 @@
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
+#include "uORB/topics/vehicle_local_position.h"
 #define DEFINE_GET_PX4_CUSTOM_MODE
 #include "px4_custom_mode.h"
 #include "ModeUtil/control_mode.hpp"
@@ -1792,6 +1793,8 @@ void Commander::run()
 		/* Update OA parameter */
 		_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
 
+		updateAltAglTooLowForFdFlightterm();
+
 		handlePowerButtonState();
 
 		systemPowerUpdate();
@@ -2045,6 +2048,37 @@ bool Commander::getPrearmState() const
 	}
 
 	return false;
+}
+
+void Commander::updateAltAglTooLowForFdFlightterm()
+{
+
+	const float min_alt_agl_for_fd_flightterm = _param_com_fdtrm_minagl.get();
+
+	if (min_alt_agl_for_fd_flightterm < FLT_EPSILON) {
+		// The feature is disabled
+		_alt_agl_too_low_for_fd_flightterm = false;
+		return;
+	}
+
+	vehicle_local_position_s position;
+
+	if (_vehicle_local_position_sub.copy(&position)) {
+		if (
+			position.dist_bottom_valid &&
+			position.dist_bottom < min_alt_agl_for_fd_flightterm
+		) {
+			_alt_agl_too_low_for_fd_flightterm = true;
+
+		} else {
+			_alt_agl_too_low_for_fd_flightterm = false;
+		}
+
+	} else {
+		// reset to false if we can't get local position
+		// so we don't get stuck blocking termination
+		_alt_agl_too_low_for_fd_flightterm = false;
+	}
 }
 
 void Commander::handlePowerButtonState()
@@ -2313,6 +2347,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 	state.mission_finished = _mission_result_sub.get().finished;
 	state.user_intended_mode = _user_mode_intention.get();
 	state.vehicle_type = _vehicle_status.vehicle_type;
+	state.alt_agl_too_low_for_fd_flightterm = _alt_agl_too_low_for_fd_flightterm;
 
 	// There might have been a mode change request without changing the user intended mode.
 	// If a failsafe is active we must pass the request along as it might lead to a user-takeover.
