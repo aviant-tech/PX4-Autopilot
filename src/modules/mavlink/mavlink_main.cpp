@@ -1613,12 +1613,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_MAGIC:
-		//stream nothing
-		break;
 
+	/* fallthrough */
 	case MAVLINK_MODE_CUSTOM:
-		configure_stream_local("ATTITUDE", 10.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
+		//stream nothing
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
