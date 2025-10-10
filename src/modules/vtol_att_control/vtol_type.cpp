@@ -60,7 +60,8 @@ static constexpr float kMaxWeightRatio = 2.0f;
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	ModuleParams(nullptr),
 	_attc(att_controller),
-	_common_vtol_mode(mode::ROTARY_WING)
+	_common_vtol_mode(mode::ROTARY_WING),
+	_airspeed_filtered(_attc->get_filtered_airspeed())
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -207,7 +208,7 @@ bool VtolType::isFrontTransitionCompleted()
 bool VtolType::isFrontTransitionCompletedBase()
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
+	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_filtered)
 			&& _param_fw_use_airspd.get();
 	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
 	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
@@ -216,7 +217,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 
 	if (airspeed_triggers_transition) {
 		transition_to_fw = minimum_trans_time_elapsed
-				   && _airspeed_validated->calibrated_airspeed_m_s >= getTransitionAirspeed();
+				   && _airspeed_filtered >= getTransitionAirspeed();
 
 	} else {
 		transition_to_fw = openloop_trans_time_elapsed;
