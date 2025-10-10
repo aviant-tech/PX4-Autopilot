@@ -10,3 +10,6 @@ uint64 timestamp			# time since system start (microseconds)
 uint8 vehicle_vtol_state		# current state of the vtol, see VEHICLE_VTOL_STATE
 
 bool fixed_wing_system_failure		# vehicle in fixed-wing system failure failsafe mode (after quad-chute)
+
+float32 airspeed_filtered		# Filtered airspeed used during transition. NAN if invalid
+float32[4] mc_weights			# Multicopter blending weights for [roll, pitch, yaw, throttle]

@@ -59,6 +59,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle"))
 {
+	_airspeed_filter.reset(NAN);
+
 	// start vtol in rotary wing mode
 	_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
@@ -346,7 +348,11 @@ VtolAttitudeControl::Run()
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
-		_airspeed_validated_sub.update(&_airspeed_validated);
+
+		if (_airspeed_validated_sub.update(&_airspeed_validated)) {
+			update_airspeed_filter(_airspeed_validated);
+		}
+
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
 
@@ -445,6 +451,11 @@ VtolAttitudeControl::Run()
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
+		_vtol_vehicle_status.airspeed_filtered = get_filtered_airspeed();
+		_vtol_vehicle_status.mc_weights[0] = _vtol_type->get_mc_roll_weight();
+		_vtol_vehicle_status.mc_weights[1] = _vtol_type->get_mc_pitch_weight();
+		_vtol_vehicle_status.mc_weights[2] = _vtol_type->get_mc_yaw_weight();
+		_vtol_vehicle_status.mc_weights[3] = _vtol_type->get_mc_throttle_weight();
 
 		// Publish flaps/spoiler setpoint with configured deflection in Hover if in Auto.
 		// In Manual always published in FW rate controller, and in Auto FW in FW Position Controller.
@@ -473,6 +484,25 @@ VtolAttitudeControl::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void VtolAttitudeControl::update_airspeed_filter(const struct airspeed_validated_s &sample)
+{
+	if (!sample.airspeed_sensor_measurement_valid || !PX4_ISFINITE(sample.calibrated_airspeed_m_s)) {
+		_airspeed_filter.reset(NAN);
+	}
+
+	if (!PX4_ISFINITE(_airspeed_filter.getState())) {
+		_airspeed_filter.reset(sample.calibrated_airspeed_m_s);
+
+	} else {
+		// We must update the filter parameters, since we don't know the sensor sample rate
+		float dt_s = static_cast<float>(sample.timestamp - _airspeed_filter_last_timestamp) / 1e6f;
+		_airspeed_filter.setParameters(dt_s, _param_vt_arsp_tau.get());
+		_airspeed_filter.update(sample.calibrated_airspeed_m_s);
+	}
+
+	_airspeed_filter_last_timestamp = sample.timestamp;
 }
 
 int

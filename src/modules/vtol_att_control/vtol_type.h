@@ -214,6 +214,14 @@ public:
 	bool can_transition_on_ground();
 
 	/**
+	 * Get the weights for multicopter attitude control output
+	 */
+	float get_mc_roll_weight() const { return _mc_roll_weight; }
+	float get_mc_pitch_weight() const { return _mc_pitch_weight; }
+	float get_mc_yaw_weight() const { return _mc_yaw_weight; }
+	float get_mc_throttle_weight() const { return _mc_throttle_weight; }
+
+	/**
 	 * Pusher assist in hover (pusher/pull for standard VTOL, motor tilt for tiltrotor)
 	 */
 	float pusher_assist();
@@ -283,6 +291,7 @@ protected:
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
 	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
+	const float		    			&_airspeed_filtered;					// filtered airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 
