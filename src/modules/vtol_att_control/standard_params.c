@@ -79,6 +79,17 @@ PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
 PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.7f);
 
 /**
+* Time constant for filtering airspeed measurements used during transition.
+*
+* @unit s
+* @decimal 1
+* @min 0.0
+* @max 5.0
+* @group VTOL Attitude Control
+*/
+PARAM_DEFINE_FLOAT(VT_ARSP_TAU, 1.0f);
+
+/**
  * Back transition MC motor ramp up time
  *
  * This sets the duration during which the MC motors ramp up to the commanded thrust during the back transition stage.
