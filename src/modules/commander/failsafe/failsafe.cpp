@@ -526,10 +526,14 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		// This handles the case where something fails during the early takeoff phase
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
 
-	} else if (!circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(), CBRK_FLIGHTTERM_KEY)) {
+	} else if (
+		!circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(), CBRK_FLIGHTTERM_KEY)
+		&& !state.alt_agl_too_low_for_fd_flightterm
+	) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
 
 	} else {
+		// TODO: Consider doing another action, e.g. Land
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Warn);
 	}
 
