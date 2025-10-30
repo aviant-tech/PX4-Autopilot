@@ -42,10 +42,13 @@ set(NAVIGATOR_SOURCES
 	mission.cpp
 	loiter.cpp
 	rtl.cpp
+	mission_rtl.cpp
 	rtl_direct.cpp
 	rtl_direct_mission_land.cpp
 	rtl_mission_fast.cpp
 	rtl_mission_fast_reverse.cpp
+	missionrtl_mission_fast.cpp
+	missionrtl_mission_fast_reverse.cpp
 	takeoff.cpp
 	land.cpp
 	precland.cpp

@@ -547,6 +547,26 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		returned_state.cause = Cause::Generic;
 
 	// fallthrough
+	case Action::MissionRTL:
+
+		/*
+		Skip MissionRTL if we're falling though, but we need to place
+		mission RTL here so it can fall through to other actions.
+
+		We also want to fall through to RTL if we're not in fixedwing mode,
+		since the distance home is likely too far to fly in multirotor mode
+		*/
+		if (selected_action == Action::MissionRTL &&
+		    state.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
+		    modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL)
+		   ) {
+			selected_action = Action::MissionRTL;
+			break;
+		}
+
+		returned_state.cause = Cause::Generic;
+
+	// fallthrough
 	case Action::RTL:
 		if (modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)) {
 			selected_action = Action::RTL;
@@ -591,7 +611,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	// UX improvement (this is optional for safety): change failsafe to a warning in certain situations.
 	// If already landing, do not go into RTL
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
-		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
+		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL || selected_action
+		     == Action::MissionRTL || returned_state.delayed_action == Action::MissionRTL)
 		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
 			selected_action = Action::Warn;
 			returned_state.delayed_action = Action::None;
@@ -601,7 +622,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	// If already precision landing, do not go into RTL or Land
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) {
 		if ((selected_action == Action::RTL || selected_action == Action::Land ||
-		     returned_state.delayed_action == Action::RTL || returned_state.delayed_action == Action::Land)
+		     returned_state.delayed_action == Action::RTL || returned_state.delayed_action == Action::Land ||
+		     returned_state.delayed_action == Action::MissionRTL)
 		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND)) {
 			selected_action = Action::Warn;
 			returned_state.delayed_action = Action::None;
@@ -612,7 +634,8 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 bool FailsafeBase::actionAllowsUserTakeover(Action action) const
 {
 	// Stick-controlled modes do not need user takeover
-	return action == Action::Hold || action == Action::RTL || action == Action::Land || action == Action::Descend;
+	return action == Action::Hold || action == Action::RTL || action == Action::Land || action == Action::Descend ||
+	       action == Action::MissionRTL;
 }
 
 void FailsafeBase::clearDelayIfNeeded(const State &state,
@@ -645,6 +668,8 @@ uint8_t FailsafeBase::modeFromAction(const Action &action, uint8_t user_intended
 	case Action::Hold: return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 	case Action::RTL: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+	case Action::MissionRTL: return vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL;
 
 	case Action::Land: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 

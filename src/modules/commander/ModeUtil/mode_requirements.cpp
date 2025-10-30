@@ -113,6 +113,17 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_home_position);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL, flags.mode_req_prevent_arming);
 
+	// NAVIGATION_STATE_AUTO_MISSION_RTL
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_angular_velocity);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_attitude);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_local_position);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_global_position);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_local_alt);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_home_position);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_prevent_arming);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_mission);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL, flags.mode_req_wind_and_flight_time_compliance);
+
 	// NAVIGATION_STATE_ACRO
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ACRO, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ACRO, flags.mode_req_manual_control);
@@ -180,7 +191,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	// NAVIGATION_STATE_EXTERNALx: handled outside
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 31, "update mode requirements");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 32, "update mode requirements");
 }
 
 } // namespace mode_util

@@ -114,6 +114,7 @@ private:
 		Land_mode = 3,
 		Terminate = 5,
 		Disarm = 6,
+		Mission_return_mode = 7,
 	};
 
 	enum class command_after_quadchute : int32_t {
@@ -194,4 +195,3 @@ private:
 				       );
 
 };
-

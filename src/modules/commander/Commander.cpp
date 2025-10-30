@@ -846,6 +846,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 + (custom_sub_mode - PX4_CUSTOM_SUB_MODE_EXTERNAL1);
 							break;
 
+						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION_RTL:
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL;
+							break;
+
 						default:
 							main_ret = TRANSITION_DENIED;
 							mavlink_log_critical(&_mavlink_log_pub, "Unsupported auto mode\t");
