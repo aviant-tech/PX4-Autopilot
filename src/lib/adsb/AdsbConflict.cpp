@@ -197,7 +197,7 @@ bool AdsbConflict::handle_traffic_conflict()
 		break;
 
 	case TRAFFIC_STATE::REMOVE_OLD_CONFLICT: {
-			events::send<uint32_t>(events::ID("navigator_traffic_resolved"), events::Log::Notice,
+			events::send<uint32_t>(events::ID("navigator_traffic_resolved"), events::Log::Debug,
 					       "Traffic Conflict Resolved {1}!",
 					       _transponder_report.icao_address);
 			_last_traffic_warning_time = hrt_absolute_time();
