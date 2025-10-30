@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include "events/events_generated.h"
 #include "geofence.h"
 #include "land.h"
 #include "precland.h"
@@ -48,6 +49,7 @@
 #include "mission.h"
 #include "navigator_mode.h"
 #include "rtl.h"
+#include "mission_rtl.h"
 #include "takeoff.h"
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
@@ -90,7 +92,7 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -351,6 +353,7 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
+	MissionRTL 	_mission_rtl;			/**< class that handles Mission RTL */
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */

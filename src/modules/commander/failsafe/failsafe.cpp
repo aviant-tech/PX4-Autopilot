@@ -73,6 +73,11 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 		options.action = Action::Disarm;
 		break;
 
+	case gcs_connection_loss_failsafe_mode::Mission_return_mode:
+		options.action = Action::MissionRTL;
+		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		break;
+
 	default:
 		options.action = Action::None;
 		break;
@@ -567,6 +572,12 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		uint8_t user_intended_mode) const
 {
 	Action action = Action::None;
+
+	if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL) {
+		// MissionRTL needs to be treated as an Action for correct fallback to RTL when the mode is user_selected.
+		// This is because the fallback happens in the failsafe logic.
+		action = Action::MissionRTL;
+	}
 
 	// offboard signal
 	if (status_flags.offboard_control_signal_lost && (status_flags.mode_req_offboard_signal & (1u << user_intended_mode))) {
