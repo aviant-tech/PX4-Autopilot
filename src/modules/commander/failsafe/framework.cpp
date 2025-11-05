@@ -231,7 +231,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 				events::send<uint32_t, events::px4::enums::failsafe_action_t>(
 					events::ID("commander_failsafe_enter_generic"),
 				{events::Log::Critical, events::LogInternal::Warning},
-				"Failsafe activated: Autopilot disengaged, switching to {2}", mavlink_mode, failsafe_action);
+				"Failsafe activated: Switching to {2}", mavlink_mode, failsafe_action);
 			}
 
 		} else {
