@@ -641,8 +641,9 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Disarm
+ * @value 7 Mission return mode
  * @min 0
- * @max 6
+ * @max 7
  *
  * @group Commander
  */

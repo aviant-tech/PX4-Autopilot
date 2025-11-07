@@ -62,7 +62,8 @@ uint8 NAVIGATION_STATE_EXTERNAL5 = 27
 uint8 NAVIGATION_STATE_EXTERNAL6 = 28
 uint8 NAVIGATION_STATE_EXTERNAL7 = 29
 uint8 NAVIGATION_STATE_EXTERNAL8 = 30
-uint8 NAVIGATION_STATE_MAX = 31
+uint8 NAVIGATION_STATE_AUTO_MISSION_RTL = 31    # Auto return to launch mode following mission path
+uint8 NAVIGATION_STATE_MAX = 32
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 
