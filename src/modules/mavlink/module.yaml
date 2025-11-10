@@ -70,6 +70,7 @@ parameters:
                 11: Onboard Low Bandwidth
                 12: uAvionix
                 13: Parachute
+                14: TRN
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [0, 2, 0]
