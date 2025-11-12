@@ -51,7 +51,7 @@ using namespace time_literals;
 using namespace math;
 using matrix::wrap_pi;
 
-static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES{10.0f}; // [m] We don't consider safe points valid if the distance from the current home to the safe point is smaller than this distance
+static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES{1.0f}; // [m] We don't consider safe points valid if the distance from the current home to the safe point is smaller than this distance
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
 RTL::RTL(Navigator *navigator) :
@@ -377,9 +377,6 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 	rtl_position.yaw = _home_pos_sub.get().yaw;
 	destination_type = DestinationType::DESTINATION_TYPE_HOME;
 
-	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
-				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
@@ -389,8 +386,8 @@ void RTL::findRtlDestination(DestinationType &destination_type, PositionYawSetpo
 
 	_home_has_land_approach = hasVtolLandApproach(rtl_position);
 
-	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1)
-			&& !_home_has_land_approach)) {
+	if ((_param_rtl_type.get() == 1) || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1)
+					     && !_home_has_land_approach)) {
 		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing for vtol in fw and it is not defined for home.
 		min_dist = FLT_MAX;
 
