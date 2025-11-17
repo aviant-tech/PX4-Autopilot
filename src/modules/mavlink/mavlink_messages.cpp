@@ -120,6 +120,11 @@
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
+
+#if defined(MAVLINK_ENABLED_AVIANT)
+#include "streams/AVIANT_HEARTBEAT.hpp"
+#endif // MAVLINK_ENABLED_AVIANT
+
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 #include "streams/FIGURE_EIGHT_EXECUTION_STATUS.hpp"
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
@@ -505,6 +510,9 @@ static const StreamListItem streams_list[] = {
 #if defined(CURRENT_MODE_HPP)
 	create_stream_list_item<MavlinkStreamCurrentMode>(),
 #endif // CURRENT_MODE_HPP
+#if defined (AVIANT_HEARTBEAT_HPP)
+	create_stream_list_item<MavlinkStreamAviantHeartbeat>(),
+#endif // AVIANT_HEARTBEAT_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
