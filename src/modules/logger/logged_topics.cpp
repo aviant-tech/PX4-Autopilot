@@ -45,6 +45,8 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	add_topic("aviant_mr_thrust_indicator", 100);
+	add_topic("aviant_navigation", 100);
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
@@ -264,6 +266,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_local_position_groundtruth", 20);
 
 	// EKF replay
+	add_topic("aviant_navigation");
 	add_topic("estimator_baro_bias");
 	add_topic("estimator_gnss_hgt_bias");
 	add_topic("estimator_rng_hgt_bias");
@@ -284,25 +287,25 @@ void LoggedTopics::add_default_topics()
 	add_topic("wind");
 	add_topic("yaw_estimator_status");
 
-	add_optional_topic_multi("estimator_aid_src_airspeed", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_baro_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_rng_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_fake_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_fake_pos", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_pos", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_vel", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_ev_yaw", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_hgt", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_pos", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_vel", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gnss_yaw", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_gravity", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_mag", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_terrain_range_finder", 0, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_aid_src_sideslip", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_airspeed", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_baro_hgt", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_rng_hgt", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_fake_hgt", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_fake_pos", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_hgt", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_pos", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_vel", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_yaw", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_hgt", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_pos", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_vel", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gnss_yaw", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_gravity", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_mag", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_terrain_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_terrain_range_finder", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_sideslip", 0, MAX_ESTIMATOR_INSTANCES);
 
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 
@@ -354,6 +357,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
+	add_topic("vehicle_gnss_heading");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");

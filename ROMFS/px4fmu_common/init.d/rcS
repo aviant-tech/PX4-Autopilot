@@ -507,6 +507,13 @@ else
 		payload_deliverer start
 	fi
 
+	# Aviant module
+	if param compare -s AV_EN 1
+	then
+		aviant start
+	fi
+
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#

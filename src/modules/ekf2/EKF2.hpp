@@ -255,13 +255,15 @@ private:
 
 	// publish helper for estimator_aid_source topics
 	template <typename T>
-	void PublishAidSourceStatus(const T &status, hrt_abstime &status_publish_last, uORB::PublicationMulti<T> &pub)
+	void PublishAidSourceStatus(const T &status, const hrt_abstime &timestamp, hrt_abstime &status_publish_last,
+				    uORB::PublicationMulti<T> &pub)
 	{
 		if (status.timestamp_sample > status_publish_last) {
 			// publish if updated
 			T status_out{status};
 			status_out.estimator_instance = _instance;
-			status_out.timestamp = hrt_absolute_time();
+
+			status_out.timestamp = timestamp;
 			pub.publish(status_out);
 
 			// record timestamp sample
