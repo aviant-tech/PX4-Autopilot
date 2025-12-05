@@ -37,6 +37,7 @@
 #include "FlightTaskAuto.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <uORB/topics/battery_status.h>
 
 using namespace matrix;
 
@@ -249,6 +250,12 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
 		vertical_speed = _param_mpc_land_crawl_speed.get();
+	}
+
+	_sub_failsafe_flags.update();
+
+	if (_sub_failsafe_flags.get().battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+		vertical_speed = math::max(vertical_speed, _param_mpc_land_bat_emg.get());
 	}
 
 	if (_type_previous != WaypointType::land) {
