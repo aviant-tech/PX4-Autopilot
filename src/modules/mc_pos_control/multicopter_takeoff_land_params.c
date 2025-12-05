@@ -112,6 +112,22 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT3, 1.f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
+ * Minimum descent speed during battery emergency
+ *
+ * During a battery emergency, the land descend rate will not go below this value.
+ * This can be used to disable soft landing during battery emergency.
+ * Only affects auto land, not manual altitude mode.
+ *
+ * Has no effect if set to 0.
+ *
+ * @unit m/s
+ * @min 0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_BAT_EMG, 0.0f);
+
+/**
  * Land crawl descend rate
  *
  * Used below MPC_LAND_ALT3 if distance sensor data is availabe.

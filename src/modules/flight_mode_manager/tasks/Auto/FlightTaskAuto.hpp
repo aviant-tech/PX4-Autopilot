@@ -40,6 +40,7 @@
 #pragma once
 
 #include "FlightTask.hpp"
+#include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
@@ -175,6 +176,8 @@ protected:
 					_param_mpc_land_alt2, // altitude at which we descend at land speed
 					(ParamFloat<px4::params::MPC_LAND_ALT3>)
 					_param_mpc_land_alt3, // altitude where we switch to crawl speed, if LIDAR available
+					(ParamFloat<px4::params::MPC_LAND_BAT_EMG>)
+					_param_mpc_land_bat_emg, // minimum descent speed during battery emergency
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
@@ -187,6 +190,7 @@ private:
 	bool _yaw_lock{false}; /**< if within acceptance radius, lock yaw to current yaw */
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_triplet_setpoint{ORB_ID(position_setpoint_triplet)};
+	uORB::SubscriptionData<failsafe_flags_s> _sub_failsafe_flags{ORB_ID(failsafe_flags)};
 
 	matrix::Vector3f
 	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
