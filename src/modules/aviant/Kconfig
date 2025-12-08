@@ -1,0 +1,5 @@
+menuconfig MODULES_AVIANT
+	bool "Aviant specific features"
+	default y
+	---help---
+		Enable Aviant specific features
