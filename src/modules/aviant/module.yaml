@@ -1,0 +1,22 @@
+module_name: aviant
+
+parameters:
+
+  - group: Aviant
+    definitions:
+      AV_EN:
+        type: int32
+        default: 1
+        min: 0
+        max: 1
+        reboot_required: true
+        description:
+          short: Enable/Disable the Aviant module.
+      AV_NAV_IND_EN:
+        type: int32
+        default: 1
+        min: 0
+        max: 1
+        reboot_required: true
+        description:
+          short: Enable/Disable the navigation indicator module.
