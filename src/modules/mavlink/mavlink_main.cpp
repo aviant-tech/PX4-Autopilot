@@ -1445,6 +1445,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("WIND_COV", 0.5f);
 #if defined(MAVLINK_ENABLED_AVIANT)
 		configure_stream_local("AVIANT_HEARTBEAT", 1.0f);
+		configure_stream_local("AVIANT_NAV", 10.0f);
 #endif // MAVLINK_ENABLED_AVIANT
 
 #if !defined(CONSTRAINED_FLASH)
@@ -1688,6 +1689,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 
 #if defined(MAVLINK_ENABLED_AVIANT)
 		configure_stream_local("AVIANT_HEARTBEAT", 1.0f);
+		configure_stream_local("AVIANT_NAV", 10.0f);
 #endif // MAVLINK_ENABLED_AVIANT
 
 #if !defined(CONSTRAINED_FLASH)
