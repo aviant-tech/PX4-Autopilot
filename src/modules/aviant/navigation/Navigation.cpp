@@ -55,6 +55,7 @@ void Navigation::Run()
 
 	if (ekf_idx >= 0) {
 		checkRtkHeadingUsed(&out, ekf_idx);
+		checkGnssPosFused(&out, ekf_idx);
 		checkMagHealthy(&out, ekf_idx);
 		checkBaroHealthy(&out, ekf_idx);
 
@@ -158,7 +159,7 @@ int Navigation::getEstimatorInstance()
 	estimator_selector_status_s estimator_selector_status;
 
 	if (!_estimator_selector_status_sub.copy(&estimator_selector_status)
-	    || isTimedOut(estimator_selector_status.timestamp, EKF2_TOUT)) {
+	    || isTimedOut(estimator_selector_status.timestamp, EKF2_SLOW_TOUT)) {
 		return -1;
 	}
 
@@ -176,7 +177,7 @@ void Navigation::checkRtkHeadingUsed(aviant_navigation_s *out, int estimator_ins
 	estimator_status_flags_s estimator_status_flags;
 
 	if (!_estimator_status_flags_subs[estimator_instance].copy(&estimator_status_flags)
-	    || isTimedOut(estimator_status_flags.timestamp, EKF2_TOUT)) {
+	    || isTimedOut(estimator_status_flags.timestamp, EKF2_SLOW_TOUT)) {
 		return;
 	}
 
@@ -230,6 +231,17 @@ void Navigation::checkMagHealthy(aviant_navigation_s *out, int estimator_instanc
 
 	const matrix::Vector3f mag{estimator_aid_src_mag.observation[0], estimator_aid_src_mag.observation[1], estimator_aid_src_mag.observation[2]};
 	out->mag_heading = calculateMagHeading(estimator_states, mag);
+}
+
+void Navigation::checkGnssPosFused(aviant_navigation_s *out, int estimator_instance)
+{
+	estimator_aid_source3d_s estimator_aid_src_gnss_pos;
+
+	if (!_estimator_aid_src_gnss_pos_subs[estimator_instance].copy(&estimator_aid_src_gnss_pos)) {
+		return;
+	}
+
+	out->ekf_gnss_pos_fused_recently = !isTimedOut(estimator_aid_src_gnss_pos.time_last_fuse, GNSS_TOUT);
 }
 
 float Navigation::calculateMagHeading(const estimator_states_s &states, const matrix::Vector3f &mag)
