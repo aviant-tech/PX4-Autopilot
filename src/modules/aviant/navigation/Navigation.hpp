@@ -46,8 +46,8 @@ private:
 
 	void checkLocalPosition(aviant_navigation_s *out);
 	void checkGnssInput(aviant_navigation_s *out);
-	void compareGnssAndMagHeading(aviant_navigation_s *out, int estimator_instance);
 	void checkRtkHeadingUsed(aviant_navigation_s *out, int estimator_instance);
+	void checkGnssPosFused(aviant_navigation_s *out, int estimator_instance);
 	void checkMagHealthy(aviant_navigation_s *out, int estimator_instance);
 	void checkBaroHealthy(aviant_navigation_s *out, int estimator_instance);
 
@@ -55,11 +55,12 @@ private:
 	bool isTimedOut(const hrt_abstime &timestamp, uint64_t timeout_interval) const;
 	static float calculateMagHeading(const estimator_states_s &states, const matrix::Vector3f &mag);
 
-	static constexpr uint64_t EKF2_TOUT     = 100_ms;
-	static constexpr uint64_t LPOS_TOUT     = 100_ms;
-	static constexpr uint64_t MAG_TOUT      = 100_ms;
-	static constexpr uint64_t GNSS_TOUT     = 500_ms;
-	static constexpr uint64_t BARO_TOUT     = 500_ms;
+	static constexpr uint64_t EKF2_TOUT = 100_ms;
+	static constexpr uint64_t EKF2_SLOW_TOUT = 1100_ms; // Some EKF2 topics are published at 1 Hz
+	static constexpr uint64_t LPOS_TOUT = 100_ms;
+	static constexpr uint64_t MAG_TOUT = 500_ms;
+	static constexpr uint64_t GNSS_TOUT = 500_ms;
+	static constexpr uint64_t BARO_TOUT = 500_ms;
 	static constexpr uint64_t GNSS_HDG_TOUT = 500_ms;
 
 	static constexpr float INNOVATION_CHECK_FAIL_THRESHOLD = 0.5f;
@@ -75,6 +76,7 @@ private:
 	uORB::SubscriptionMultiArray<estimator_aid_source1d_s> _estimator_aid_src_baro_hgt_subs{ORB_ID::estimator_aid_src_baro_hgt};
 	uORB::SubscriptionMultiArray<estimator_aid_source3d_s> _estimator_aid_src_mag_subs{ORB_ID::estimator_aid_src_mag};
 	uORB::SubscriptionMultiArray<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_subs{ORB_ID::estimator_aid_src_gnss_yaw};
+	uORB::SubscriptionMultiArray<estimator_aid_source3d_s> _estimator_aid_src_gnss_pos_subs{ORB_ID::estimator_aid_src_gnss_pos};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID::parameter_update, 1_s};
 
