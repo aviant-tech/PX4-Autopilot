@@ -123,7 +123,7 @@ TEST_F(EkfGpsHeadingTest, fusionStartWithReset)
 
 	// WHEN: GPS heading is disabled
 	_sensor_simulator._gnss_heading.stop();
-	_sensor_simulator.runSeconds(11);
+	_sensor_simulator.runSeconds(4.5);
 
 	// THEN: after a while the fusion should be stopped
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());

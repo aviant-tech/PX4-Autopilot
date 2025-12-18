@@ -88,10 +88,12 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	// AND WHEN: GNSS fusion starts
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
+	// This is due to _min_gps_health_time_us=10s,
 	_sensor_simulator.runSeconds(11);
 
 	// THEN: the earth mag field is reset to the WMM
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
+	// We are expecting two resets due to reset_timeout_max=4s
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 3);
 
 	Vector3f mag_earth = _ekf->getMagEarthField();
 	float mag_decl = atan2f(mag_earth(1), mag_earth(0));
