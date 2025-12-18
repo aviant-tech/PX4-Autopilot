@@ -92,9 +92,11 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	_sensor_simulator.runSeconds(11);
 
 	// THEN: the earth mag field is reset to the WMM
-	// We are expecting two resets due to reset_timeout_max=4s
-	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 3);
+	// Expecting one reset when simplified GNSS checks pass
+	// and additional 2 resets due to reset_timeout_max = 4s
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 4);
 
+	// However, we have to wait for _gps_checks_passed to be true before the ekf position is set
 	Vector3f mag_earth = _ekf->getMagEarthField();
 	float mag_decl = atan2f(mag_earth(1), mag_earth(0));
 	float mag_decl_wmm_deg = 0.f;
