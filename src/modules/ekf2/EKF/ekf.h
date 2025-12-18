@@ -997,6 +997,7 @@ private:
 	 * Checks are adjusted using the EKF2_REQ_* parameters
 	*/
 	bool runGnssChecks(const gnssSample &gps);
+	bool runSimplifiedGnssChecks(const gnssSample &gnss);
 
 	void controlGnssHeightFusion(const gnssSample &gps_sample);
 	void stopGpsHgtFusion();
