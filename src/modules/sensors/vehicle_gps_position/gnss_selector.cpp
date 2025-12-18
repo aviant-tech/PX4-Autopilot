@@ -69,7 +69,12 @@ void GnssSelector::updateHealth(GnssState &gnss, uint64_t now_us)
 		check_failed = true;
 	}
 
-	if (gnss.gnss_data.fix_type < 3) {
+	// Mirror checks from Ekf::runSimplifiedGnssChecks
+	if ((gnss.gnss_data.fix_type < 3) ||
+	    (gnss.gnss_data.eph > 50.f) || // = hacc
+	    (gnss.gnss_data.epv > 50.f) || // = vacc
+	    (gnss.gnss_data.s_variance_m_s > 10.f) // = sacc
+	   ) {
 		check_failed = true;
 	}
 
