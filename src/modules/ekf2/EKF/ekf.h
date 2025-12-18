@@ -657,7 +657,9 @@ private:
 	float _gps_velD_diff_filt{0.0f};	///< GPS filtered Down velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
-	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
+	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is initially marked as healthy only after this amount of time
+	uint32_t _min_gps_recovery_time_us{500'000}; ///< GPS is marked as healthy again only after this amount of time after a failure (4 samples at 8 Hz)
+
 	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
 
 	gps_check_fail_status_u _gps_check_fail_status{};
