@@ -137,8 +137,48 @@ void Ekf::collect_gps(const gnssSample &gps)
 	}
 }
 
+bool Ekf::runSimplifiedGnssChecks(const gnssSample &gnss)
+{
+	if (_last_gps_fail_us == 0) {
+		//_last_gps_fail_us = _time_delayed_us;
+	}
+
+	_gps_check_fail_status.flags.fix = (gnss.fix_type < 3);
+
+	// Check the reported horizontal and vertical position accuracy
+	_gps_check_fail_status.flags.hacc = (gnss.hacc > 50.f);
+	_gps_check_fail_status.flags.vacc = (gnss.vacc > 50.f);
+
+	// Check the reported speed accuracy
+	_gps_check_fail_status.flags.sacc = (gnss.sacc > 10.f);
+
+	if (
+		_gps_check_fail_status.flags.fix ||
+		(_gps_check_fail_status.flags.hacc && _params.gps_check_mask & MASK_GPS_HACC) ||
+		(_gps_check_fail_status.flags.vacc && _params.gps_check_mask & MASK_GPS_VACC) ||
+		(_gps_check_fail_status.flags.sacc && _params.gps_check_mask & MASK_GPS_SACC)
+	) {
+		_last_gps_fail_us = _time_delayed_us;
+		return false;
+	} else{
+		_last_gps_pass_us = _time_delayed_us;
+		return true;
+	}
+}
+
 bool Ekf::runGnssChecks(const gnssSample &gps)
 {
+	// assume failed first time through
+	if (_last_gps_fail_us == 0) {
+		_last_gps_fail_us = _time_delayed_us;
+	}
+
+	if (_gps_checks_passed){
+		// After passing, use simplified checks to avoid stopping GPS fusion due to degradation of a single metric.
+		// See upstream PR #24909
+		return runSimplifiedGnssChecks(gps);
+	}
+
 	// Check the fix type
 	_gps_check_fail_status.flags.fix = (gps.fix_type < 3);
 
@@ -226,11 +266,6 @@ bool Ekf::runGnssChecks(const gnssSample &gps)
 	const float vertVel = math::constrain(gps.vel(2) - _state.vel(2), -vz_diff_limit, vz_diff_limit);
 	_gps_velD_diff_filt = vertVel * filter_coef + _gps_velD_diff_filt * (1.0f - filter_coef);
 	_gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
-
-	// assume failed first time through
-	if (_last_gps_fail_us == 0) {
-		_last_gps_fail_us = _time_delayed_us;
-	}
 
 	// if any user selected checks have failed, record the fail time
 	if (
