@@ -85,6 +85,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
@@ -146,6 +147,7 @@ public:
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
 	float get_home_position_z() { return _home_position_z; }
+	struct vehicle_angular_velocity_s	*get_angular_velocity() { return &_vehicle_angular_velocity; }
 
 private:
 	void Run() override;
@@ -173,6 +175,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Publication<normalized_unsigned_setpoint_s>	_flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s>	_spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
@@ -212,6 +215,7 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vehicle_status_s 			_vehicle_status{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	vehicle_angular_velocity_s		_vehicle_angular_velocity{};
 	float _home_position_z{NAN};
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};	// [kg/m^3]
