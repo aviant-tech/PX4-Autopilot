@@ -254,6 +254,16 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 				     "Quad-chute triggered due to maximum roll angle exceeded");
 			break;
 
+		case QuadchuteReason::MaximumPitchExceededLookahead:
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch_la"), events::Log::Critical,
+				     "Quad-chute triggered due to maximum pitch angle exceeded (lookahead)");
+			break;
+
+		case QuadchuteReason::MaximumRollExceededLookahead:
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll_la"), events::Log::Critical,
+				     "Quad-chute triggered due to maximum roll angle exceeded (lookahead)");
+			break;
+
 		case QuadchuteReason::None:
 			// should never get in here
 			return;
@@ -355,6 +365,7 @@ VtolAttitudeControl::Run()
 
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
 
 		if (_home_position_sub.updated()) {
 			home_position_s home_position;
@@ -449,13 +460,15 @@ VtolAttitudeControl::Run()
 		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
 
 		// Advertise/Publish vtol vehicle status
-		_vtol_vehicle_status.timestamp = hrt_absolute_time();
-		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 		_vtol_vehicle_status.airspeed_filtered = get_filtered_airspeed();
 		_vtol_vehicle_status.mc_weights[0] = _vtol_type->get_mc_roll_weight();
 		_vtol_vehicle_status.mc_weights[1] = _vtol_type->get_mc_pitch_weight();
 		_vtol_vehicle_status.mc_weights[2] = _vtol_type->get_mc_yaw_weight();
 		_vtol_vehicle_status.mc_weights[3] = _vtol_type->get_mc_throttle_weight();
+		_vtol_vehicle_status.lookahead_pitch = _vtol_type->get_qc_lookahead_pitch();
+		_vtol_vehicle_status.lookahead_roll = _vtol_type->get_qc_lookahead_roll();
+		_vtol_vehicle_status.timestamp = hrt_absolute_time();
+		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 
 		// Publish flaps/spoiler setpoint with configured deflection in Hover if in Auto.
 		// In Manual always published in FW rate controller, and in Auto FW in FW Position Controller.
