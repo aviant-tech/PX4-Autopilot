@@ -65,9 +65,6 @@ PARAM_DEFINE_FLOAT(SENS_GPS_TOUT, 0.33f);
  * Require the primary instance to be healthy for at least this amount of
  * time before switching back from the secondary instance.
  *
- * If the secondary instance is unhealthy, while the primary instance is healthy,
- * the system will switch instantly, ignoring this parameter.
- *
  * @group Sensors
  * @min 0.0
  * @max 120.0
