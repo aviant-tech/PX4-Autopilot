@@ -57,6 +57,7 @@ struct Params {
 	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
 	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
+	float fw_qc_lookahead_t;	// lookahead time for attitude quadchute
 	float front_trans_time_openloop;
 	float front_trans_time_min;
 	float front_trans_duration;
@@ -181,6 +182,20 @@ public:
 	void check_quadchute_condition();
 
 	/**
+	 * @brief Check if predicted pitch angle exceeds threshold using lookahead.
+	 *
+	 * @return true if exceeded
+	 */
+	bool isPitchExceededLookahead();
+
+	/**
+	 * @brief Check if predicted roll angle exceeds threshold using lookahead.
+	 *
+	 * @return true if exceeded
+	 */
+	bool isRollExceededLookahead();
+
+	/**
 	 * Returns true if we're allowed to do a mode transition on the ground.
 	 */
 	bool can_transition_on_ground();
@@ -235,6 +250,7 @@ public:
 	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
+	struct vehicle_angular_velocity_s		*_vehicle_angular_velocity;	// angular velocity for quadchute lookahead
 
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_0;
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;

@@ -263,6 +263,23 @@ PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
 PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 
 /**
+ * Quad-chute attitude lookahead time
+ *
+ * Predicts future attitude from angular velocity to trigger quadchute before attitude limits
+ * are exceeded, allowing reaction to a flip before it becomes unrecoverable.
+ * Increasing this parameter trades off false positives for faster reaction.
+ * Set to 0 to disable.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_QC_LA_T, 0.0f);
+
+/**
  * Airspeed less front transition time (open loop)
  *
  * The duration of the front transition when there is no airspeed feedback available.

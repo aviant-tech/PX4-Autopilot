@@ -74,6 +74,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
+	_vehicle_angular_velocity = _attc->get_angular_velocity();
 	_params = _attc->get_params();
 
 	for (auto &pwm_max : _max_mc_pwm_values.values) {
@@ -313,6 +314,9 @@ void VtolType::check_quadchute_condition()
 
 			if (fabsf(euler.theta()) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
 				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumPitchExceeded);
+
+			} else if (isPitchExceededLookahead()) {
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumPitchExceededLookahead);
 			}
 		}
 
@@ -321,9 +325,48 @@ void VtolType::check_quadchute_condition()
 
 			if (fabsf(euler.phi()) > fabsf(math::radians(_params->fw_qc_max_roll))) {
 				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceeded);
+
+			} else if (isRollExceededLookahead()) {
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceededLookahead);
 			}
 		}
 	}
+}
+
+bool VtolType::isPitchExceededLookahead()
+{
+	const float threshold_deg = _params->fw_qc_max_pitch;
+	const float lookahead_time_s = _params->fw_qc_lookahead_t;
+	const float pitch_rate = _vehicle_angular_velocity->xyz[1];
+
+	if (threshold_deg <= FLT_EPSILON       // pitch trigger disabled
+	    || lookahead_time_s <= FLT_EPSILON // lookahead disabled
+	    || !PX4_ISFINITE(pitch_rate)) {    // invalid pitch rate data
+		return false;
+	}
+
+	const Eulerf euler(Quatf(_v_att->q));
+	const float predicted_pitch = euler.theta() + lookahead_time_s * pitch_rate;
+
+	return fabsf(predicted_pitch) > math::radians(threshold_deg);
+}
+
+bool VtolType::isRollExceededLookahead()
+{
+	const float threshold_deg = _params->fw_qc_max_roll;
+	const float lookahead_time_s = _params->fw_qc_lookahead_t;
+	const float roll_rate = _vehicle_angular_velocity->xyz[0];
+
+	if (threshold_deg <= FLT_EPSILON      // roll trigger disabled
+	    || lookahead_time_s <= FLT_EPSILON // lookahead disabled
+	    || !PX4_ISFINITE(roll_rate)) {     // invalid roll rate data
+		return false;
+	}
+
+	const Eulerf euler(Quatf(_v_att->q));
+	const float predicted_roll = euler.phi() + lookahead_time_s * roll_rate;
+
+	return fabsf(predicted_roll) > math::radians(threshold_deg);
 }
 
 bool VtolType::set_idle_mc()
