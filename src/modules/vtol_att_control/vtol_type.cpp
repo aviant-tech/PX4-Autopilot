@@ -74,6 +74,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
+	_vehicle_angular_velocity = _attc->get_angular_velocity();
 	_params = _attc->get_params();
 
 	for (auto &pwm_max : _max_mc_pwm_values.values) {
@@ -157,6 +158,8 @@ void VtolType::update_mc_state()
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
+	_qc_lookahead_pitch = 0.0f;
+	_qc_lookahead_roll = 0.0f;
 }
 
 void VtolType::update_fw_state()
@@ -252,6 +255,31 @@ bool VtolType::can_transition_on_ground()
 	return !_v_control_mode->flag_armed || _land_detected->landed;
 }
 
+void VtolType::update_qc_lookahead_angles()
+{
+	const float p = _vehicle_angular_velocity->xyz[0];
+	const float q = _vehicle_angular_velocity->xyz[1];
+	const float r = _vehicle_angular_velocity->xyz[2];
+
+	if (!PX4_ISFINITE(p) || !PX4_ISFINITE(q) || !PX4_ISFINITE(r)) {
+		_qc_lookahead_pitch = NAN;
+		_qc_lookahead_roll = NAN;
+		return;
+	}
+
+	const Eulerf euler(Quatf(_v_att->q));
+	const float phi = euler.phi();
+
+	constexpr float MAX_PITCH_FOR_TAN = math::radians(89.f);
+	const float theta = math::constrain(euler.theta(), -MAX_PITCH_FOR_TAN, MAX_PITCH_FOR_TAN);
+
+	const float euler_pitch_rate = q * cosf(phi) - r * sinf(phi);
+	const float euler_roll_rate = p + (q * sinf(phi) + r * cosf(phi)) * tanf(theta);
+
+	_qc_lookahead_pitch = euler.theta() + _params->vt_fw_qc_p_la * euler_pitch_rate;
+	_qc_lookahead_roll = euler.phi() + _params->vt_fw_qc_r_la * euler_roll_rate;
+}
+
 void VtolType::check_quadchute_condition()
 {
 	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
@@ -263,6 +291,8 @@ void VtolType::check_quadchute_condition()
 	} else {
 		_quadchute_command_treated = false;
 	}
+
+	update_qc_lookahead_angles();
 
 	if (!_tecs_running) {
 		// reset the filtered height rate and heigh rate setpoint if TECS is not running
@@ -321,6 +351,20 @@ void VtolType::check_quadchute_condition()
 
 			if (fabsf(euler.phi()) > fabsf(math::radians(_params->fw_qc_max_roll))) {
 				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceeded);
+			}
+		}
+
+		// fixed-wing maximum pitch angle (lookahead)
+		if (PX4_ISFINITE(_qc_lookahead_pitch) && _params->fw_qc_max_pitch > 0) {
+			if (fabsf(_qc_lookahead_pitch) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumPitchExceededLookahead);
+			}
+		}
+
+		// fixed-wing maximum roll angle (lookahead)
+		if (PX4_ISFINITE(_qc_lookahead_roll) && _params->fw_qc_max_roll > 0) {
+			if (fabsf(_qc_lookahead_roll) > fabsf(math::radians(_params->fw_qc_max_roll))) {
+				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceededLookahead);
 			}
 		}
 	}

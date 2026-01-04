@@ -57,6 +57,8 @@ struct Params {
 	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
 	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
+	float vt_fw_qc_p_la;		// quadchute pitch lookahead time
+	float vt_fw_qc_r_la;		// quadchute roll lookahead time
 	float front_trans_time_openloop;
 	float front_trans_time_min;
 	float front_trans_duration;
@@ -179,6 +181,7 @@ public:
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
 	 */
 	void check_quadchute_condition();
+	void update_qc_lookahead_angles();
 
 	/**
 	 * Returns true if we're allowed to do a mode transition on the ground.
@@ -213,6 +216,9 @@ public:
 	*/
 	float getOpenLoopFrontTransitionTime() const;
 
+	float get_qc_lookahead_pitch() const { return _qc_lookahead_pitch; }
+	float get_qc_lookahead_roll() const { return _qc_lookahead_roll; }
+
 	virtual void parameters_update() = 0;
 
 	VtolAttitudeControl *_attc;
@@ -235,6 +241,7 @@ public:
 	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
+	struct vehicle_angular_velocity_s		*_vehicle_angular_velocity;	// angular velocity for quadchute lookahead
 
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_0;
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;
@@ -250,6 +257,8 @@ public:
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
 	float _mc_throttle_weight = 1.0f;	// weight for multicopter throttle command. Used to avoid
+	float _qc_lookahead_pitch = 0.0f;
+	float _qc_lookahead_roll = 0.0f;
 
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)

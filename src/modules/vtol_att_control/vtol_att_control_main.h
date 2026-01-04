@@ -85,6 +85,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
@@ -105,6 +106,8 @@ public:
 		LargeAltError,
 		MaximumPitchExceeded,
 		MaximumRollExceeded,
+		MaximumPitchExceededLookahead,
+		MaximumRollExceededLookahead,
 	};
 
 	VtolAttitudeControl();
@@ -149,6 +152,7 @@ public:
 	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
+	struct vehicle_angular_velocity_s	*get_angular_velocity() { return &_vehicle_angular_velocity; }
 
 	/**
 	 * @brief Low pass filtered airspeed to be used during transition
@@ -182,6 +186,7 @@ private:
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};	//vehicle control mode subscription
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Publication<actuator_controls_s>		_actuators_0_pub{ORB_ID(actuator_controls_0)};		//input for the mixer (roll,pitch,yaw,thrust)
 	uORB::Publication<actuator_controls_s>		_actuators_1_pub{ORB_ID(actuator_controls_1)};
@@ -221,6 +226,7 @@ private:
 	vehicle_local_position_s		_local_pos{};
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	vehicle_angular_velocity_s		_vehicle_angular_velocity{};
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
 
@@ -236,6 +242,8 @@ private:
 		param_t fw_alt_err;
 		param_t fw_qc_max_pitch;
 		param_t fw_qc_max_roll;
+		param_t vt_fw_qc_p_la;
+		param_t vt_fw_qc_r_la;
 		param_t front_trans_time_openloop;
 		param_t front_trans_time_min;
 		param_t front_trans_duration;

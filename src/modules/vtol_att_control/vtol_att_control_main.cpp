@@ -83,6 +83,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.fw_alt_err = param_find("VT_FW_ALT_ERR");
 	_params_handles.fw_qc_max_pitch = param_find("VT_FW_QC_P");
 	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
+	_params_handles.vt_fw_qc_p_la = param_find("VT_FW_QC_P_LA");
+	_params_handles.vt_fw_qc_r_la = param_find("VT_FW_QC_R_LA");
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 
@@ -271,6 +273,18 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
 				     "Quadchute triggered, due to maximum roll angle exceeded");
 			break;
+
+		case QuadchuteReason::MaximumPitchExceededLookahead:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum pitch exceeded (lookahead)\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch_la"), events::Log::Critical,
+				     "Quadchute triggered, due to maximum pitch angle exceeded (lookahead)");
+			break;
+
+		case QuadchuteReason::MaximumRollExceededLookahead:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum roll exceeded (lookahead)\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll_la"), events::Log::Critical,
+				     "Quadchute triggered, due to maximum roll angle exceeded (lookahead)");
+			break;
 		}
 
 		_quadchute_requested = true;
@@ -320,6 +334,9 @@ VtolAttitudeControl::parameters_update()
 	/* maximum roll angle (QuadChute) */
 	param_get(_params_handles.fw_qc_max_roll, &l);
 	_params.fw_qc_max_roll = l;
+
+	param_get(_params_handles.vt_fw_qc_p_la, &_params.vt_fw_qc_p_la);
+	param_get(_params_handles.vt_fw_qc_r_la, &_params.vt_fw_qc_r_la);
 
 	param_get(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
 
@@ -471,6 +488,7 @@ VtolAttitudeControl::Run()
 
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
 		action_request_poll();
 		vehicle_cmd_poll();
 
@@ -548,12 +566,14 @@ VtolAttitudeControl::Run()
 		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
 
 		// Advertise/Publish vtol vehicle status
-		_vtol_vehicle_status.timestamp = hrt_absolute_time();
 		_vtol_vehicle_status.airspeed_filtered = get_filtered_airspeed();
 		_vtol_vehicle_status.mc_weights[0] = _vtol_type->_mc_roll_weight;
 		_vtol_vehicle_status.mc_weights[1] = _vtol_type->_mc_pitch_weight;
 		_vtol_vehicle_status.mc_weights[2] = _vtol_type->_mc_yaw_weight;
 		_vtol_vehicle_status.mc_weights[3] = _vtol_type->_mc_throttle_weight;
+		_vtol_vehicle_status.lookahead_pitch = _vtol_type->get_qc_lookahead_pitch();
+		_vtol_vehicle_status.lookahead_roll = _vtol_type->get_qc_lookahead_roll();
+		_vtol_vehicle_status.timestamp = hrt_absolute_time();
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 	}
 
