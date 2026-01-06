@@ -16,5 +16,10 @@ bool fw_permanent_stab			# In fw mode stabilize attitude even if in manual mode
 float32 airspeed_filtered		# Filtered airspeed used during transition. NAN if invalid
 float32[4] mc_weights			# Multicopter blending weights for [roll, pitch, yaw, throttle]
 
-float32 lookahead_roll			# Predicted roll angle for quadchute lookahead [rad]
-float32 lookahead_pitch			# Predicted pitch angle for quadchute lookahead [rad]
+# Euler-based lookahead (old method with gimbal lock)
+float32 lookahead_roll_euler		# Predicted roll angle using Euler rates [rad]
+float32 lookahead_pitch_euler		# Predicted pitch angle using Euler rates [rad]
+
+# Quaternion-based lookahead (new method, singularity-free)
+float32 lookahead_roll_quat		# Predicted roll angle using quaternion integration [rad]
+float32 lookahead_pitch_quat		# Predicted pitch angle using quaternion integration [rad]

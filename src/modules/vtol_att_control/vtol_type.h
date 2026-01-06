@@ -216,8 +216,13 @@ public:
 	*/
 	float getOpenLoopFrontTransitionTime() const;
 
-	float get_qc_lookahead_pitch() const { return _qc_lookahead_pitch; }
-	float get_qc_lookahead_roll() const { return _qc_lookahead_roll; }
+	// Euler-based getters
+	float get_qc_lookahead_pitch_euler() const { return _qc_lookahead_pitch_euler; }
+	float get_qc_lookahead_roll_euler() const { return _qc_lookahead_roll_euler; }
+
+	// Quaternion-based getters
+	float get_qc_lookahead_pitch_quat() const { return _qc_lookahead_pitch_quat; }
+	float get_qc_lookahead_roll_quat() const { return _qc_lookahead_roll_quat; }
 
 	virtual void parameters_update() = 0;
 
@@ -257,8 +262,14 @@ public:
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
 	float _mc_throttle_weight = 1.0f;	// weight for multicopter throttle command. Used to avoid
-	float _qc_lookahead_pitch = 0.0f;
-	float _qc_lookahead_roll = 0.0f;
+
+	// Euler-based lookahead (used for triggering)
+	float _qc_lookahead_pitch_euler = 0.0f;
+	float _qc_lookahead_roll_euler = 0.0f;
+
+	// Quaternion-based lookahead (for comparison)
+	float _qc_lookahead_pitch_quat = 0.0f;
+	float _qc_lookahead_roll_quat = 0.0f;
 
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)

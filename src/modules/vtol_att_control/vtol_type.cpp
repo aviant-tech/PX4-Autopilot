@@ -158,8 +158,10 @@ void VtolType::update_mc_state()
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
-	_qc_lookahead_pitch = 0.0f;
-	_qc_lookahead_roll = 0.0f;
+	_qc_lookahead_pitch_euler = 0.0f;
+	_qc_lookahead_roll_euler = 0.0f;
+	_qc_lookahead_pitch_quat = 0.0f;
+	_qc_lookahead_roll_quat = 0.0f;
 }
 
 void VtolType::update_fw_state()
@@ -261,23 +263,54 @@ void VtolType::update_qc_lookahead_angles()
 	const float q = _vehicle_angular_velocity->xyz[1];
 	const float r = _vehicle_angular_velocity->xyz[2];
 
+	// Validate angular velocity inputs
 	if (!PX4_ISFINITE(p) || !PX4_ISFINITE(q) || !PX4_ISFINITE(r)) {
-		_qc_lookahead_pitch = NAN;
-		_qc_lookahead_roll = NAN;
+		_qc_lookahead_pitch_euler = NAN;
+		_qc_lookahead_roll_euler = NAN;
+		_qc_lookahead_pitch_quat = NAN;
+		_qc_lookahead_roll_quat = NAN;
 		return;
 	}
 
 	const Eulerf euler(Quatf(_v_att->q));
 	const float phi = euler.phi();
-
 	constexpr float MAX_PITCH_FOR_TAN = math::radians(89.f);
 	const float theta = math::constrain(euler.theta(), -MAX_PITCH_FOR_TAN, MAX_PITCH_FOR_TAN);
 
+	// ============================================================
+	// EULER-BASED PREDICTION (original method, kept for comparison)
+	// ============================================================
 	const float euler_pitch_rate = q * cosf(phi) - r * sinf(phi);
 	const float euler_roll_rate = p + (q * sinf(phi) + r * cosf(phi)) * tanf(theta);
 
-	_qc_lookahead_pitch = euler.theta() + _params->vt_fw_qc_p_la * euler_pitch_rate;
-	_qc_lookahead_roll = euler.phi() + _params->vt_fw_qc_r_la * euler_roll_rate;
+	_qc_lookahead_pitch_euler = euler.theta() + _params->vt_fw_qc_p_la * euler_pitch_rate;
+	_qc_lookahead_roll_euler = euler.phi() + _params->vt_fw_qc_r_la * euler_roll_rate;
+
+	// ============================================================
+	// QUATERNION-BASED PREDICTION (new method for triggering)
+	// ============================================================
+	const Quatf q_current(_v_att->q);
+	const Vector3f w_B(p, q, r);
+
+	// Predict pitch with pitch lookahead time
+	if (_params->vt_fw_qc_p_la > FLT_EPSILON) {
+		const Quatf dq_pitch = Quatf::expq(0.5f * _params->vt_fw_qc_p_la * w_B);
+		const Quatf q_pred_pitch = (q_current * dq_pitch).normalized();
+		_qc_lookahead_pitch_quat = Eulerf(q_pred_pitch).theta();
+
+	} else {
+		_qc_lookahead_pitch_quat = euler.theta();
+	}
+
+	// Predict roll with roll lookahead time
+	if (_params->vt_fw_qc_r_la > FLT_EPSILON) {
+		const Quatf dq_roll = Quatf::expq(0.5f * _params->vt_fw_qc_r_la * w_B);
+		const Quatf q_pred_roll = (q_current * dq_roll).normalized();
+		_qc_lookahead_roll_quat = Eulerf(q_pred_roll).phi();
+
+	} else {
+		_qc_lookahead_roll_quat = euler.phi();
+	}
 }
 
 void VtolType::check_quadchute_condition()
@@ -354,16 +387,16 @@ void VtolType::check_quadchute_condition()
 			}
 		}
 
-		// fixed-wing maximum pitch angle (lookahead)
-		if (PX4_ISFINITE(_qc_lookahead_pitch) && _params->fw_qc_max_pitch > 0) {
-			if (fabsf(_qc_lookahead_pitch) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
+		// fixed-wing maximum pitch angle (lookahead) - USE EULER METHOD
+		if (PX4_ISFINITE(_qc_lookahead_pitch_euler) && _params->fw_qc_max_pitch > 0) {
+			if (fabsf(_qc_lookahead_pitch_euler) > fabsf(math::radians(_params->fw_qc_max_pitch))) {
 				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumPitchExceededLookahead);
 			}
 		}
 
-		// fixed-wing maximum roll angle (lookahead)
-		if (PX4_ISFINITE(_qc_lookahead_roll) && _params->fw_qc_max_roll > 0) {
-			if (fabsf(_qc_lookahead_roll) > fabsf(math::radians(_params->fw_qc_max_roll))) {
+		// fixed-wing maximum roll angle (lookahead) - USE EULER METHOD
+		if (PX4_ISFINITE(_qc_lookahead_roll_euler) && _params->fw_qc_max_roll > 0) {
+			if (fabsf(_qc_lookahead_roll_euler) > fabsf(math::radians(_params->fw_qc_max_roll))) {
 				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceededLookahead);
 			}
 		}

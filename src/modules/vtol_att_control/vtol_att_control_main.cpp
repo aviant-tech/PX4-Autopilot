@@ -571,8 +571,11 @@ VtolAttitudeControl::Run()
 		_vtol_vehicle_status.mc_weights[1] = _vtol_type->_mc_pitch_weight;
 		_vtol_vehicle_status.mc_weights[2] = _vtol_type->_mc_yaw_weight;
 		_vtol_vehicle_status.mc_weights[3] = _vtol_type->_mc_throttle_weight;
-		_vtol_vehicle_status.lookahead_pitch = _vtol_type->get_qc_lookahead_pitch();
-		_vtol_vehicle_status.lookahead_roll = _vtol_type->get_qc_lookahead_roll();
+		// Publish both Euler and quaternion lookahead values for comparison
+		_vtol_vehicle_status.lookahead_pitch_euler = _vtol_type->get_qc_lookahead_pitch_euler();
+		_vtol_vehicle_status.lookahead_roll_euler = _vtol_type->get_qc_lookahead_roll_euler();
+		_vtol_vehicle_status.lookahead_pitch_quat = _vtol_type->get_qc_lookahead_pitch_quat();
+		_vtol_vehicle_status.lookahead_roll_quat = _vtol_type->get_qc_lookahead_roll_quat();
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 	}
