@@ -153,15 +153,19 @@ public:
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
-	bool multi_init(int imu, int mag);
+	bool multi_init(int imu, int mag, uint8_t pos_est_mode = 0);
 #endif // CONFIG_EKF2_MULTI_INSTANCE
 
 	int instance() const { return _instance; }
+	uint8_t pos_est_mode() const { return _pos_est_mode; }
 
 private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
+
+	uint8_t _pos_est_mode{0}; ///< Position estimation mode (normal, vision-denied, or GNSS-denied)
+	bool _is_armed{false};    ///< Vehicle armed state (for GNSS-denied mode GPS skip)
 
 	void Run() override;
 

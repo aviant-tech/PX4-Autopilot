@@ -268,6 +268,7 @@ bool EKF2Selector::UpdateErrorScores()
 			_instance[i].gyro_device_id = status.gyro_device_id;
 			_instance[i].baro_device_id = status.baro_device_id;
 			_instance[i].mag_device_id = status.mag_device_id;
+			_instance[i].pos_est_mode = status.pos_est_mode;
 
 			if ((i + 1) > _available_instances) {
 				_available_instances = i + 1;
@@ -687,11 +688,12 @@ void EKF2Selector::Run()
 	// update combined test ratio for all estimators
 	const bool updated = UpdateErrorScores();
 
-	// if no valid instance then force select first instance with valid IMU
+	// if no valid instance then force select first instance with valid IMU (only normal mode, not GNSS-denied)
 	if (_selected_instance == INVALID_INSTANCE) {
 		for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			if ((_instance[i].accel_device_id != 0)
-			    && (_instance[i].gyro_device_id != 0)) {
+			    && (_instance[i].gyro_device_id != 0)
+			    && (_instance[i].pos_est_mode == estimator_status_s::POS_EST_MODE_NORMAL)) {
 
 				if (SelectInstance(i)) {
 					break;
@@ -721,7 +723,13 @@ void EKF2Selector::Run()
 		uint8_t best_ekf_different_imu = INVALID_INSTANCE;
 
 		// loop through all available instances to find if an alternative is available
+		// Only consider normal mode instances (not GNSS-denied)
 		for (int i = 0; i < _available_instances; i++) {
+			// Skip GNSS-denied instances - never select them
+			if (_instance[i].pos_est_mode != estimator_status_s::POS_EST_MODE_NORMAL) {
+				continue;
+			}
+
 			// Use an alternative instance if  -
 			// (healthy and has updated recently)
 			// AND
@@ -848,8 +856,9 @@ void EKF2Selector::PrintStatus()
 	for (int i = 0; i < _available_instances; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
-		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s, test ratio: %.7f (%.5f) %s",
+		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s%s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
+			 inst.pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED ? "GNSS-denied, " : "",
 			 inst.healthy.get_state() ? "healthy" : "unhealthy",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
 			 (_selected_instance == i) ? "*" : "");
