@@ -68,6 +68,15 @@ jobs:
     - name: ccache post-run
       run: ccache -s
 
+    - name: Make SITL metadata
+      run: make parameters_metadata
+
+    - name: Rename SITL parameter metadata
+      run: mv build/px4_sitl_default/docs/parameters.json px4_sitl_default__parameters.json
+
+    - name: Rename CubeOrange parameter metadata
+      run: mv build/cubepilot_cubeorange_default/parameters.json cubepilot_cubeorange__parameters.json
+
     - name: Upload px4 package
       uses: actions/upload-artifact@v4
       with:
@@ -77,6 +86,8 @@ jobs:
           build/cubepilot_cubeorange_default/*.elf
           build/cubepilot_cubeorange_default/*.map
           build/cubepilot_cubeorange_default/*.bin
+          px4_sitl_default__parameters.json
+          cubepilot_cubeorange__parameters.json
 
     - name: Release
       uses: softprops/action-gh-release@v1
@@ -88,3 +99,5 @@ jobs:
           build/cubepilot_cubeorange_default/*.elf
           build/cubepilot_cubeorange_default/*.map
           build/cubepilot_cubeorange_default/*.bin
+          px4_sitl_default__parameters.json
+          cubepilot_cubeorange__parameters.json
