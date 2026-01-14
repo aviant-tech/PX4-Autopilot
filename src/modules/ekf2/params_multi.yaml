@@ -73,3 +73,18 @@ parameters:
       values:
         0: Not selectable
         1: Selectable
+    EKF2_TRN_PUB:
+      description:
+        short: TRN test data source
+        long: Which estimator instance to publish on AVIANT_TRN_TEST_DATA.
+          None disables publishing. Selected publishes the currently selected
+          estimator. First backup publishes the first backup estimator instance.
+      type: int32
+      default: 0
+      reboot_required: false
+      min: 0
+      max: 2
+      values:
+        0: None
+        1: Selected
+        2: First backup
