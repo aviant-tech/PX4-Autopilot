@@ -1,4 +1,4 @@
-__max_num_motors: &max_num_motors 12
+__max_num_motors: &max_num_motors 16
 module_name: SIM_GZ
 actuator_output:
   show_subgroups_if: 'SIM_GZ_EN>=1'
