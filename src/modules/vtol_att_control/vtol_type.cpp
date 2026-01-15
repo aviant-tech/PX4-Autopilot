@@ -82,6 +82,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
+	_vehicle_angular_velocity = _attc->get_angular_velocity();
 }
 
 bool VtolType::init()
@@ -110,6 +111,8 @@ void VtolType::update_mc_state()
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
+	_qc_lookahead_pitch = 0.0f;
+	_qc_lookahead_roll = 0.0f;
 }
 
 void VtolType::update_fw_state()
@@ -359,6 +362,53 @@ bool VtolType::isRollExceeded()
 	return false;
 }
 
+void VtolType::update_qc_lookahead_angles()
+{
+	const float p = _vehicle_angular_velocity->xyz[0];
+	const float q = _vehicle_angular_velocity->xyz[1];
+	const float r = _vehicle_angular_velocity->xyz[2];
+
+	if (!PX4_ISFINITE(p) || !PX4_ISFINITE(q) || !PX4_ISFINITE(r)) {
+		_qc_lookahead_pitch = NAN;
+		_qc_lookahead_roll = NAN;
+		return;
+	}
+
+	const Eulerf euler(Quatf(_v_att->q));
+	const float phi = euler.phi();
+
+	constexpr float MAX_PITCH_FOR_TAN = math::radians(89.f);
+	const float theta = math::constrain(euler.theta(), -MAX_PITCH_FOR_TAN, MAX_PITCH_FOR_TAN);
+
+	const float euler_pitch_rate = q * cosf(phi) - r * sinf(phi);
+	const float euler_roll_rate = p + (q * sinf(phi) + r * cosf(phi)) * tanf(theta);
+
+	_qc_lookahead_pitch = euler.theta() + _param_vt_fw_qc_p_la.get() * euler_pitch_rate;
+	_qc_lookahead_roll = euler.phi() + _param_vt_fw_qc_r_la.get() * euler_roll_rate;
+}
+
+bool VtolType::isPitchExceededLookahead()
+{
+	const float threshold_deg = static_cast<float>(_param_vt_fw_qc_p.get());
+
+	if (threshold_deg <= FLT_EPSILON || !PX4_ISFINITE(_qc_lookahead_pitch)) {
+		return false;
+	}
+
+	return fabsf(_qc_lookahead_pitch) > math::radians(threshold_deg);
+}
+
+bool VtolType::isRollExceededLookahead()
+{
+	const float threshold_deg = static_cast<float>(_param_vt_fw_qc_r.get());
+
+	if (threshold_deg <= FLT_EPSILON || !PX4_ISFINITE(_qc_lookahead_roll)) {
+		return false;
+	}
+
+	return fabsf(_qc_lookahead_roll) > math::radians(threshold_deg);
+}
+
 bool VtolType::isFrontTransitionTimeout()
 {
 	// check front transition timeout
@@ -391,8 +441,16 @@ QuadchuteReason VtolType::getQuadchuteReason()
 		return QuadchuteReason::MaximumPitchExceeded;
 	}
 
+	if (isPitchExceededLookahead()) {
+		return QuadchuteReason::MaximumPitchExceededLookahead;
+	}
+
 	if (isRollExceeded()) {
 		return QuadchuteReason::MaximumRollExceeded;
+	}
+
+	if (isRollExceededLookahead()) {
+		return QuadchuteReason::MaximumRollExceededLookahead;
 	}
 
 	if (isFrontTransitionTimeout()) {
@@ -418,6 +476,7 @@ void VtolType::handleSpecialExternalCommandQuadchute()
 void VtolType::check_quadchute_condition()
 {
 	handleSpecialExternalCommandQuadchute();
+	update_qc_lookahead_angles();
 
 	if (isQuadchuteEnabled()) {
 		QuadchuteReason reason = getQuadchuteReason();

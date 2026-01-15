@@ -13,3 +13,6 @@ bool fixed_wing_system_failure		# vehicle in fixed-wing system failure failsafe 
 
 float32 airspeed_filtered		# Filtered airspeed used during transition. NAN if invalid
 float32[4] mc_weights			# Multicopter blending weights for [roll, pitch, yaw, throttle]
+
+float32 lookahead_roll			# Predicted roll angle for quadchute lookahead [rad]
+float32 lookahead_pitch			# Predicted pitch angle for quadchute lookahead [rad]
