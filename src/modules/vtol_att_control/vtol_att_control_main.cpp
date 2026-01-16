@@ -459,14 +459,16 @@ VtolAttitudeControl::Run()
 		_vehicle_thrust_setpoint0_pub.publish(_thrust_setpoint_0);
 		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
 
+		update_qc_lookahead_angles();
+
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.airspeed_filtered = get_filtered_airspeed();
 		_vtol_vehicle_status.mc_weights[0] = _vtol_type->get_mc_roll_weight();
 		_vtol_vehicle_status.mc_weights[1] = _vtol_type->get_mc_pitch_weight();
 		_vtol_vehicle_status.mc_weights[2] = _vtol_type->get_mc_yaw_weight();
 		_vtol_vehicle_status.mc_weights[3] = _vtol_type->get_mc_throttle_weight();
-		_vtol_vehicle_status.lookahead_pitch = _vtol_type->get_qc_lookahead_pitch();
-		_vtol_vehicle_status.lookahead_roll = _vtol_type->get_qc_lookahead_roll();
+		_vtol_vehicle_status.lookahead_pitch = _qc_lookahead_pitch.getState();
+		_vtol_vehicle_status.lookahead_roll = _qc_lookahead_roll.getState();
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 
@@ -516,6 +518,42 @@ void VtolAttitudeControl::update_airspeed_filter(const struct airspeed_validated
 	}
 
 	_airspeed_filter_last_timestamp = sample.timestamp;
+}
+
+void VtolAttitudeControl::update_qc_lookahead_angles()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _qc_lookahead_last_ts) / 1e6f, 0.001f, 0.1f);
+	_qc_lookahead_last_ts = now;
+
+	const float time_constant = _param_vt_fw_qc_la_ft.get() / 1000.0f;
+	_qc_lookahead_pitch.setParameters(dt, time_constant);
+	_qc_lookahead_roll.setParameters(dt, time_constant);
+
+	const float p = _vehicle_angular_velocity.xyz[0];
+	const float q = _vehicle_angular_velocity.xyz[1];
+	const float r = _vehicle_angular_velocity.xyz[2];
+
+	const matrix::Eulerf euler(matrix::Quatf(_vehicle_attitude.q));
+
+	if (!PX4_ISFINITE(p) || !PX4_ISFINITE(q) || !PX4_ISFINITE(r)) {
+		_qc_lookahead_pitch.reset(euler.theta());
+		_qc_lookahead_roll.reset(euler.phi());
+		return;
+	}
+
+	constexpr float MAX_PITCH_FOR_TAN = math::radians(89.f);
+	const float theta = math::constrain(euler.theta(), -MAX_PITCH_FOR_TAN, MAX_PITCH_FOR_TAN);
+	const float phi = euler.phi();
+
+	const float euler_pitch_rate = q * cosf(phi) - r * sinf(phi);
+	const float euler_roll_rate = p + (q * sinf(phi) + r * cosf(phi)) * tanf(theta);
+
+	const float unfiltered_pitch = euler.theta() + _param_vt_fw_qc_la_pt.get() * 0.001f * euler_pitch_rate;
+	const float unfiltered_roll = euler.phi() + _param_vt_fw_qc_la_rt.get() * 0.001f * euler_roll_rate;
+
+	_qc_lookahead_pitch.update(unfiltered_pitch);
+	_qc_lookahead_roll.update(unfiltered_roll);
 }
 
 int
