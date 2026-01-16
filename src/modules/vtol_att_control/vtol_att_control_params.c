@@ -264,14 +264,14 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
  * Should not be much larger than the pitch time constant, otherwise it will trigger from
  * normal pitching maneuvers. Set to 0 to disable.
  *
- * @unit s
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
+ * @unit ms
+ * @min 0
+ * @max 1000
+ * @decimal 0
+ * @increment 10
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_FW_QC_P_LA, 0.0f);
+PARAM_DEFINE_INT32(VT_FW_QC_LA_PT, 0);
 
 /**
  * Quad-chute roll lookahead time
@@ -282,14 +282,30 @@ PARAM_DEFINE_FLOAT(VT_FW_QC_P_LA, 0.0f);
  * Should not be much larger than the roll time constant, otherwise it will trigger from
  * normal rolling maneuvers. Set to 0 to disable.
  *
- * @unit s
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
+ * @unit ms
+ * @min 0
+ * @max 1000
+ * @decimal 0
+ * @increment 10
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_FW_QC_R_LA, 0.0f);
+PARAM_DEFINE_INT32(VT_FW_QC_LA_RT, 0);
+
+/**
+ * Quad-chute lookahead filter time
+ *
+ * Low-pass filter time constant for the lookahead pitch and roll angles.
+ * A larger value results in smoother filtering but increases lag.
+ * Set to 0 to disable filtering.
+ *
+ * @unit ms
+ * @min 0
+ * @max 100
+ * @decimal 0
+ * @increment 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_LA_FT, 30);
 
 /**
  * Quad-chute maximum height

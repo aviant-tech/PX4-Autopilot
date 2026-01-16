@@ -131,6 +131,8 @@ public:
 
 	struct airspeed_validated_s 			*get_airspeed() {return &_airspeed_validated;}
 	const float                    			&get_filtered_airspeed() { return _airspeed_filter.getState(); }
+	const float                    			&get_qc_lookahead_pitch() { return _qc_lookahead_pitch.getState(); }
+	const float                    			&get_qc_lookahead_roll() { return _qc_lookahead_roll.getState(); }
 	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_attitude_s 			*get_att() {return &_vehicle_attitude;}
@@ -152,6 +154,7 @@ public:
 private:
 	void Run() override;
 	void update_airspeed_filter(const struct airspeed_validated_s &sample);
+	void update_qc_lookahead_angles();
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_mc_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_mc)};
@@ -190,6 +193,10 @@ private:
 
 	AlphaFilter<float> _airspeed_filter;
 	hrt_abstime _airspeed_filter_last_timestamp{0};
+
+	AlphaFilter<float> _qc_lookahead_pitch;
+	AlphaFilter<float> _qc_lookahead_roll;
+	hrt_abstime _qc_lookahead_last_ts{0};
 
 	vehicle_attitude_setpoint_s		_vehicle_attitude_sp{};	// vehicle attitude setpoint
 	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
@@ -250,6 +257,9 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,
 		(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld,
-		(ParamFloat<px4::params::VT_ARSP_TAU>) _param_vt_arsp_tau
+		(ParamFloat<px4::params::VT_ARSP_TAU>) _param_vt_arsp_tau,
+		(ParamInt<px4::params::VT_FW_QC_LA_PT>) _param_vt_fw_qc_la_pt,
+		(ParamInt<px4::params::VT_FW_QC_LA_RT>) _param_vt_fw_qc_la_rt,
+		(ParamInt<px4::params::VT_FW_QC_LA_FT>) _param_vt_fw_qc_la_ft
 	)
 };
