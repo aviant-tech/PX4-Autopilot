@@ -212,7 +212,6 @@ public:
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
 	 */
 	void check_quadchute_condition();
-	void update_qc_lookahead_angles();
 
 	/**
 	 * Returns true if we're allowed to do a mode transition on the ground.
@@ -226,8 +225,6 @@ public:
 	float get_mc_pitch_weight() const { return _mc_pitch_weight; }
 	float get_mc_yaw_weight() const { return _mc_yaw_weight; }
 	float get_mc_throttle_weight() const { return _mc_throttle_weight; }
-	float get_qc_lookahead_pitch() const { return _qc_lookahead_pitch; }
-	float get_qc_lookahead_roll() const { return _qc_lookahead_roll; }
 
 	/**
 	 * Pusher assist in hover (pusher/pull for standard VTOL, motor tilt for tiltrotor)
@@ -313,8 +310,6 @@ protected:
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
 	float _mc_throttle_weight = 1.0f;	// weight for multicopter throttle command. Used to avoid
-	float _qc_lookahead_pitch = 0.0f;
-	float _qc_lookahead_roll = 0.0f;
 
 	// motors spinning up or cutting too fast when doing transitions.
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
@@ -350,8 +345,6 @@ protected:
 					(ParamFloat<px4::params::VT_QC_ALT_LOSS>) _param_vt_qc_alt_loss,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
-					(ParamFloat<px4::params::VT_FW_QC_P_LA>) _param_vt_fw_qc_p_la,
-					(ParamFloat<px4::params::VT_FW_QC_R_LA>) _param_vt_fw_qc_r_la,
 					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
 					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
