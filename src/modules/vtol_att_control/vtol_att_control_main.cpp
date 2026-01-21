@@ -463,10 +463,6 @@ VtolAttitudeControl::Run()
 
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.airspeed_filtered = get_filtered_airspeed();
-		_vtol_vehicle_status.mc_weights[0] = _vtol_type->get_mc_roll_weight();
-		_vtol_vehicle_status.mc_weights[1] = _vtol_type->get_mc_pitch_weight();
-		_vtol_vehicle_status.mc_weights[2] = _vtol_type->get_mc_yaw_weight();
-		_vtol_vehicle_status.mc_weights[3] = _vtol_type->get_mc_throttle_weight();
 		_vtol_vehicle_status.lookahead_pitch = _qc_lookahead_pitch.getState();
 		_vtol_vehicle_status.lookahead_roll = _qc_lookahead_roll.getState();
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
