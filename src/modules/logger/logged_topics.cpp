@@ -119,8 +119,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_angular_velocity", 20);
-	add_topic("vehicle_attitude", 50);
+	add_topic("vehicle_angular_velocity");  // Max rate for QC lookahead testing
+	add_topic("vehicle_attitude");  // Max rate for QC lookahead testing
 	add_topic("vehicle_attitude_setpoint", 50);
 	add_topic("vehicle_command");
 	add_topic("vehicle_command_ack");
@@ -137,7 +137,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);
 	add_topic("vehicle_status");
-	add_optional_topic("vtol_vehicle_status", 200);
+	add_topic("vtol_vehicle_status");  // Max rate for QC lookahead testing
 	add_topic("wind", 1000);
 
 	// multi topics
