@@ -387,7 +387,7 @@ private:
 
 	uORB::Subscription				_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription				_vehicle_status_sub{ORB_ID(external_vehicle_status)};
 	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
 	uORB::SubscriptionInterval			_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

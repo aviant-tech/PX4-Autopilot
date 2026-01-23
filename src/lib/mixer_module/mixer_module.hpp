@@ -57,6 +57,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/aviant_ats.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -260,12 +261,14 @@ private:
 	const bool _output_ramp_up; ///< if true, motors will ramp up from disarmed to min_output after arming
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _aviant_ats_sub{ORB_ID(aviant_ats)};
 	// Only subscribe to the first battery instance
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 
 	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
 
 	actuator_armed_s _armed{};
+	aviant_ats_s _aviant_ats{};
 
 	unsigned _max_topic_update_interval_us{0}; ///< max topic update interval (0=unlimited)
 

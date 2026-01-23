@@ -213,6 +213,7 @@ public:
 		MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH,
 		MAVLINK_MODE_UAVIONIX,
 		MAVLINK_MODE_PARACHUTE,
+		MAVLINK_MODE_AVIANT_ATS,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -269,6 +270,12 @@ public:
 
 		case MAVLINK_MODE_UAVIONIX:
 			return "uAvionix";
+
+		case MAVLINK_MODE_PARACHUTE:
+			return "Parachute";
+
+		case MAVLINK_MODE_AVIANT_ATS:
+			return "AviantATS";
 
 		default:
 			return "Unknown";

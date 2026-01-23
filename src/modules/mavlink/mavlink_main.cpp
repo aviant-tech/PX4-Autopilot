@@ -488,6 +488,12 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			// Pass message only if target component was seen before
 			if (inst->_receiver.component_was_seen(target_system_id, target_component_id)) {
 				inst->pass_message(msg);
+
+				if (msg->msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
+					mavlink_command_long_t cmd;
+					mavlink_msg_command_long_decode(msg, &cmd);
+
+				}
 			}
 		}
 	}
@@ -1626,6 +1632,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	case MAVLINK_MODE_PARACHUTE:
 		configure_stream_local("ATTITUDE", 10.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
+		break;
+
+	case MAVLINK_MODE_AVIANT_ATS:
+		configure_stream_local("FLIGHT_TERMINATION_CMD", 1.0f);
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
