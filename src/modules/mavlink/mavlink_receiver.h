@@ -206,6 +206,7 @@ private:
 	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
 	void handle_message_gimbal_device_attitude_status(mavlink_message_t *msg);
+	void handle_message_external_attitude(mavlink_message_t *msg);
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);
@@ -291,6 +292,8 @@ private:
 	uint8_t _mavlink_status_last_parse_error{0};
 	uint16_t _mavlink_status_last_packet_rx_drop_count{0};
 
+	vehicle_status_s _external_vehicle_status{};
+
 	// ORB publications
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
@@ -298,6 +301,7 @@ private:
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<vehicle_status_s>				_external_vehicle_status_pub{ORB_ID(external_vehicle_status)};
 	uORB::Publication<follow_target_s>			_follow_target_pub{ORB_ID(follow_target)};
 	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};
@@ -313,6 +317,7 @@ private:
 	uORB::Publication<velocity_limits_s>			_velocity_limits_pub{ORB_ID(velocity_limits)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
 	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_attitude_s>			_external_attitude_pub{ORB_ID(external_ins_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_fw_virtual_att_sp_pub{ORB_ID(fw_virtual_attitude_setpoint)};
@@ -400,6 +405,8 @@ private:
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MAV_SYS_ID>)         _param_mav_sys_id,
+		(ParamInt<px4::params::MAV_COMP_ID>)        _param_mav_comp_id,
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
 		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr

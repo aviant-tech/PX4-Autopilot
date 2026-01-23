@@ -1,5 +1,9 @@
-menuconfig MODULES_AVIANT
-	bool "Aviant specific features"
-	default y
-	---help---
-		Enable Aviant specific features
+menu "AVIANT"
+	menuconfig MODULES_AVIANT
+		bool "Aviant specific features"
+		default y
+		---help---
+			Enable Aviant specific features
+
+	rsource "*/Kconfig"
+endmenu

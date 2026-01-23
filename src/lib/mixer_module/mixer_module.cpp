@@ -513,6 +513,23 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 {
 	bool stop_motors = !_throttle_armed && !_actuator_test.inTestMode();
 
+#if defined CONFIG_MODULES_AVIANT_ATS
+
+	_aviant_ats_sub.update(&_aviant_ats);
+
+	if (_aviant_ats.parachute_deploy) {
+		// overwrite outputs in case of parachute_deploy with _failsafe_value values
+		for (size_t i = 0; i < _max_num_outputs; i++) {
+			_current_output_value[i] = actualFailsafeValue(i);
+		}
+
+	} else {
+		// the output limit call takes care of out of band errors, NaN and constrains
+		output_limit_calc(_throttle_armed || _actuator_test.inTestMode(), _max_num_outputs, outputs);
+	}
+
+#else
+
 	if (_armed.lockdown || _armed.manual_lockdown) {
 		// overwrite outputs in case of lockdown with disarmed values
 		for (size_t i = 0; i < _max_num_outputs; i++) {
@@ -531,6 +548,8 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		// the output limit call takes care of out of band errors, NaN and constrains
 		output_limit_calc(_throttle_armed || _actuator_test.inTestMode(), _max_num_outputs, outputs);
 	}
+
+#endif
 
 	// We must calibrate the PWM and Oneshot ESCs to a consistent range of 1000-2000us (gets mapped to 125-250us for Oneshot)
 	// Doing so makes calibrations consistent among different configurations and hence PWM minimum and maximum have a consistent effect
