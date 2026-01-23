@@ -347,7 +347,7 @@ else
 		fi
 
 		sensors start -h
-		commander start -h
+		# commander start -h #Disabled for ATS
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
@@ -385,7 +385,7 @@ else
 		fi
 
 		sensors start
-		commander start
+		#commander start # Disabled for ATS
 
 		dshot start
 		pwm_out start
@@ -512,6 +512,8 @@ else
 	then
 		aviant start
 	fi
+
+	aviant_ats start
 
 	#
 	# Optional board supplied extras: rc.board_extras

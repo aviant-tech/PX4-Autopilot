@@ -115,6 +115,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
+	_external_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_DISARMED;
+	_external_vehicle_status.failsafe = false;
 }
 
 void
@@ -330,6 +332,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 #endif
 
+	case MAVLINK_MSG_ID_ATTITUDE:
+		handle_message_external_attitude(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -499,6 +505,18 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 	bool send_ack = true;
 	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
+
+#if defined CONFIG_MODULES_AVIANT_ATS
+
+	if (cmd_mavlink.command == MAV_CMD_DO_PARACHUTE) {
+
+		PX4_INFO("External MAV_CMD_DO_PARACHUTE received.");
+
+		_external_vehicle_status.failsafe = true;
+		_external_vehicle_status_pub.publish(_external_vehicle_status);
+	}
+
+#endif
 
 	if (!target_ok) {
 		// Reject alien commands only if there is no forwarding or we've never seen target component before
@@ -2196,6 +2214,30 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 					  msg->compid);
 			}
 
+#if defined CONFIG_MODULES_AVIANT_ATS
+
+			if (hb.autopilot == MAV_AUTOPILOT_PX4) {
+
+				if ((hb.base_mode & MAV_MODE_FLAG_SAFETY_ARMED) &&
+				    (_external_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_DISARMED)
+				   ) {
+
+					_external_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
+					_external_vehicle_status_pub.publish(_external_vehicle_status);
+					PX4_INFO("Received FC ARM");
+
+				} else if (!(hb.base_mode & MAV_MODE_FLAG_SAFETY_ARMED) &&
+					   (_external_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+					  ) {
+
+					_external_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_DISARMED;
+					_external_vehicle_status_pub.publish(_external_vehicle_status);
+					PX4_INFO("Received FC DISARM");
+				}
+			}
+
+#endif
+
 			CheckHeartbeats(now, true);
 		}
 	}
@@ -3025,6 +3067,28 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.received_from_mavlink = true;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void
+MavlinkReceiver::handle_message_external_attitude(mavlink_message_t *msg)
+{
+	mavlink_attitude_t attitude_msg;
+	mavlink_msg_attitude_decode(msg, &attitude_msg);
+
+	vehicle_attitude_s external_attitude{};
+
+	external_attitude.timestamp = hrt_absolute_time();
+	external_attitude.timestamp_sample = attitude_msg.time_boot_ms * 1000ULL;
+
+	matrix::Eulerf euler(attitude_msg.roll, attitude_msg.pitch, attitude_msg.yaw);  // radians
+	matrix::Quatf q(euler);
+
+	external_attitude.q[0] = q(0); //w
+	external_attitude.q[1] = q(1); //x
+	external_attitude.q[2] = q(2); //y
+	external_attitude.q[3] = q(3); //z
+
+	_external_attitude_pub.publish(external_attitude);
 }
 
 void
