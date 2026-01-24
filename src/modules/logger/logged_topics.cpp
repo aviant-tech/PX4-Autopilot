@@ -50,14 +50,14 @@ void LoggedTopics::add_default_topics()
 	add_topic("aviant_temperature_fc", SLOW);
 	add_topic("action_request", AUTO);
 	add_topic("actuator_armed", AUTO);
-	add_optional_topic("actuator_controls_status_0", MODERATE);
+	add_topic("actuator_controls_status_0", MODERATE);
 	add_topic("airspeed", SLOW);
-	add_optional_topic("airspeed_validated", MODERATE);
+	add_topic("airspeed_validated", MODERATE);
 	add_optional_topic("autotune_attitude_control_status", FAST);
 	add_optional_topic("camera_capture", AUTO);
 	add_optional_topic("camera_trigger", AUTO);
 	add_topic("cellular_status", MODERATE);
-	add_topic("commander_state", AUTO);
+	// add_topic("commander_state", AUTO);  // removed in a previous commit
 	add_topic("config_overrides", AUTO);
 	add_topic("cpuload", AUTO);
 	add_optional_topic("differential_drive_control_output", FAST);
@@ -72,8 +72,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target_estimator", MODERATE);
 	add_optional_topic("follow_target_status", MODERATE);
 	add_optional_topic("flaps_setpoint", SLOW);
-	add_optional_topic("flight_phase_estimation", SLOW);
-	add_topic("gimbal_manager_set_attitude", MODERATE);
+	add_topic("flight_phase_estimation", SLOW);
+	add_optional_topic("gimbal_manager_set_attitude", MODERATE);
 	add_optional_topic("generator_status", AUTO);
 	add_optional_topic("gps_dump", AUTO);
 	add_optional_topic("gimbal_controls", MODERATE);
@@ -95,27 +95,27 @@ void LoggedTopics::add_default_topics()
 	add_topic("mission_result", AUTO);
 	add_topic("navigator_mission_item", AUTO);
 	add_topic("npfg_status", FAST);
-	add_topic("offboard_control_mode", FAST);
+	add_optional_topic("offboard_control_mode", FAST);
 	add_topic("onboard_computer_status", VERY_FAST);
 	add_topic("parameter_update", AUTO);
 	add_topic("position_controller_status", MODERATE);
 	add_topic("position_controller_landing_status", FAST);
 	add_topic("goto_setpoint", MODERATE);
 	add_topic("position_setpoint_triplet", MODERATE);
-	add_optional_topic("px4io_status", AUTO);
+	add_topic("px4io_status", AUTO);
 	add_topic("radio_status", AUTO);
 	add_topic("rtl_time_estimate", SLOW);
 	add_topic("rtl_status", SLOW);
 	add_optional_topic("sensor_airflow", FAST);
 	add_topic("sensor_combined", AUTO);
 	add_optional_topic("sensor_correction", AUTO);
-	add_optional_topic("sensor_gyro_fft", FAST);
+	add_topic("sensor_gyro_fft", FAST);
 	add_topic("sensor_selection", AUTO);
 	add_topic("sensors_status_imu", MODERATE);
 	add_optional_topic("spoilers_setpoint", SLOW);
 	add_topic("system_power", MODERATE);
-	add_optional_topic("takeoff_status", SLOW);
-	add_optional_topic("tecs_status", MODERATE);
+	add_topic("takeoff_status", SLOW);
+	add_topic("tecs_status", MODERATE);
 	add_optional_topic("tiltrotor_extra_controls", FAST);
 	add_topic("trajectory_setpoint", MODERATE);
 	add_topic("transponder_report", AUTO);
@@ -139,29 +139,29 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_rates_setpoint", VERY_FAST);
 	add_topic("vehicle_roi", SLOW);
 	add_topic("vehicle_status", AUTO);
-	add_optional_topic("vtol_vehicle_status", MODERATE);
+	add_topic("vtol_vehicle_status", MODERATE);
 	add_topic("wind", SLOW);
 
 	// multi topics
-	add_optional_topic_multi("actuator_outputs", FAST, 3);
-	add_optional_topic_multi("airspeed_wind", SLOW, 4);
-	add_optional_topic_multi("control_allocator_status", MODERATE, 2);
-	add_optional_topic_multi("rate_ctrl_status", MODERATE, 2);
+	add_topic_multi("actuator_outputs", FAST, 5);
+	add_topic_multi("airspeed_wind", SLOW, 4);
+	add_topic_multi("control_allocator_status", MODERATE, 2);
+	add_topic_multi("rate_ctrl_status", MODERATE, 2);
 	add_optional_topic_multi("sensor_hygrometer", MODERATE, 4);
 	add_optional_topic_multi("rpm", MODERATE);
 	add_topic_multi("timesync_status", SLOW, 3);
-	add_optional_topic_multi("telemetry_status", SLOW, 4);
+	add_topic_multi("telemetry_status", SLOW, 4);
 
 	// EKF multi topics (currently max 9 estimators)
 #if CONSTRAINED_MEMORY
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 1;
 #else
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificially limited until PlotJuggler fixed
-	add_optional_topic("estimator_selector_status", AUTO);
-	add_optional_topic_multi("estimator_attitude", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_global_position", SLOW, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_local_position", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_wind", SLOW, MAX_ESTIMATOR_INSTANCES);
+	add_topic("estimator_selector_status", AUTO);
+	add_topic_multi("estimator_attitude", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_global_position", SLOW, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_local_position", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_wind", SLOW, MAX_ESTIMATOR_INSTANCES);
 #endif
 
 	// always add the first instance
@@ -181,21 +181,21 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_status_flags", AUTO);
 	add_topic("yaw_estimator_status", SLOW);
 
-	add_optional_topic_multi("estimator_baro_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_gnss_hgt_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_rng_hgt_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_ev_pos_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_event_flags", AUTO, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_gps_status", SLOW, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovation_test_ratios", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovation_variances", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovations", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_optical_flow_vel", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_sensor_bias", AUTO, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_states", SLOW, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_status", MODERATE, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_status_flags", AUTO, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("yaw_estimator_status", SLOW, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_baro_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_gnss_hgt_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_rng_hgt_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_ev_pos_bias", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_event_flags", AUTO, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_gps_status", SLOW, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_innovation_test_ratios", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_innovation_variances", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_innovations", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_optical_flow_vel", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_sensor_bias", AUTO, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_states", SLOW, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_status", MODERATE, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_status_flags", AUTO, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("yaw_estimator_status", SLOW, MAX_ESTIMATOR_INSTANCES);
 
 	// add_optional_topic_multi("estimator_aid_src_airspeed", FAST, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_baro_hgt", FAST, MAX_ESTIMATOR_INSTANCES);
@@ -219,27 +219,29 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("battery_status", MODERATE, 2);
 	add_topic_multi("differential_pressure", SLOW, 2);
 	add_topic_multi("distance_sensor", SLOW, 2);
-	add_optional_topic_multi("sensor_accel", SLOW, 4);
-	add_optional_topic_multi("sensor_baro", SLOW, 4);
+	add_topic_multi("sensor_accel", SLOW, 4);
+	add_topic_multi("sensor_baro", SLOW, 4);
 	add_topic_multi("sensor_gps", SLOW, 2);
 	add_topic_multi("sensor_gnss_relative", SLOW, 1);
-	add_optional_topic_multi("sensor_gyro", SLOW, 4);
+	add_topic_multi("sensor_gyro", SLOW, 4);
 	add_topic_multi("sensor_mag", SLOW, 4);
-	add_topic_multi("sensor_optical_flow", SLOW, 2);
+	add_optional_topic_multi("sensor_optical_flow", SLOW, 2);
 
 	add_topic_multi("vehicle_imu", MODERATE, 4);
 	add_topic_multi("vehicle_imu_status", SLOW, 4);
-	add_optional_topic_multi("vehicle_magnetometer", MODERATE, 4);
-	add_topic("vehicle_optical_flow", MODERATE);
-	add_topic("aux_global_position", MODERATE);
+	add_topic_multi("vehicle_magnetometer", MODERATE, 4);
+	add_optional_topic("vehicle_optical_flow", MODERATE);
+	add_optional_topic("aux_global_position", MODERATE);
 	//add_optional_topic("vehicle_optical_flow_vel", FAST);
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging
 	add_topic("actuator_motors", FAST);
 	add_topic("actuator_servos", FAST);
-	add_topic_multi("vehicle_thrust_setpoint", VERY_FAST, 2);
-	add_topic_multi("vehicle_torque_setpoint", VERY_FAST, 2);
+	add_topic("vehicle_thrust_setpoint", VERY_FAST, 0);  // Motor thrust
+	// add_topic("vehicle_thrust_setpoint", VERY_FAST, 1);  // Servo thrust, N/A
+	add_topic("vehicle_torque_setpoint", VERY_FAST, 0);  // Motor torrque
+	add_topic("vehicle_torque_setpoint", VERY_FAST, 1);  // Servo torque
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
