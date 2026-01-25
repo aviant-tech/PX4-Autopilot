@@ -43,6 +43,11 @@
 
 using namespace px4::logger;
 
+/*
+ * `python Tools/aviant/logger_budget.py`
+ * Subscriptions: 240 non-optional, 57 optional, 297 total (max 255)
+ * Bandwidth: 70.125 kbps (non-optional), 162.819 kbps (all)
+ */
 void LoggedTopics::add_default_topics()
 {
 	add_topic("aviant_motors", MODERATE);
@@ -316,6 +321,11 @@ void LoggedTopics::add_default_topics()
 #endif
 }
 
+/*
+ * `python Tools/aviant/logger_budget.py --high-rate`
+ * Subscriptions: 243 non-optional, 56 optional, 299 total (max 255)
+ * Bandwidth: 212.431 kbps (non-optional), 304.236 kbps (all)
+ */
 void LoggedTopics::add_high_rate_topics()
 {
 	// maximum rate to analyze fast maneuvers (e.g. for racing)
@@ -347,6 +357,11 @@ void LoggedTopics::add_debug_topics()
 	add_topic("actuator_test", 500);
 }
 
+/*
+ * `python Tools/aviant/logger_budget.py --ekf-replay`
+ * Subscriptions: 252 non-optional, 55 optional, 307 total (max 255)
+ * Bandwidth: 109.177 kbps (non-optional), 201.493 kbps (all)
+ */
 void LoggedTopics::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
