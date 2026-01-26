@@ -43,8 +43,14 @@
 
 using namespace px4::logger;
 
+/*
+ * Subscriptions: 231 non-optional, 63 optional, 294 total (max 255)
+ * Bandwidth: 87.642 kbps (non-optional), 181.203 kbps (all)
+ */
+
 void LoggedTopics::add_default_topics()
 {
+	add_topic("adc_report", VERY_FAST); // For voltage spikes
 	add_topic("aviant_motors", MODERATE);
 	add_topic("aviant_temperature_fc", SLOW);
 	add_topic("aviant_navigation", MODERATE);
@@ -52,7 +58,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_armed", AUTO);  // 2 Hz or on change
 	add_topic("actuator_controls_status_0", MODERATE);
 	add_topic("airspeed", SLOW);
-	add_topic("airspeed_validated", MODERATE);
+	add_topic("airspeed_validated", FAST);
 	add_optional_topic("autotune_attitude_control_status", FAST);
 	add_optional_topic("camera_capture", AUTO);  // 0 Hz or on change
 	add_optional_topic("camera_trigger", AUTO);  // 0 Hz or on change
@@ -72,7 +78,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target_estimator", MODERATE);
 	add_optional_topic("follow_target_status", MODERATE);
 	add_optional_topic("flaps_setpoint", SLOW);
-	add_topic("flight_phase_estimation", SLOW);
+	add_topic("flight_phase_estimation", MODERATE);
 	add_optional_topic("gimbal_manager_set_attitude", MODERATE);
 	add_optional_topic("generator_status", AUTO);  // ~1 Hz
 	add_optional_topic("gps_dump", AUTO);  // ~200 Hz
@@ -80,7 +86,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("gripper", AUTO);  // 0 Hz or on change
 	add_optional_topic("heater_status", AUTO);  // ~1 Hz, MAVLink trigger
 	add_topic("home_position", AUTO);  // 0 Hz or on change
-	add_topic("hover_thrust_estimate", FAST);
+	add_topic("hover_thrust_estimate", SLOW);
 	add_topic("input_rc", MODERATE);
 	add_optional_topic("internal_combustion_engine_status", VERY_FAST);
 	add_optional_topic("iridiumsbd_status", SLOW);
@@ -96,30 +102,30 @@ void LoggedTopics::add_default_topics()
 	add_topic("navigator_mission_item", AUTO);  // 0 Hz or on change
 	add_topic("npfg_status", FAST);
 	add_optional_topic("offboard_control_mode", FAST);
-	add_topic("onboard_computer_status", VERY_FAST);
+	add_topic("onboard_computer_status", SLOW);
 	add_topic("parameter_update", AUTO);  // 0 Hz or on change
 	add_topic("position_controller_status", MODERATE);
-	add_topic("position_controller_landing_status", FAST);
-	add_topic("goto_setpoint", MODERATE);
+	//add_topic("position_controller_landing_status", FAST);  // We don't do FW landings
+	add_topic("goto_setpoint", SLOW);
 	add_topic("position_setpoint_triplet", MODERATE);
 	add_topic("px4io_status", AUTO);  // 1 Hz
 	add_topic("radio_status", AUTO);  // ~1 Hz, MAVLink trigger
 	add_topic("rtl_time_estimate", SLOW);
 	add_topic("rtl_status", SLOW);
 	add_optional_topic("sensor_airflow", FAST);
-	add_topic("sensor_combined", AUTO);  // 200 Hz
+	add_topic("sensor_combined", FAST);
 	add_optional_topic("sensor_correction", AUTO);  // 0 Hz or on change
-	add_topic("sensor_gyro_fft", FAST);
+	add_topic("sensor_gyro_fft", MODERATE);
 	add_topic("sensor_selection", AUTO);  // 0 Hz or on change
 	add_topic("sensors_status_imu", MODERATE);
 	add_optional_topic("spoilers_setpoint", SLOW);
 	add_topic("system_power", MODERATE);
 	add_topic("takeoff_status", SLOW);
-	add_topic("tecs_status", MODERATE);
+	add_topic("tecs_status", FAST);
 	add_optional_topic("tiltrotor_extra_controls", FAST);
 	add_topic("trajectory_setpoint", MODERATE);
 	add_topic("transponder_report", AUTO);  // ~5 Hz or on change
-	add_topic("vehicle_acceleration", FAST);
+	add_topic("vehicle_acceleration", MODERATE);
 	add_topic("vehicle_air_data", MODERATE);
 	add_topic("vehicle_angular_velocity", VERY_FAST);
 	add_topic("vehicle_attitude", FAST);
@@ -129,22 +135,24 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_constraints", SLOW);
 	add_topic("vehicle_control_mode", AUTO);  // 2 Hz or on change
 	add_topic("vehicle_global_position", MODERATE);
-	add_topic("vehicle_gps_position", FAST);
-	add_topic("vehicle_gnss_heading", FAST);
+	add_topic("vehicle_gps_position", MODERATE);
+	add_topic("vehicle_gnss_heading", MODERATE);
 	add_topic("vehicle_land_detected", AUTO);  // 1 Hz or on change
-	add_topic("vehicle_local_position", FAST);
-	add_topic("vehicle_local_position_setpoint", FAST);
+	add_topic("vehicle_local_position", MODERATE);
+	add_topic("vehicle_local_position_setpoint", MODERATE);
 	add_topic("vehicle_magnetometer", MODERATE);
 	add_topic("vehicle_rates_setpoint", VERY_FAST);
-	add_topic("vehicle_roi", SLOW);
+	// add_topic("vehicle_roi", SLOW);  // We don't use "Region of interest" stuff
 	add_topic("vehicle_status", AUTO);  // 2 Hz or on change
 	add_topic("vtol_vehicle_status", MODERATE);
 	add_topic("wind", SLOW);
 
 	// multi topics
-	add_topic_multi("actuator_outputs", FAST, 5);
+	add_topic_multi("actuator_outputs", MODERATE, 5);  // Low rate on all outputs
+	add_topic("actuator_outputs", VERY_FAST, 0);  // Higher rate for PWM MAIN
+	add_topic("actuator_outputs", VERY_FAST, 1);  // Higher rate for PWM AUX
 	add_topic_multi("airspeed_wind", SLOW, 4);
-	add_topic_multi("control_allocator_status", MODERATE, 2);
+	add_topic_multi("control_allocator_status", VERY_FAST, 2);
 	add_topic_multi("rate_ctrl_status", MODERATE, 2);
 	add_optional_topic_multi("sensor_hygrometer", MODERATE, 4);
 	add_optional_topic_multi("rpm", MODERATE);
@@ -215,9 +223,12 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_aid_src_aux_global_position", FAST, MAX_ESTIMATOR_INSTANCES);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
-	add_topic_multi("battery_status", MODERATE, 2);
-	add_topic_multi("differential_pressure", SLOW, 2);
-	add_topic_multi("distance_sensor", SLOW, 2);
+	add_topic("battery_status", MODERATE, 0);  // Use adc_report for high-rate
+	add_optional_topic("battery_status", SLOW, 1);
+	add_topic("differential_pressure", MODERATE, 0);
+	add_optional_topic("differential_pressure", MODERATE, 1);
+	add_topic("distance_sensor", MODERATE, 0);
+	add_optional_topic("distance_sensor", MODERATE, 1);
 	add_topic_multi("sensor_accel", SLOW, 4);
 	add_topic_multi("sensor_baro", SLOW, 4);
 	add_topic_multi("sensor_gps", SLOW, 2);
@@ -227,7 +238,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("sensor_optical_flow", SLOW, 2);
 
 	add_topic_multi("vehicle_imu", MODERATE, 4);
-	add_topic_multi("vehicle_imu_status", SLOW, 4);
+	add_topic("vehicle_imu_status", FAST, 2);  // IMU 2 for vibration metric
+	add_optional_topic_multi("vehicle_imu_status", SLOW, 4);
 	add_topic_multi("vehicle_magnetometer", MODERATE, 4);
 	add_optional_topic("vehicle_optical_flow", MODERATE);
 	add_optional_topic("aux_global_position", MODERATE);
@@ -237,10 +249,10 @@ void LoggedTopics::add_default_topics()
 	// additional control allocation logging
 	add_topic("actuator_motors", FAST);
 	add_topic("actuator_servos", FAST);
-	add_topic("vehicle_thrust_setpoint", VERY_FAST, 0);  // Motor thrust
+	add_topic("vehicle_thrust_setpoint", AUTO, 0);  // 400 Hz, Motor thrust
 	// add_topic("vehicle_thrust_setpoint", VERY_FAST, 1);  // Servo thrust, N/A
-	add_topic("vehicle_torque_setpoint", VERY_FAST, 0);  // Motor torrque
-	add_topic("vehicle_torque_setpoint", VERY_FAST, 1);  // Servo torque
+	add_topic("vehicle_torque_setpoint", AUTO, 0);  // 400 Hz, Motor torque
+	add_topic("vehicle_torque_setpoint", AUTO, 1);  // 400 Hz, Servo torque
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
@@ -315,23 +327,33 @@ void LoggedTopics::add_default_topics()
 #endif
 }
 
+/*
+ * Including default:
+ * Subscriptions: 231 non-optional, 64 optional, 295 total (max 255)
+ * Bandwidth: 148.433 kbps (non-optional), 253.875 kbps (all)
+ */
+
 void LoggedTopics::add_high_rate_topics()
 {
 	// maximum rate to analyze fast maneuvers (e.g. for racing)
-	add_topic("manual_control_setpoint");  // ~50 Hz, RC input rate
-	add_topic_multi("rate_ctrl_status", 20, 2);
-	add_topic("sensor_combined");  // 200 Hz
-	add_topic("vehicle_angular_velocity");  // 200 Hz
-	add_topic("vehicle_attitude");  // 200 Hz
-	add_topic("vehicle_attitude_setpoint");  // 200 Hz
-	add_topic("vehicle_rates_setpoint");  // 200 Hz
+	add_topic("manual_control_setpoint", AUTO);  // ~50 Hz, RC input rate
+	add_topic_multi("rate_ctrl_status", VERY_FAST, 2);
+	add_topic("sensor_combined", AUTO);  // 200 Hz
+	add_topic("vehicle_angular_velocity", AUTO);  // 400 Hz, IMU_GYRO_RATEMAX
+	add_topic("vehicle_attitude", AUTO);  // 200 Hz
+	add_topic("vehicle_attitude_setpoint", AUTO);  // 200 Hz
+	add_topic("vehicle_rates_setpoint", AUTO);  // 200 Hz
+	add_topic("vehicle_local_position", VERY_FAST);  // 200 Hz
+	add_topic("vehicle_local_position_setpoint", VERY_FAST);  // 200 Hz
 
-	add_topic("esc_status", 5);  // ~50 Hz, ESC status rate
-	add_topic("actuator_motors");  // 200 Hz
-	add_topic("actuator_outputs_debug");  // ~50 Hz, ESC status rate
-	add_topic("actuator_servos");  // 200 Hz
-	add_topic_multi("vehicle_thrust_setpoint", 0, 2);  // 200 Hz
-	add_topic_multi("vehicle_torque_setpoint", 0, 2);  // 200 Hz
+	add_optional_topic("esc_status", VERY_FAST);  // 200 Hz, ESC status rate
+	//add_topic("actuator_motors", AUTO);  // 400 Hz, IMU_GYRO_RATEMAX
+	add_optional_topic("actuator_outputs_debug", AUTO);  // ~50 Hz, ESC status rate
+	//add_topic("actuator_servos", AUTO);  // 400 Hz, IMU_GYRO_RATEMAX
+	add_topic("vehicle_thrust_setpoint", AUTO, 0);  // 400 Hz, motor thrust, IMU_GYRO_RATEMAX
+	// add_topic("vehicle_thrust_setpoint", 0, 1);  // 400 Hz, servo thrust, N/A, IMU_GYRO_RATEMAX
+	add_topic("vehicle_torque_setpoint", AUTO, 0);  // 400 Hz, motor torque, IMU_GYRO_RATEMAX
+	add_topic("vehicle_torque_setpoint", AUTO, 1);  // 400 Hz, servo torque, IMU_GYRO_RATEMAX
 }
 
 void LoggedTopics::add_debug_topics()
@@ -346,25 +368,32 @@ void LoggedTopics::add_debug_topics()
 	add_topic("actuator_test", 500);
 }
 
+/*
+ * Including default:
+ * Subscriptions: 236 non-optional, 60 optional, 296 total (max 255)
+ * Bandwidth: 106.588 kbps (non-optional), 199.600 kbps (all)
+ */
+
 void LoggedTopics::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
-	add_topic("ekf2_timestamps");  // 200 Hz, IMU rate
+	add_topic("ekf2_timestamps", AUTO);  // 200 Hz, IMU rate
 
 	// current EKF2 subscriptions
-	add_topic("airspeed");  // 20 Hz, sensor rate
-	add_topic("vehicle_optical_flow");  // ~20Hz, sensor rate
-	add_topic("sensor_combined");	 // 200 Hz, IMU rate
-	add_topic("sensor_selection");  // 0 Hz or on change
-	add_topic("vehicle_air_data");  // 20 Hz, sensor rate
-	add_topic("vehicle_gps_position");  // 10 Hz, GPS rate
-	add_topic("vehicle_gnss_heading");  // 10 Hz, GPS rate
-	add_topic("vehicle_land_detected");  // 1 Hz or on change
-	add_topic("vehicle_magnetometer");  // 20 Hz, mag rate
-	add_topic("vehicle_status");  // 2 Hz or on change
-	add_topic("vehicle_visual_odometry");  // ~20 Hz, external sensor rate
-	add_topic("aux_global_position");  // ~20 Hz, external sensor rate
-	add_topic_multi("distance_sensor");  // 50 Hz, lidar rate
+	add_topic("airspeed", AUTO);  // 20 Hz, sensor rate
+	add_topic("vehicle_optical_flow", AUTO);  // ~0 Hz, we dont have a sensor for this
+	add_topic("sensor_combined", AUTO);	 // 200 Hz, IMU rate
+	add_topic("sensor_selection", AUTO);  // 0 Hz or on change
+	add_topic("vehicle_air_data", AUTO);  // 20 Hz, sensor rate
+	add_topic("vehicle_gps_position", AUTO);  // 10 Hz, GPS rate
+	add_topic("vehicle_gnss_heading", AUTO);  // 10 Hz, GPS rate
+	add_topic("vehicle_land_detected", AUTO);  // 1 Hz or on change
+	add_topic("vehicle_magnetometer", AUTO);  // 20 Hz, mag rate
+	add_topic("vehicle_status", AUTO);  // 2 Hz or on change
+	add_topic("vehicle_visual_odometry", AUTO);  // ~0 Hz, we dont have a sensor for this
+	add_topic("aux_global_position", AUTO);  // ~0 Hz, we dont have a sensor for this
+	add_topic("distance_sensor", AUTO, 0);  // 50 Hz, downward lidar
+	add_topic("distance_sensor", AUTO, 1);  // ~0 Hz, we dont have a forward lidar
 }
 
 void LoggedTopics::add_thermal_calibration_topics()
