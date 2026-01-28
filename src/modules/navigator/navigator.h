@@ -337,6 +337,8 @@ private:
 	hrt_abstime _last_geofence_check = 0;
 
 	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
+	bool _wait_for_nav_state_auto_loiter{false}; /**< If true, wait for vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER  */
+	uint8_t _wait_for_nav_state_auto_loiter_counter{0};
 
 	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
 	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */

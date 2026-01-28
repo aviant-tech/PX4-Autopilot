@@ -242,7 +242,7 @@ void Navigator::run()
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
-		while (_wait_for_vehicle_status_timestamp == 0 && _vehicle_command_sub.updated()
+		while (!_wait_for_nav_state_auto_loiter && _wait_for_vehicle_status_timestamp == 0 && _vehicle_command_sub.updated()
 		       && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
 			vehicle_command_updates++;
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
@@ -267,6 +267,8 @@ void Navigator::run()
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_nav_state_auto_loiter = true;
+				_wait_for_nav_state_auto_loiter_counter = 0;
 
 				vehicle_global_position_s position_setpoint{};
 
@@ -882,6 +884,21 @@ void Navigator::run()
 
 		if (_wait_for_vehicle_status_timestamp != 0 && _vstatus.timestamp > _wait_for_vehicle_status_timestamp) {
 			_wait_for_vehicle_status_timestamp = 0;
+		}
+
+
+		if (_wait_for_nav_state_auto_loiter && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+			_wait_for_nav_state_auto_loiter = false;
+
+		} else if (_wait_for_nav_state_auto_loiter) {
+			//This is a guard mechanism.
+			++_wait_for_nav_state_auto_loiter_counter;
+
+			// In the worst case, it should not take more than two loops. We wait for five before resetting the flag.
+			if (_wait_for_nav_state_auto_loiter_counter >= 5) {
+				PX4_WARN("_wait_for_nav_state_auto_loiter flag reset");
+				_wait_for_nav_state_auto_loiter = false;
+			}
 		}
 
 		/* iterate through navigation modes and set active/inactive for each */
