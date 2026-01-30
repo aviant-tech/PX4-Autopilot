@@ -77,6 +77,7 @@ public:
 		_sensor_simulator.startGps();
 
 		_ekf->set_min_required_gps_health_time(1e6);
+		_ekf->set_min_required_gps_recovery_time(1e6);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 

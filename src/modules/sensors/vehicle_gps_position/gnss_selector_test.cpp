@@ -205,7 +205,7 @@ TEST_F(GnssSelectorTest, initializeWithOnlySecondary)
 	EXPECT_FALSE(sel.isNewOutputDataAvailable());
 }
 
-TEST_F(GnssSelectorTest, primaryRecoversImmediatelyWhenSecondaryUnhealthy)
+TEST_F(GnssSelectorTest, primaryRecoversAfterHysteresisWhenSecondaryUnhealthy)
 {
 	GnssSelector sel;
 	sel.setPrimaryInstance(0);
@@ -234,7 +234,15 @@ TEST_F(GnssSelectorTest, primaryRecoversImmediatelyWhenSecondaryUnhealthy)
 	push(sel, gps0, 0);
 	push(sel, gps1, 1);
 
-	// THEN: switch back to primary immediately
+	// THEN: still wait for hysteresis
+	EXPECT_EQ(sel.getSelectedGnss(), 1);
+
+	// BUT WHEN: hysteresis time elapsed
+	advance(500_ms);
+	push(sel, gps0, 0);
+	push(sel, gps1, 1);
+
+	// THEN: switch back to primary
 	EXPECT_EQ(sel.getSelectedGnss(), 0);
 }
 

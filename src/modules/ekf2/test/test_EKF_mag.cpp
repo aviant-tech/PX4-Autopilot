@@ -88,11 +88,14 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	// AND WHEN: GNSS fusion starts
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
-	_sensor_simulator.runSeconds(11);
+
+	_ekf->set_min_required_gps_health_time(1e6);
+	_sensor_simulator.runSeconds(2);
 
 	// THEN: the earth mag field is reset to the WMM
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
 
+	// However, we have to wait for _gps_checks_passed to be true before the ekf position is set
 	Vector3f mag_earth = _ekf->getMagEarthField();
 	float mag_decl = atan2f(mag_earth(1), mag_earth(0));
 	float mag_decl_wmm_deg = 0.f;
