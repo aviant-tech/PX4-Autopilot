@@ -514,8 +514,14 @@ void EKF2::Run()
 
 					// TODO add check for lat and long validity
 					if (cmd_timestamp_valid) {
-						_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-								accuracy, cmd_timestamp);
+						if (_pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED) {
+							_ekf.resetGlobalPosToExternalObservation(
+								vehicle_command.param5,
+								vehicle_command.param6,
+								accuracy,
+								cmd_timestamp
+							);
+						}
 					}
 
 
