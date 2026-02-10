@@ -45,28 +45,57 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	// We know we want these
+	add_optional_topic("px4io_status");
+	add_optional_topic("sensor_airflow", 100);
+	add_optional_topic("sensor_correction");
+	add_optional_topic("sensor_gyro_fft", 50);
+	add_topic("adc_report", 100);
 	add_topic("aviant_ats");
+	add_topic("external_ins_attitude");
+	add_topic("external_vehicle_status");
+	add_topic("parameter_update");
+	add_topic("sensor_combined");
+	add_topic("sensor_selection");
+	add_topic("sensors_status_imu", 200);
+	add_topic("system_power", 500);
+	add_topic("vehicle_acceleration", 50);
+	add_topic("vehicle_air_data", 200);
+	add_topic("vehicle_angular_velocity", 20);
+	add_topic("vehicle_attitude", 50);
+	add_topic("vehicle_command");
+	add_topic("vehicle_command_ack");
+	add_topic("vehicle_local_position", 100);
+	add_topic("vehicle_magnetometer", 200);
+
+	// Below this is "just in case we need them"
+	add_topic("vehicle_status");
+	add_optional_topic("airspeed_validated", 200);
+	add_topic("airspeed", 1000);
+	add_topic("config_overrides");
+	add_topic("cpuload");
+	add_topic("failsafe_flags");
+	add_topic("failure_detector_status", 100);
+	add_topic("vehicle_global_position", 200);
+	add_topic("vehicle_gnss_heading", 100);
+	add_topic("vehicle_gnss_heading", 100);
+	add_topic("vehicle_gps_position", 100);
+	/*
 	add_topic("aviant_navigation", 100);
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
-	add_topic("airspeed", 1000);
-	add_optional_topic("airspeed_validated", 200);
 	add_optional_topic("autotune_attitude_control_status", 100);
 	add_optional_topic("camera_capture");
 	add_optional_topic("camera_trigger");
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
-	add_topic("config_overrides");
-	add_topic("cpuload");
 	add_optional_topic("differential_drive_control_output", 100);
 	add_optional_topic("differential_drive_setpoint", 100);
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
 	add_optional_topic("esc_status", 250);
-	add_topic("failure_detector_status", 100);
-	add_topic("failsafe_flags");
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);
 	add_optional_topic("follow_target_status", 400);
@@ -96,50 +125,29 @@ void LoggedTopics::add_default_topics()
 	add_topic("npfg_status", 100);
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
-	add_topic("parameter_update");
 	add_topic("position_controller_status", 500);
 	add_topic("position_controller_landing_status", 100);
 	add_topic("goto_setpoint", 200);
 	add_topic("position_setpoint_triplet", 200);
-	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
-	add_optional_topic("sensor_airflow", 100);
-	add_topic("sensor_combined");
-	add_optional_topic("sensor_correction");
-	add_optional_topic("sensor_gyro_fft", 50);
-	add_topic("sensor_selection");
-	add_topic("sensors_status_imu", 200);
 	add_optional_topic("spoilers_setpoint", 1000);
-	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);
 	add_optional_topic("tiltrotor_extra_controls", 100);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("transponder_report");
-	add_topic("vehicle_acceleration", 50);
-	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_angular_velocity", 20);
-	add_topic("vehicle_attitude", 50);
 	add_topic("vehicle_attitude_setpoint", 50);
-	add_topic("vehicle_command");
-	add_topic("vehicle_command_ack");
 	add_topic("vehicle_constraints", 1000);
 	add_topic("vehicle_control_mode");
-	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_gps_position", 100);
-	add_topic("vehicle_gnss_heading", 100);
-	add_topic("vehicle_gnss_heading", 100);
 	add_topic("vehicle_land_detected");
-	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
-	add_topic("vehicle_magnetometer", 200);
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);
-	add_topic("vehicle_status");
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
+	*/
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
