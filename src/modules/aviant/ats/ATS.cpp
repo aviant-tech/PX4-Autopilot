@@ -154,7 +154,9 @@ void ATS::send_parachute_command()
 	vcmd.param1 = static_cast<float>(vehicle_command_s::PARACHUTE_ACTION_RELEASE);
 
 	vcmd.source_system = _param_mav_sys_id.get();
-	vcmd.target_system = 1;
+	// It's safe to assume that the ATS and FC have the same system ID,
+	// since they're part of the same aircraft
+	vcmd.target_system = vcmd.source_system;
 	vcmd.source_component = _param_mav_comp_id.get();
 	vcmd.target_component = 161; // MAV_COMP_ID_PARACHUTE
 
@@ -172,7 +174,9 @@ void ATS::send_flighttermination_command()
 	vcmd.param1 = 1.0f; //terminate
 
 	vcmd.source_system = _param_mav_sys_id.get();
-	vcmd.target_system = 1;
+	// It's safe to assume that the ATS and FC have the same system ID,
+	// since they're part of the same aircraft
+	vcmd.target_system = vcmd.source_system;
 	vcmd.source_component = _param_mav_comp_id.get();
 	vcmd.target_component = 1;
 
