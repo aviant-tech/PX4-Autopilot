@@ -68,13 +68,24 @@ jobs:
     - name: ccache post-run
       run: ccache -s
 
+    - name: List build artifacts
+      run: |
+        echo "=== Build directory contents ==="
+        ls -lh build/${{matrix.config}}_default/ || true
+        echo "=== Looking for ELF files ==="
+        find build/${{matrix.config}}_default/ -name "*.elf" -o -name "*.map" -o -name "nuttx" 2>/dev/null || true
+
     - name: Upload px4 package
       uses: actions/upload-artifact@v4
       with:
         name: px4_package_${{matrix.config}}
         path: |
-          build/cubepilot_cubeorange_default/*.px4
-          build/cubepilot_cubeorange_default/*.bin
+          build/${{matrix.config}}_default/*.px4
+          build/${{matrix.config}}_default/*.elf
+          build/${{matrix.config}}_default/*.map
+          build/${{matrix.config}}_default/NuttX
+          build/${{matrix.config}}_default/nuttx
+          build/${{matrix.config}}_default/System.map
 
     - name: Release
       uses: softprops/action-gh-release@v1
@@ -82,5 +93,8 @@ jobs:
       with:
         prerelease: true
         files: |
-          build/cubepilot_cubeorange_default/*.px4
-          build/cubepilot_cubeorange_default/*.bin
+          build/${{matrix.config}}_default/*.px4
+          build/${{matrix.config}}_default/*.elf
+          build/${{matrix.config}}_default/*.map
+          build/${{matrix.config}}_default/NuttX
+          build/${{matrix.config}}_default/System.map
