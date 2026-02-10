@@ -126,8 +126,13 @@ private:
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 			}
 
+#if defined CONFIG_MODULES_AVIANT_ATS
+			constexpr uint8_t mav_autopilot_type = MAV_AUTOPILOT_INVALID;
+#else
+			constexpr uint8_t mav_autopilot_type = MAV_AUTOPILOT_PX4;
+#endif
 
-			mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
+			mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), mav_autopilot_type,
 						   base_mode, custom_mode.data, system_status);
 
 			return true;
