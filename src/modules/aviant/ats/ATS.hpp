@@ -93,6 +93,7 @@ private:
 		(ParamFloat<px4::params::AV_ATS_ACC_NORM>)  _params_av_ats_acc_norm,
 		(ParamFloat<px4::params::AV_ATS_ROLL_ANG>)  _params_av_ats_roll_ang,
 		(ParamFloat<px4::params::AV_ATS_PITCH_ANG>) _params_av_ats_pitch_ang,
+		(ParamInt<px4::params::AV_ATS_ACTIVE>)      _params_av_ats_active,
 		(ParamInt<px4::params::MAV_SYS_ID>)         _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>)        _param_mav_comp_id
 	);
