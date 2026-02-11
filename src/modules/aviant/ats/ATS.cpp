@@ -114,27 +114,31 @@ ATS::Run()
 		}
 	}
 
-	switch (_fc_state) {
-	case FC_STATE::ARMED:
+	const bool ats_active = static_cast<bool>(_params_av_ats_active.get());
 
-		if (_aviant_ats.fc_timeout &&
-		    (_aviant_ats.accel_norm_fail || _aviant_ats.roll_fail || _aviant_ats.pitch_fail)
-		   ) {
+	if (ats_active) {
+		switch (_fc_state) {
+		case FC_STATE::ARMED:
+
+			if (_aviant_ats.fc_timeout &&
+			    (_aviant_ats.accel_norm_fail || _aviant_ats.roll_fail || _aviant_ats.pitch_fail)
+			   ) {
+				_aviant_ats.parachute_deploy = true;
+			}
+
+			break;
+
+		case FC_STATE::TERMINATED:
 			_aviant_ats.parachute_deploy = true;
+			break;
+
+		case FC_STATE::DISARMED:
+			// Do nothing. No recovery is available at this time. A reboot is required.
+			break;
+
+		default:
+			break;
 		}
-
-		break;
-
-	case FC_STATE::TERMINATED:
-		_aviant_ats.parachute_deploy = true;
-		break;
-
-	case FC_STATE::DISARMED:
-		// Do nothing. No recovery is available at this time. A reboot is required.
-		break;
-
-	default:
-		break;
 	}
 
 	if (!_publish_vehicle_command_once && _aviant_ats.parachute_deploy) {
