@@ -90,6 +90,12 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	snprintf(param_name, sizeof(param_name), "BAT%d_SOURCE", _index);
 	_param_handles.source = param_find(param_name);
 
+	snprintf(param_name, sizeof(param_name), "BAT%d_DYNACT", _index);
+	_param_handles.dynact = param_find(param_name);
+
+	snprintf(param_name, sizeof(param_name), "BAT%d_Q_MAXACT", _index);
+	_param_handles.q_maxact = param_find(param_name);
+
 	_param_handles.low_thr = param_find("BAT_LOW_THR");
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
@@ -109,6 +115,11 @@ void Battery::updateCurrent(const float current_a)
 {
 	_current_a = current_a;
 	_current_filter_a.update(current_a);
+}
+
+void Battery::updateTemperature(const float temperature_c)
+{
+	_temperature_c = temperature_c;
 }
 
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
@@ -139,6 +150,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 	}
 
 	computeScale();
+	computeDynamicActuator();
 
 	if (_connected && _battery_initialized) {
 		_warning = determineWarning(_state_of_charge);
@@ -156,8 +168,9 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.discharged_mah = _discharged_mah;
 	battery_status.remaining = _state_of_charge;
 	battery_status.scale = _scale;
+	battery_status.dynamic_actuator = _dynamic_actuator;
 	battery_status.time_remaining_s = computeRemainingTime(_current_a);
-	battery_status.temperature = NAN;
+	battery_status.temperature = _temperature_c;
 	battery_status.cell_count = _params.n_cells;
 	battery_status.connected = _connected;
 	battery_status.source = _source;
@@ -302,6 +315,47 @@ void Battery::computeScale()
 	}
 }
 
+void Battery::computeDynamicActuator()
+{
+	// Check if the battery is full, based on voltage alone,
+	// and latch the status if it is.
+	if (!_battery_was_full) {
+		float min_voltage = _params.n_cells * _params.v_charged * 0.97f;  // Hard code 3% acceptance range
+		float max_voltage = _params.n_cells * _params.v_charged * 1.2f;   // Sanity check
+		float voltage = _voltage_filter_v.getState();
+
+		if (voltage < max_voltage && voltage > min_voltage) { _battery_was_full = true; }
+	}
+
+	switch (_params.dynact) {
+	case -1:  // Disabled - dynamic range always disabled
+		_dynamic_actuator = 0.f;
+		break;
+
+	case 0:  // Disabled - dynamic range always enabled
+		_dynamic_actuator = 1.f;
+		break;
+
+	case 1:  // Consumption based - require full battery
+		if (!_battery_was_full) {
+			_dynamic_actuator = -1.f;
+
+		} else {
+			_dynamic_actuator = math::interpolate(_discharged_mah, 0.f, _params.q_maxact, 0.f, 1.f);
+		}
+
+		break;
+
+	case 2:  // Consumption based - do not require full battery
+		_dynamic_actuator = math::interpolate(_discharged_mah, 0.f, _params.q_maxact, 0.f, 1.f);
+		break;
+
+	default:
+		// Set to error value if unknown mode
+		_dynamic_actuator = -1.f;
+	}
+}
+
 float Battery::computeRemainingTime(float current_a)
 {
 	float time_remaining_s = NAN;
@@ -349,6 +403,8 @@ void Battery::updateParams()
 	param_get(_param_handles.v_load_drop, &_params.v_load_drop);
 	param_get(_param_handles.r_internal, &_params.r_internal);
 	param_get(_param_handles.source, &_params.source);
+	param_get(_param_handles.dynact, &_params.dynact);
+	param_get(_param_handles.q_maxact, &_params.q_maxact);
 	param_get(_param_handles.low_thr, &_params.low_thr);
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);

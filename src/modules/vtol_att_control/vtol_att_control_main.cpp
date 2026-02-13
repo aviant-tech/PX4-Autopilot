@@ -59,6 +59,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle"))
 {
+	_airspeed_filter.reset(NAN);
+
 	// start vtol in rotary wing mode
 	_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
@@ -198,6 +200,13 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 				command_ack_pub.publish(command_ack);
 			}
+
+		} else if (_vtol_vehicle_status.fixed_wing_system_failure &&
+			   (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MODE ||
+			    vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION)) {
+			/* Reset _transition_command if the vehicle failed to do transition and external command arrive.
+			   This will result in the exiting failsafe mode. */
+			_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		}
 	}
 }
@@ -245,12 +254,22 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 				     "Quad-chute triggered due to maximum roll angle exceeded");
 			break;
 
+		case QuadchuteReason::MaximumPitchExceededLookahead:
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch_la"), events::Log::Critical,
+				     "Quad-chute triggered due to maximum pitch angle exceeded (lookahead)");
+			break;
+
+		case QuadchuteReason::MaximumRollExceededLookahead:
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll_la"), events::Log::Critical,
+				     "Quad-chute triggered due to maximum roll angle exceeded (lookahead)");
+			break;
+
 		case QuadchuteReason::None:
 			// should never get in here
 			return;
 		}
 
-		_vtol_vehicle_status.fixed_wing_system_failure = true;
+		_quadchute_requested = true;
 	}
 }
 
@@ -339,9 +358,14 @@ VtolAttitudeControl::Run()
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
-		_airspeed_validated_sub.update(&_airspeed_validated);
+
+		if (_airspeed_validated_sub.update(&_airspeed_validated)) {
+			update_airspeed_filter(_airspeed_validated);
+		}
+
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
 
 		if (_home_position_sub.updated()) {
 			home_position_s home_position;
@@ -369,6 +393,14 @@ VtolAttitudeControl::Run()
 		// check if mc and fw sp were updated
 		const bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
 		const bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
+
+		// Set fixed_wing_system_failure flag if quadchute was requested the previous iteration
+		// We do this before _vtol_type->update_vtol_state() so that
+		// failsafe flag and mr flag is updated at the same iteration
+		if (_quadchute_requested) {
+			_vtol_vehicle_status.fixed_wing_system_failure = true;
+			_quadchute_requested = false;
+		}
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
@@ -427,7 +459,12 @@ VtolAttitudeControl::Run()
 		_vehicle_thrust_setpoint0_pub.publish(_thrust_setpoint_0);
 		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
 
+		update_qc_lookahead_angles();
+
 		// Advertise/Publish vtol vehicle status
+		_vtol_vehicle_status.airspeed_filtered = get_filtered_airspeed();
+		_vtol_vehicle_status.lookahead_pitch = _qc_lookahead_pitch.getState();
+		_vtol_vehicle_status.lookahead_roll = _qc_lookahead_roll.getState();
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 
@@ -458,6 +495,61 @@ VtolAttitudeControl::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void VtolAttitudeControl::update_airspeed_filter(const struct airspeed_validated_s &sample)
+{
+	if (!sample.airspeed_sensor_measurement_valid || !PX4_ISFINITE(sample.calibrated_airspeed_m_s)) {
+		_airspeed_filter.reset(NAN);
+	}
+
+	if (!PX4_ISFINITE(_airspeed_filter.getState())) {
+		_airspeed_filter.reset(sample.calibrated_airspeed_m_s);
+
+	} else {
+		// We must update the filter parameters, since we don't know the sensor sample rate
+		float dt_s = static_cast<float>(sample.timestamp - _airspeed_filter_last_timestamp) / 1e6f;
+		_airspeed_filter.setParameters(dt_s, _param_vt_arsp_tau.get());
+		_airspeed_filter.update(sample.calibrated_airspeed_m_s);
+	}
+
+	_airspeed_filter_last_timestamp = sample.timestamp;
+}
+
+void VtolAttitudeControl::update_qc_lookahead_angles()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _qc_lookahead_last_ts) / 1e6f, 0.001f, 0.1f);
+	_qc_lookahead_last_ts = now;
+
+	const float time_constant = _param_vt_fw_qc_la_ft.get() / 1000.0f;
+	_qc_lookahead_pitch.setParameters(dt, time_constant);
+	_qc_lookahead_roll.setParameters(dt, time_constant);
+
+	const float p = _vehicle_angular_velocity.xyz[0];
+	const float q = _vehicle_angular_velocity.xyz[1];
+	const float r = _vehicle_angular_velocity.xyz[2];
+
+	const matrix::Eulerf euler(matrix::Quatf(_vehicle_attitude.q));
+
+	if (!PX4_ISFINITE(p) || !PX4_ISFINITE(q) || !PX4_ISFINITE(r)) {
+		_qc_lookahead_pitch.reset(euler.theta());
+		_qc_lookahead_roll.reset(euler.phi());
+		return;
+	}
+
+	constexpr float MAX_PITCH_FOR_TAN = math::radians(89.f);
+	const float theta = math::constrain(euler.theta(), -MAX_PITCH_FOR_TAN, MAX_PITCH_FOR_TAN);
+	const float phi = euler.phi();
+
+	const float euler_pitch_rate = q * cosf(phi) - r * sinf(phi);
+	const float euler_roll_rate = p + (q * sinf(phi) + r * cosf(phi)) * tanf(theta);
+
+	const float unfiltered_pitch = euler.theta() + _param_vt_fw_qc_la_pt.get() * 0.001f * euler_pitch_rate;
+	const float unfiltered_roll = euler.phi() + _param_vt_fw_qc_la_rt.get() * 0.001f * euler_roll_rate;
+
+	_qc_lookahead_pitch.update(unfiltered_pitch);
+	_qc_lookahead_roll.update(unfiltered_roll);
 }
 
 int

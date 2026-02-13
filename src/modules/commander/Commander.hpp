@@ -339,6 +339,7 @@ private:
 		(ParamInt<px4::params::COM_FLT_PROFILE>)    _param_com_flt_profile,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>)  _param_com_force_safety,
 		(ParamFloat<px4::params::COM_KILL_DISARM>)  _param_com_kill_disarm,
+		(ParamFloat<px4::params::COM_LKDOWN_TKO>)   _param_com_lkdown_tko,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>)   _param_com_mot_test_en,
 		(ParamBool<px4::params::COM_OBS_AVOID>)     _param_com_obs_avoid,
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>)   _param_com_obc_loss_t,

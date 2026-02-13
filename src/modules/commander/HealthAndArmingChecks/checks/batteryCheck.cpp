@@ -146,6 +146,26 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 							     battery_mode_str(static_cast<battery_mode_t>(battery.mode)));
 				}
 			}
+
+		} else {
+			const bool dynalim_fail = battery.dynamic_actuator < 0;
+
+			if (dynalim_fail) {
+				/* EVENT
+				 * @description
+				 * <profile name="dev">
+				 * Dynalim settings for this battery can be configured using BAT{1}_DYNACT parameter
+				 * </profile>
+				 */
+				reporter.armingCheckFailure<uint8_t>(NavModes::All, health_component_t::battery,
+								     events::ID("check_battery_dynalim_fail"),
+								     events::Log::Critical, "Battery {1}: Dynalim error. A fully charged battery may be required", index + 1);
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Battery %d: Dynalim error. A fully charged battery may be required\t",
+							     index + 1);
+				}
+			}
 		}
 
 		if (battery.connected) {

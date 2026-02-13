@@ -52,6 +52,7 @@ set(msg_files
 	ArmingCheckReply.msg
 	ArmingCheckRequest.msg
 	AutotuneAttitudeControlStatus.msg
+	AviantNavigation.msg
 	BatteryStatus.msg
 	Buffer128.msg
 	ButtonEvent.msg
@@ -229,6 +230,7 @@ set(msg_files
 	VehicleConstraints.msg
 	VehicleControlMode.msg
 	VehicleGlobalPosition.msg
+	VehicleGnssHeading.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLandDetected.msg

@@ -62,7 +62,8 @@ uint8 NAVIGATION_STATE_EXTERNAL5 = 27
 uint8 NAVIGATION_STATE_EXTERNAL6 = 28
 uint8 NAVIGATION_STATE_EXTERNAL7 = 29
 uint8 NAVIGATION_STATE_EXTERNAL8 = 30
-uint8 NAVIGATION_STATE_MAX = 31
+uint8 NAVIGATION_STATE_AUTO_MISSION_RTL = 31    # Auto return to launch mode following mission path
+uint8 NAVIGATION_STATE_MAX = 32
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 
@@ -80,6 +81,7 @@ uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
 uint16 FAILURE_BATTERY = 32          # (1 << 5)
 uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
 uint16 FAILURE_MOTOR = 128           # (1 << 7)
+uint16 FAILURE_MPC_VZ = 256          # (1 << 8)
 
 uint8 hil_state
 uint8 HIL_STATE_OFF = 0

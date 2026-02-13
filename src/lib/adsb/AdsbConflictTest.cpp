@@ -285,3 +285,71 @@ TEST_F(AdsbConflictTest, trafficReminder)
 	EXPECT_TRUE(adsb_conflict._traffic_state == TRAFFIC_STATE::ADD_CONFLICT);
 
 }
+
+TEST_F(AdsbConflictTest, trafficIgnoreIcaoAddress)
+{
+
+
+	// These are taken from detectTrafficConflict, ensuring that we find at least one conflict in the dataset
+	int collision_time_threshold = 60;
+	float crosstrack_separation = 500.0f;
+	float vertical_separation = 500.0f;
+	double lat_now = 32.617013;
+	double lon_now = -96.490564;
+	float alt_now = 1000.0f;
+	float vx_now = 0.0f;
+	float vy_now = 0.0f;
+	float vz_now = 0.0f;
+
+	uint32_t traffic_dataset_size = sizeof(traffic_dataset) / sizeof(traffic_dataset[0]);
+
+	struct traffic_data_s conflicting_traffic {0};
+	uint32_t traffic_idx = 0;
+
+	do {
+		conflicting_traffic = traffic_dataset[traffic_idx];
+	} while (++traffic_idx < traffic_dataset_size && !conflicting_traffic.in_conflict);
+
+	// This should never happen, unless there is a test bug or the dataset contains no conflicts
+	// But we check just in case, since the test is invalid if it's false
+	EXPECT_TRUE(conflicting_traffic.in_conflict);
+
+	TestAdsbConflict adsb_conflict;
+	adsb_conflict.set_conflict_detection_params(crosstrack_separation, vertical_separation, collision_time_threshold, 1);
+	adsb_conflict._transponder_report.lat = conflicting_traffic.lat_traffic;
+	adsb_conflict._transponder_report.lon = conflicting_traffic.lon_traffic;
+	adsb_conflict._transponder_report.altitude = conflicting_traffic.alt_traffic;
+	adsb_conflict._transponder_report.heading = conflicting_traffic.heading_traffic;
+	adsb_conflict._transponder_report.hor_velocity = conflicting_traffic.vxy_traffic;
+	adsb_conflict._transponder_report.ver_velocity = conflicting_traffic.vz_traffic;
+
+
+	adsb_conflict.set_icao_ignore_range(1, 3);
+
+	adsb_conflict._transponder_report.icao_address = 0;
+	adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
+	EXPECT_TRUE(adsb_conflict._conflict_detected);
+
+	adsb_conflict._transponder_report.icao_address = 1;
+	adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
+	EXPECT_FALSE(adsb_conflict._conflict_detected);
+
+	adsb_conflict._transponder_report.icao_address = 2;
+	adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
+	EXPECT_FALSE(adsb_conflict._conflict_detected);
+
+	adsb_conflict._transponder_report.icao_address = 3;
+	adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
+	EXPECT_FALSE(adsb_conflict._conflict_detected);
+
+	adsb_conflict._transponder_report.icao_address = 4;
+	adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
+	EXPECT_TRUE(adsb_conflict._conflict_detected);
+
+	// Test special case with nonzero address but zero count. Should not ignore
+	adsb_conflict.set_icao_ignore_range(1, 0);
+
+	adsb_conflict._transponder_report.icao_address = 1;
+	adsb_conflict.detect_traffic_conflict(lat_now, lon_now, alt_now, vx_now, vy_now, vz_now);
+	EXPECT_TRUE(adsb_conflict._conflict_detected);
+}

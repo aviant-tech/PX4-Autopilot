@@ -102,6 +102,9 @@
 #if defined(CONFIG_EKF2_GNSS)
 # include <uORB/topics/estimator_gps_status.h>
 # include <uORB/topics/sensor_gps.h>
+# if defined(CONFIG_EKF2_GNSS_YAW)
+#  include <uORB/topics/vehicle_gnss_heading.h>
+# endif //CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -217,6 +220,9 @@ private:
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	void updateGnssHeadingSample(ekf2_timestamps_s &ekf2_timestamps);
+# endif //CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -249,13 +255,14 @@ private:
 
 	// publish helper for estimator_aid_source topics
 	template <typename T>
-	void PublishAidSourceStatus(const T &status, hrt_abstime &status_publish_last, uORB::PublicationMulti<T> &pub)
+	void PublishAidSourceStatus(const hrt_abstime &timestamp, const T &status, hrt_abstime &status_publish_last,
+				    uORB::PublicationMulti<T> &pub)
 	{
 		if (status.timestamp_sample > status_publish_last) {
 			// publish if updated
 			T status_out{status};
 			status_out.estimator_instance = _instance;
-			status_out.timestamp = hrt_absolute_time();
+			status_out.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 			pub.publish(status_out);
 
 			// record timestamp sample
@@ -481,6 +488,9 @@ private:
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	hrt_abstime _status_gnss_yaw_pub_last {0};
+
+	uORB::Subscription _vehicle_gnss_heading_sub {ORB_ID(vehicle_gnss_heading)};
+
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS

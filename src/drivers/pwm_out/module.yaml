@@ -1,5 +1,9 @@
 module_name: '${PWM_MAIN_OR_AUX}'
 actuator_output:
+  config_parameters:
+        - param: 'DRNG'
+          param_prefix: '${PWM_MAIN_OR_AUX}'
+          label: 'Dynamic Range'
   output_groups:
     - generator: pwm
       param_prefix: '${PWM_MAIN_OR_AUX}'

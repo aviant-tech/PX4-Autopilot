@@ -40,7 +40,7 @@
 #include <vector>
 
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
-#include <mavlink/development/mavlink_msg_figure_eight_execution_status.h>
+#include <mavlink/common/mavlink_msg_figure_eight_execution_status.h>
 
 using namespace mavsdk::geometry;
 

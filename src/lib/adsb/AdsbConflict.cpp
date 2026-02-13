@@ -47,6 +47,14 @@ void AdsbConflict::detect_traffic_conflict(double lat_now, double lon_now, float
 
 {
 
+	if (
+		_transponder_report.icao_address >= _icao_ignore_start &&
+		_transponder_report.icao_address < _icao_ignore_start + _icao_ignore_count
+	) {
+		_conflict_detected = false;
+		return;
+	}
+
 	float d_hor, d_vert;
 	get_distance_to_point_global_wgs84(lat_now, lon_now, alt_now,
 					   _transponder_report.lat, _transponder_report.lon, _transponder_report.altitude, &d_hor, &d_vert);
@@ -189,7 +197,7 @@ bool AdsbConflict::handle_traffic_conflict()
 		break;
 
 	case TRAFFIC_STATE::REMOVE_OLD_CONFLICT: {
-			events::send<uint32_t>(events::ID("navigator_traffic_resolved"), events::Log::Notice,
+			events::send<uint32_t>(events::ID("navigator_traffic_resolved"), events::Log::Debug,
 					       "Traffic Conflict Resolved {1}!",
 					       _transponder_report.icao_address);
 			_last_traffic_warning_time = hrt_absolute_time();
@@ -232,6 +240,11 @@ void AdsbConflict::set_conflict_detection_params(float crosstrack_separation, fl
 
 }
 
+void AdsbConflict::set_icao_ignore_range(uint32_t start_address, uint32_t count)
+{
+	_icao_ignore_start = start_address;
+	_icao_ignore_count = count;
+};
 
 bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seperation, uint16_t tr_flags,
 					char tr_callsign[UTM_CALLSIGN_LENGTH], uint32_t icao_address)

@@ -80,7 +80,8 @@ Navigator::Navigator() :
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_land(this),
 	_precland(this),
-	_rtl(this)
+	_rtl(this),
+	_mission_rtl(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -89,8 +90,9 @@ Navigator::Navigator() :
 	_navigation_mode_array[3] = &_takeoff;
 	_navigation_mode_array[4] = &_land;
 	_navigation_mode_array[5] = &_precland;
+	_navigation_mode_array[6] = &_mission_rtl;
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-	_navigation_mode_array[6] = &_vtol_takeoff;
+	_navigation_mode_array[7] = &_vtol_takeoff;
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 	/* iterate through navigation modes and initialize _mission_item for each */
@@ -144,6 +146,7 @@ void Navigator::params_update()
 	}
 
 	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+	_adsb_conflict.set_icao_ignore_range(_param_nav_traff_ignadr.get(), _param_nav_traff_igncnt.get());
 }
 
 void Navigator::run()
@@ -239,7 +242,7 @@ void Navigator::run()
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 
-		while (_wait_for_vehicle_status_timestamp == 0 && _vehicle_command_sub.updated()
+		while (!_wait_for_nav_state_auto_loiter && _wait_for_vehicle_status_timestamp == 0 && _vehicle_command_sub.updated()
 		       && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
 			vehicle_command_updates++;
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
@@ -264,6 +267,8 @@ void Navigator::run()
 
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
+				_wait_for_nav_state_auto_loiter = true;
+				_wait_for_nav_state_auto_loiter_counter = 0;
 
 				vehicle_global_position_s position_setpoint{};
 
@@ -787,6 +792,11 @@ void Navigator::run()
 
 			break;
 
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL:
+			_mission_rtl.already_in_mission_mode = _navigation_mode == &_mission;
+			navigation_mode_new = &_mission_rtl;
+			break;
+
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_takeoff;
@@ -874,6 +884,21 @@ void Navigator::run()
 
 		if (_wait_for_vehicle_status_timestamp != 0 && _vstatus.timestamp > _wait_for_vehicle_status_timestamp) {
 			_wait_for_vehicle_status_timestamp = 0;
+		}
+
+
+		if (_wait_for_nav_state_auto_loiter && _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+			_wait_for_nav_state_auto_loiter = false;
+
+		} else if (_wait_for_nav_state_auto_loiter) {
+			//This is a guard mechanism.
+			++_wait_for_nav_state_auto_loiter_counter;
+
+			// In the worst case, it should not take more than two loops. We wait for five before resetting the flag.
+			if (_wait_for_nav_state_auto_loiter_counter >= 5) {
+				PX4_WARN("_wait_for_nav_state_auto_loiter flag reset");
+				_wait_for_nav_state_auto_loiter = false;
+			}
 		}
 
 		/* iterate through navigation modes and set active/inactive for each */
@@ -1397,6 +1422,10 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	case NAV_CMD_VIDEO_START_CAPTURE:
 	case NAV_CMD_VIDEO_STOP_CAPTURE:
 		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
+		break;
+
+	case NAV_CMD_DO_WINCH:
+		vcmd->target_component = 169; // MAV_COMP_ID_WINCH
 		break;
 
 	default:

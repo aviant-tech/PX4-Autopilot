@@ -256,6 +256,59 @@ PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
 PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 
 /**
+ * Quad-chute pitch lookahead time
+ *
+ * Predicts future pitch attitude from angular velocity to trigger quadchute before pitch limits
+ * are exceeded, allowing reaction to a flip before it becomes unrecoverable.
+ * Increasing this parameter trades off false positives for faster reaction.
+ * Should not be much larger than the pitch time constant, otherwise it will trigger from
+ * normal pitching maneuvers. Set to 0 to disable.
+ *
+ * @unit ms
+ * @min 0
+ * @max 1000
+ * @decimal 0
+ * @increment 10
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_LA_PT, 0);
+
+/**
+ * Quad-chute roll lookahead time
+ *
+ * Predicts future roll attitude from angular velocity to trigger quadchute before roll limits
+ * are exceeded, allowing reaction to a flip before it becomes unrecoverable.
+ * Increasing this parameter trades off false positives for faster reaction.
+ * Should not be much larger than the roll time constant, otherwise it will trigger from
+ * normal rolling maneuvers. Set to 0 to disable.
+ *
+ * @unit ms
+ * @min 0
+ * @max 1000
+ * @decimal 0
+ * @increment 10
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_LA_RT, 0);
+
+/**
+ * Quad-chute lookahead filter time
+ *
+ * Low-pass filter time constant for the lookahead pitch and roll angles.  A
+ * larger value reduces the chance of false positives due to gyro noise, at the
+ * cost of slower reaction time.
+ * Set to 0 to disable filtering.
+ *
+ * @unit ms
+ * @min 0
+ * @max 100
+ * @decimal 0
+ * @increment 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_LA_FT, 10);
+
+/**
  * Quad-chute maximum height
  *
  * Maximum height above the ground (if available, otherwise above

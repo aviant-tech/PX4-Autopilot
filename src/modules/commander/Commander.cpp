@@ -846,6 +846,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_EXTERNAL1 + (custom_sub_mode - PX4_CUSTOM_SUB_MODE_EXTERNAL1);
 							break;
 
+						case PX4_CUSTOM_SUB_MODE_AUTO_MISSION_RTL:
+							desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION_RTL;
+							break;
+
 						default:
 							main_ret = TRANSITION_DENIED;
 							mavlink_log_critical(&_mavlink_log_pub, "Unsupported auto mode\t");
@@ -945,6 +949,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (arming_action == vehicle_command_s::ARMING_ACTION_DISARM) {
 					arming_res = disarm(arm_disarm_reason, forced);
+					const bool is_right_after_takeoff = hrt_elapsed_time(&_vehicle_status.takeoff_time) <
+									    (1_s * _param_com_lkdown_tko.get());
+
+					if (arming_res == TRANSITION_CHANGED && !_vehicle_land_detected.landed && !is_right_after_takeoff) {
+						send_parachute_command();
+					}
 
 				}
 
@@ -1878,8 +1888,7 @@ void Commander::run()
 		_actuator_armed.armed = isArmed();
 		_actuator_armed.prearmed = getPrearmState();
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
-		_actuator_armed.lockdown = ((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION)
-					    || (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
+		_actuator_armed.lockdown = ((_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
 					    || _multicopter_throw_launch.isThrowLaunchInProgress());
 		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
@@ -1920,6 +1929,7 @@ void Commander::run()
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
+			fd_status.fd_mpc_vz = _failure_detector.getStatusFlags().mpc_vz;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
 			fd_status.timestamp = hrt_absolute_time();

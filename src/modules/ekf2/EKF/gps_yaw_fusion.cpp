@@ -46,39 +46,36 @@
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::updateGpsYaw(const gnssSample &gps_sample)
+void Ekf::updateGpsYaw(const gnssHeadingSample &gnss_heading_sample)
 {
-	if (PX4_ISFINITE(gps_sample.yaw)) {
-
 		auto &gnss_yaw = _aid_src_gnss_yaw;
 		resetEstimatorAidStatus(gnss_yaw);
 
 		// initially populate for estimator_aid_src_gnss_yaw logging
 
-		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
-		const float measured_hdg = wrap_pi(gps_sample.yaw + gps_sample.yaw_offset);
-
-		const float yaw_acc = PX4_ISFINITE(gps_sample.yaw_acc) ? gps_sample.yaw_acc : 0.f;
+		const float yaw_acc = PX4_ISFINITE(gnss_heading_sample.heading_accuracy) ? gnss_heading_sample.heading_accuracy : 0.f;
 		const float R_YAW = sq(fmaxf(yaw_acc, _params.gps_heading_noise));
+
+		// vehicle_gnss_heading is already rotated to body frame, so no offset
+		constexpr float antenna_yaw_offset{0};
 
 		float heading_pred;
 		float heading_innov_var;
 
 		{
 		VectorState H;
-		sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, gps_sample.yaw_offset, R_YAW, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
+		sym::ComputeGnssYawPredInnovVarAndH(_state.vector(), P, antenna_yaw_offset, R_YAW, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 		}
 
-		gnss_yaw.observation = measured_hdg;
+		gnss_yaw.observation = gnss_heading_sample.heading;
 		gnss_yaw.observation_variance = R_YAW;
-		gnss_yaw.innovation = wrap_pi(heading_pred - measured_hdg);
+		gnss_yaw.innovation = wrap_pi(heading_pred - gnss_heading_sample.heading);
 		gnss_yaw.innovation_variance = heading_innov_var;
 
-		gnss_yaw.timestamp_sample = gps_sample.time_us;
+		gnss_yaw.timestamp_sample = gnss_heading_sample.time_us;
 
 		const float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
 		setEstimatorAidStatusTestRatio(gnss_yaw, innov_gate);
-	}
 }
 
 void Ekf::fuseGpsYaw(float antenna_yaw_offset)

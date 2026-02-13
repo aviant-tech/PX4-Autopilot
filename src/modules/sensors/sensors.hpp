@@ -78,6 +78,10 @@
 # include "vehicle_gps_position/VehicleGPSPosition.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+# include "vehicle_gnss_heading/VehicleGNSSHeading.hpp"
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
+
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 # include "vehicle_magnetometer/VehicleMagnetometer.hpp"
 # include <lib/sensor_calibration/Magnetometer.hpp>
@@ -125,6 +129,8 @@ private:
 	void		InitializeVehicleAirData();
 
 	void		InitializeVehicleGPSPosition();
+
+	void		InitializeVehicleGNSSHeading();
 
 	void		InitializeVehicleIMU();
 
@@ -245,6 +251,10 @@ private:
 	VehicleGPSPosition *_vehicle_gps_position {nullptr};
 	uint8_t _n_gps{0};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+
+#if defined(CONFIG_SENSORS_VEHICLE_GNSS_HEADING)
+	VehicleGNSSHeading *_vehicle_gnss_heading {nullptr};
+#endif // CONFIG_SENSORS_VEHICLE_GNSS_HEADING
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	VehicleOpticalFlow *_vehicle_optical_flow {nullptr};

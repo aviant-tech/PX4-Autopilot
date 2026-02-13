@@ -92,6 +92,7 @@ public:
 	void setStateOfCharge(const float soc) { _state_of_charge = soc; _external_state_of_charge = true; }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
+	void updateTemperature(const float temperature_c);
 
 	/**
 	 * Update state of charge calculations
@@ -125,6 +126,8 @@ protected:
 		param_t emergen_thr;
 		param_t source;
 		param_t bat_avrg_current;
+		param_t dynact;
+		param_t q_maxact;
 	} _param_handles{};
 
 	struct {
@@ -139,6 +142,8 @@ protected:
 		float emergen_thr;
 		int32_t source;
 		float bat_avrg_current;
+		int32_t dynact;
+		float q_maxact;
 	} _params{};
 
 	const int _index;
@@ -153,6 +158,7 @@ private:
 	uint8_t determineWarning(float state_of_charge);
 	uint16_t determineFaults();
 	void computeScale();
+	void computeDynamicActuator();
 	float computeRemainingTime(float current_a);
 
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint)};
@@ -178,6 +184,9 @@ private:
 	float _state_of_charge_volt_based{-1.f}; // [0,1]
 	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
+	float _temperature_c{NAN};
+	float _dynamic_actuator{-1.f};
+	bool _battery_was_full{false};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};

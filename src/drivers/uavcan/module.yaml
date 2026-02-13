@@ -16,6 +16,9 @@ actuator_output:
         max: { min: 0, max: 8191, default: 8191 }
         failsafe: { min: 0, max: 8191 }
       num_channels: 8
+      config_parameters:
+        - param: 'UAVCAN_EC_DRNG'
+          label: 'Dynamic Range'
     - param_prefix: UAVCAN_SV
       group_label: 'Servos'
       channel_label: 'Servo'
@@ -25,3 +28,6 @@ actuator_output:
         max: { min: 0, max: 1000, default: 1000 }
         failsafe: { min: 0, max: 1000 }
       num_channels: 8
+      config_parameters:
+        - param: 'UAVCAN_SV_DRNG'
+          label: 'Dynamic Range'

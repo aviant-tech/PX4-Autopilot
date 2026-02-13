@@ -15,3 +15,14 @@ param set-default SENS_EN_THERMAL 0
 param set-default -s SENS_TEMP_ID 2621474
 
 set IOFW "/etc/extras/cubepilot_io-v2_default.bin"
+
+set LOGGER_BUF 128
+
+# MAVLink on TELEM2 in case of parameter reset
+param set-default MAV_0_CONFIG 102
+param set-default MAV_0_FLOW_CTRL 0
+param set-default MAV_0_FORWARD 1
+param set-default MAV_0_MODE 0
+param set-default MAV_0_RADIO_CTL 0
+param set-default MAV_0_RATE 200000
+param set-default SER_TEL2_BAUD 2000000

@@ -53,6 +53,7 @@
 #include <lib/atmosphere/atmosphere.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -84,6 +85,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
@@ -128,6 +130,9 @@ public:
 	struct vehicle_thrust_setpoint_s		*get_vehicle_thrust_setpoint_virtual_fw() {return &_vehicle_thrust_setpoint_virtual_fw;}
 
 	struct airspeed_validated_s 			*get_airspeed() {return &_airspeed_validated;}
+	const float                    			&get_filtered_airspeed() { return _airspeed_filter.getState(); }
+	const float                    			&get_qc_lookahead_pitch() { return _qc_lookahead_pitch.getState(); }
+	const float                    			&get_qc_lookahead_roll() { return _qc_lookahead_roll.getState(); }
 	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_attitude_s 			*get_att() {return &_vehicle_attitude;}
@@ -144,9 +149,13 @@ public:
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
 	float get_home_position_z() { return _home_position_z; }
+	struct vehicle_angular_velocity_s	*get_angular_velocity() { return &_vehicle_angular_velocity; }
 
 private:
 	void Run() override;
+	void update_airspeed_filter(const struct airspeed_validated_s &sample);
+	void update_qc_lookahead_angles();
+
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_mc_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_mc)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_thrust_setpoint_virtual_fw)};
@@ -169,6 +178,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Publication<normalized_unsigned_setpoint_s>	_flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s>	_spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
@@ -180,6 +190,13 @@ private:
 	uORB::Publication<vtol_vehicle_status_s>		_vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
+
+	AlphaFilter<float> _airspeed_filter;
+	hrt_abstime _airspeed_filter_last_timestamp{0};
+
+	AlphaFilter<float> _qc_lookahead_pitch;
+	AlphaFilter<float> _qc_lookahead_roll;
+	hrt_abstime _qc_lookahead_last_ts{0};
 
 	vehicle_attitude_setpoint_s		_vehicle_attitude_sp{};	// vehicle attitude setpoint
 	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
@@ -205,6 +222,7 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vehicle_status_s 			_vehicle_status{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	vehicle_angular_velocity_s		_vehicle_angular_velocity{};
 	float _home_position_z{NAN};
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};	// [kg/m^3]
@@ -224,6 +242,7 @@ private:
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 
 	bool		_initialized{false};
+	bool		_quadchute_requested{false};
 
 	perf_counter_t	_loop_perf;		// loop performance counter
 
@@ -237,6 +256,10 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,
-		(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
+		(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld,
+		(ParamFloat<px4::params::VT_ARSP_TAU>) _param_vt_arsp_tau,
+		(ParamInt<px4::params::VT_FW_QC_LA_PT>) _param_vt_fw_qc_la_pt,
+		(ParamInt<px4::params::VT_FW_QC_LA_RT>) _param_vt_fw_qc_la_rt,
+		(ParamInt<px4::params::VT_FW_QC_LA_FT>) _param_vt_fw_qc_la_ft
 	)
 };

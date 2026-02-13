@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include "events/events_generated.h"
 #include "geofence.h"
 #include "land.h"
 #include "precland.h"
@@ -48,6 +49,7 @@
 #include "mission.h"
 #include "navigator_mode.h"
 #include "rtl.h"
+#include "mission_rtl.h"
 #include "takeoff.h"
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
@@ -90,7 +92,7 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -335,6 +337,8 @@ private:
 	hrt_abstime _last_geofence_check = 0;
 
 	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
+	bool _wait_for_nav_state_auto_loiter{false}; /**< If true, wait for vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER  */
+	uint8_t _wait_for_nav_state_auto_loiter_counter{0};
 
 	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
 	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */
@@ -351,6 +355,7 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
+	MissionRTL 	_mission_rtl;			/**< class that handles Mission RTL */
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
@@ -408,6 +413,8 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
 		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout,
-		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt
+		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt,
+		(ParamInt<px4::params::NAV_TRAFF_IGNADR>)  _param_nav_traff_ignadr,
+		(ParamInt<px4::params::NAV_TRAFF_IGNCNT>)  _param_nav_traff_igncnt
 	)
 };

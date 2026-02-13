@@ -69,6 +69,7 @@ using math::Utilities::updateYawInRotMat;
 static constexpr uint64_t BARO_MAX_INTERVAL     = 200e3;  ///< Maximum allowable time interval between pressure altitude measurements (uSec)
 static constexpr uint64_t EV_MAX_INTERVAL       = 200e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
 static constexpr uint64_t GNSS_MAX_INTERVAL     = 500e3;  ///< Maximum allowable time interval between GNSS measurements (uSec)
+static constexpr uint64_t GNSS_HEADING_MAX_INTERVAL = 5000e3;  ///< Maximum allowable time interval between GNSS heading measurements (uSec)
 static constexpr uint64_t GNSS_YAW_MAX_INTERVAL = 1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
 static constexpr uint64_t RNG_MAX_INTERVAL      = 200e3;  ///< Maximum allowable time interval between range finder measurements (uSec)
 static constexpr uint64_t MAG_MAX_INTERVAL      = 500e3;  ///< Maximum allowable time interval between magnetic field measurements (uSec)
@@ -183,6 +184,12 @@ struct gnssSample {
 	float       yaw{};        ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
 	float       yaw_acc{};    ///< 1-std yaw error (rad)
 	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
+};
+
+struct gnssHeadingSample {
+	uint64_t    time_us{0};	///< timestamp of the measurement (uSec)
+	float heading;		///< geading angle of body frame relative to NED (radians)
+	float heading_accuracy;	///< heading accuracy (radians)
 };
 
 struct magSample {
@@ -467,9 +474,9 @@ struct parameters {
 
 	float gyro_bias_lim{0.4f};              ///< maximum gyro bias magnitude (rad/sec)
 
-	const unsigned reset_timeout_max{7'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
+	const unsigned reset_timeout_max{4'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
 	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)
-	const unsigned hgt_fusion_timeout_max{5'000'000}; ///< maximum time we allow height fusion to fail before attempting a reset or stopping the fusion aiding (uSec)
+	const unsigned hgt_fusion_timeout_max{3'500'000}; ///< maximum time we allow height fusion to fail before attempting a reset or stopping the fusion aiding (uSec)
 
 	int32_t valid_timeout_max{5'000'000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
 

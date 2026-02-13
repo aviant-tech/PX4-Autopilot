@@ -60,7 +60,8 @@ static constexpr float kMaxWeightRatio = 2.0f;
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	ModuleParams(nullptr),
 	_attc(att_controller),
-	_common_vtol_mode(mode::ROTARY_WING)
+	_common_vtol_mode(mode::ROTARY_WING),
+	_airspeed_filtered(_attc->get_filtered_airspeed())
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -81,6 +82,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
+	_vehicle_angular_velocity = _attc->get_angular_velocity();
 }
 
 bool VtolType::init()
@@ -207,7 +209,7 @@ bool VtolType::isFrontTransitionCompleted()
 bool VtolType::isFrontTransitionCompletedBase()
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
+	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_filtered)
 			&& _param_fw_use_airspd.get();
 	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
 	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
@@ -216,7 +218,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 
 	if (airspeed_triggers_transition) {
 		transition_to_fw = minimum_trans_time_elapsed
-				   && _airspeed_validated->calibrated_airspeed_m_s >= getTransitionAirspeed();
+				   && _airspeed_filtered >= getTransitionAirspeed();
 
 	} else {
 		transition_to_fw = openloop_trans_time_elapsed;
@@ -358,6 +360,30 @@ bool VtolType::isRollExceeded()
 	return false;
 }
 
+bool VtolType::isPitchExceededLookahead()
+{
+	const float threshold_deg = static_cast<float>(_param_vt_fw_qc_p.get());
+	const float lookahead_pitch = _attc->get_qc_lookahead_pitch();
+
+	if (threshold_deg <= FLT_EPSILON || !PX4_ISFINITE(lookahead_pitch)) {
+		return false;
+	}
+
+	return fabsf(lookahead_pitch) > math::radians(threshold_deg);
+}
+
+bool VtolType::isRollExceededLookahead()
+{
+	const float threshold_deg = static_cast<float>(_param_vt_fw_qc_r.get());
+	const float lookahead_roll = _attc->get_qc_lookahead_roll();
+
+	if (threshold_deg <= FLT_EPSILON || !PX4_ISFINITE(lookahead_roll)) {
+		return false;
+	}
+
+	return fabsf(lookahead_roll) > math::radians(threshold_deg);
+}
+
 bool VtolType::isFrontTransitionTimeout()
 {
 	// check front transition timeout
@@ -390,8 +416,16 @@ QuadchuteReason VtolType::getQuadchuteReason()
 		return QuadchuteReason::MaximumPitchExceeded;
 	}
 
+	if (isPitchExceededLookahead()) {
+		return QuadchuteReason::MaximumPitchExceededLookahead;
+	}
+
 	if (isRollExceeded()) {
 		return QuadchuteReason::MaximumRollExceeded;
+	}
+
+	if (isRollExceededLookahead()) {
+		return QuadchuteReason::MaximumRollExceededLookahead;
 	}
 
 	if (isFrontTransitionTimeout()) {

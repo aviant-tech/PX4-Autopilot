@@ -60,6 +60,7 @@ public:
 		FallbackStab,
 
 		Hold,
+		MissionRTL,
 		RTL,
 		Land,
 		Descend,
@@ -102,6 +103,8 @@ public:
 		case Action::FallbackStab: return "Fallback to Stabilized";
 
 		case Action::Hold: return "Hold";
+
+		case Action::MissionRTL: return "Mission RTL";
 
 		case Action::RTL: return "RTL";
 
