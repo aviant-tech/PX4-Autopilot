@@ -71,9 +71,11 @@ jobs:
     - name: Upload px4 package
       uses: actions/upload-artifact@v4
       with:
-        name: px4_package_${{matrix.config}}
+        name: px4_package_cubepilot_cubeorange
         path: |
           build/cubepilot_cubeorange_default/*.px4
+          build/cubepilot_cubeorange_default/*.elf
+          build/cubepilot_cubeorange_default/*.map
           build/cubepilot_cubeorange_default/*.bin
 
     - name: Release
@@ -83,4 +85,6 @@ jobs:
         prerelease: true
         files: |
           build/cubepilot_cubeorange_default/*.px4
+          build/cubepilot_cubeorange_default/*.elf
+          build/cubepilot_cubeorange_default/*.map
           build/cubepilot_cubeorange_default/*.bin
