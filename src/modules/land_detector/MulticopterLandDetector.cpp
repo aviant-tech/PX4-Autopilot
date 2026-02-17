@@ -96,6 +96,13 @@ void MulticopterLandDetector::_update_topics()
 
 	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
 		_flag_control_climb_rate_enabled = vehicle_control_mode.flag_control_climb_rate_enabled;
+
+		// During flight termination, controllers stop running so the thrust setpoint
+		// is stale. Zero it so the land detector can detect landing after a crash.
+		// Lockdown/kill don't need this because they auto-disarm via COM_KILL_DISARM.
+		if (vehicle_control_mode.flag_control_termination_enabled) {
+			_vehicle_thrust_setpoint_throttle = 0.f;
+		}
 	}
 
 	if (_params.useHoverThrustEstimate) {
