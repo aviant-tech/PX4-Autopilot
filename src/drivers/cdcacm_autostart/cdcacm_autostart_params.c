@@ -61,6 +61,7 @@ PARAM_DEFINE_INT32(SYS_USB_AUTO, 2);
  * @value 11 onboard_low_bandwidth
  * @value 12 uavionix
  * @value 13 parachute
+ * @value 14 trn
  *
  * @reboot_required true
  *
