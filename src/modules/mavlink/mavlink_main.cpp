@@ -1468,9 +1468,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 			configure_stream_local("LOCAL_POSITION_NED", 10.0f);
 			configure_stream_local("GLOBAL_POSITION_INT", 10.f);
 			configure_stream_local("GPS_RAW_INT", 10.0f);
-			configure_stream_local("RAW_PRESSURE", 10.0f);
 			configure_stream_local("SCALED_PRESSURE", 10.0f);
-			configure_stream_local("RAW_IMU", 10.0f);
 			configure_stream_local("ODOMETRY", 10.0f);
 		}
 

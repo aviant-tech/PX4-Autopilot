@@ -271,6 +271,12 @@ public:
 		case MAVLINK_MODE_UAVIONIX:
 			return "uAvionix";
 
+		case MAVLINK_MODE_PARACHUTE:
+			return "Parachute";
+
+		case MAVLINK_MODE_TRN:
+			return "TRN";
+
 		default:
 			return "Unknown";
 		}
