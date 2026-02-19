@@ -808,6 +808,8 @@ GPS::run()
 			_helper = nullptr;
 		}
 
+		PX4_INFO("%s: starting GPS driver cycle", _port);
+
 		if ((_interface == GPSHelper::Interface::UART) && (! _uart.isOpen())) {
 
 			// Configure UART port
@@ -903,6 +905,10 @@ GPS::run()
 			break;
 		}
 
+		if (_helper) {
+			_helper->setDeviceName(_port);
+		}
+
 		_baudrate = _configured_baudrate;
 		GPSHelper::GPSConfig gpsConfig{};
 		gpsConfig.gnss_systems = static_cast<GPSHelper::GNSSSystemsMask>(gnssSystemsParam);
@@ -923,7 +929,10 @@ GPS::run()
 
 		gpsConfig.interface_protocols = static_cast<GPSHelper::InterfaceProtocolsMask>(gps_ubx_cfg_intf);
 
+		PX4_DEBUG("%s: configuring GPS (baudrate: %d)", _port, _baudrate);
+
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
+			PX4_INFO("%s: GPS configured successfully", _port);
 
 			/* reset report */
 			memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
@@ -1010,7 +1019,7 @@ GPS::run()
 					}
 
 					if (_rover_used_for_position && !_rover_temporarily_in_normal_mode) {
-						PX4_WARN("Rover receiver used as position source. Reconfiguring to normal mode.");
+						PX4_WARN("%s: Rover receiver used as position source. Reconfiguring to normal mode.", _port);
 						_helper->disableUbxMBRover();
 						_rover_temporarily_in_normal_mode = true;
 					}
@@ -1018,7 +1027,7 @@ GPS::run()
 					if (!_rover_used_for_position
 					    && _rover_temporarily_in_normal_mode
 					    && hrt_absolute_time() > _rover_allowed_return_to_rover_mode_at) {
-						PX4_WARN("Rover receiver no longer used as position source. Reconfiguring to rover mode.");
+						PX4_WARN("%s: Rover receiver no longer used as position source. Reconfiguring to rover mode.", _port);
 						_helper->enableUbxMBRover();
 						_rover_temporarily_in_normal_mode = false;
 					}
@@ -1068,11 +1077,16 @@ GPS::run()
 				}
 			}
 
+			PX4_WARN("%s: receive loop exited (ret: %d, healthy: %d)", _port, helper_ret, _healthy);
+
 			if (_healthy) {
 				_healthy = false;
 				_rate = 0.0f;
 				_rate_rtcm_injection = 0.0f;
 			}
+
+		} else {
+			PX4_WARN("%s: configure failed", _port);
 		}
 
 		if (_interface == GPSHelper::Interface::UART) {
@@ -1247,7 +1261,7 @@ GPS::publish()
 		if (_report_gps_pos.spoofing_state != _spoofing_state) {
 
 			if (_report_gps_pos.spoofing_state > sensor_gps_s::SPOOFING_STATE_NONE) {
-				PX4_WARN("GPS spoofing detected! (state: %d)", _report_gps_pos.spoofing_state);
+				PX4_WARN("%s: GPS spoofing detected! (state: %d)", _port, _report_gps_pos.spoofing_state);
 			}
 
 			_spoofing_state = _report_gps_pos.spoofing_state;
@@ -1256,7 +1270,7 @@ GPS::publish()
 		if (_report_gps_pos.jamming_state != _jamming_state) {
 
 			if (_report_gps_pos.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {
-				PX4_WARN("GPS jamming detected! (state: %d) (indicator: %d)", _report_gps_pos.jamming_state,
+				PX4_WARN("%s: GPS jamming detected! (state: %d) (indicator: %d)", _port, _report_gps_pos.jamming_state,
 					 (uint8_t)_report_gps_pos.jamming_indicator);
 			}
 
