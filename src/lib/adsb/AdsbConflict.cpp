@@ -116,14 +116,14 @@ void AdsbConflict::remove_icao_address_from_conflict_list(int traffic_index)
 {
 	_traffic_buffer.icao_address.remove(traffic_index);
 	_traffic_buffer.timestamp.remove(traffic_index);
-	PX4_INFO("icao_address removed. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
+	PX4_DEBUG("icao_address removed. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
 }
 
 void AdsbConflict::add_icao_address_from_conflict_list(uint32_t icao_address)
 {
 	_traffic_buffer.timestamp.push_back(hrt_absolute_time());
 	_traffic_buffer.icao_address.push_back(icao_address);
-	PX4_INFO("icao_address added. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
+	PX4_DEBUG("icao_address added. Buffer Size: %d", (int)_traffic_buffer.timestamp.size());
 }
 
 void AdsbConflict::get_traffic_state()
@@ -256,7 +256,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 
 			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
 
-				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
+				PX4_DEBUG("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
 					 tr_callsign,
 					 traffic_seperation,
 					 traffic_direction, (int)icao_address);
@@ -274,7 +274,7 @@ bool AdsbConflict::send_traffic_warning(int traffic_direction, int traffic_seper
 
 			if (tr_flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN) {
 
-				PX4_WARN("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
+				PX4_DEBUG("Traffic alert - UTM callsign %s! Separation Distance %d, Heading %d, ICAO Address %d",
 					 tr_callsign,
 					 traffic_seperation,
 					 traffic_direction, (int)icao_address);
@@ -520,6 +520,6 @@ void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 
 
 	for (size_t i = 0; i < _traffic_buffer.icao_address.size(); i++) {
-		PX4_INFO("%u ", static_cast<unsigned int>(_traffic_buffer.icao_address[i]));
+		PX4_DEBUG("%u ", static_cast<unsigned int>(_traffic_buffer.icao_address[i]));
 	}
 }
