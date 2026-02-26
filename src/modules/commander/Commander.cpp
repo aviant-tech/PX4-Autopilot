@@ -1824,7 +1824,7 @@ void Commander::run()
 		dataLinkCheck();
 
 		// Check for failure detector status
-		if (_failure_detector.update(_vehicle_status, _vehicle_control_mode)) {
+		if (_failure_detector.update(_vehicle_status, _vehicle_control_mode, _vtol_vehicle_status)) {
 			_vehicle_status.failure_detector_status = _failure_detector.getStatus().value;
 			_status_changed = true;
 		}
@@ -1929,7 +1929,9 @@ void Commander::run()
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
-			fd_status.fd_mpc_vz = _failure_detector.getStatusFlags().mpc_vz;
+			fd_status.fd_mr_altloss = _failure_detector.getStatusFlags().mr_altloss;
+			fd_status.reference_z_position = _failure_detector.getReferenceZPosition();
+			fd_status.maybe_mr_failure = _failure_detector.getMaybeMRFailure();
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
 			fd_status.timestamp = hrt_absolute_time();

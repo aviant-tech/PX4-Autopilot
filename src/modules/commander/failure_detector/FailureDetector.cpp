@@ -39,6 +39,10 @@
 */
 
 #include "FailureDetector.hpp"
+#include "px4_platform_common/defines.h"
+#include "uORB/topics/vehicle_control_mode.h"
+#include "uORB/topics/vtol_vehicle_status.h"
+#include <float.h>
 
 using namespace time_literals;
 
@@ -164,18 +168,16 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 {
 }
 
-bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode)
+bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode,
+			     const vtol_vehicle_status_s &vtol_vehicle_status)
 {
 	_failure_injector.update();
 
 	failure_detector_status_u status_prev = _status;
 
-	if (vehicle_control_mode.flag_multicopter_position_control_enabled && _param_fd_mpc_vz_thr.get() > 0) {
-		updateMpcVzStatus();
-
-	} else {
-		_status.flags.mpc_vz = false;
-	}
+	// We check the running conditions for MR altitude loss failure (e.g. MR position control active)
+	// inside the function, since it needs to store state, and then it's more easily verified as correct
+	updateMRAltLossStatus(vtol_vehicle_status);
 
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
 		updateAttitudeStatus(vehicle_status);
@@ -480,27 +482,96 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 	}
 }
 
-
-void FailureDetector::updateMpcVzStatus()
+void FailureDetector::updateMRAltLossStatus(const vtol_vehicle_status_s &vtol_vehicle_status)
 {
+	// We check strictly for multicopter, since
+	// During VTOL transition, we want the altitude loss failure mode to be quadchute.
+	// Then, this check should not run
+	if (vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
+		_reference_z_position = NAN;
+		_status.flags.mr_altloss = false;
+		return;
+	}
+
 	vehicle_local_position_s position;
 	vehicle_local_position_setpoint_s position_sp;
 
 	if (_vehicle_local_position_sub.update(&position) &&
 	    _vehicle_local_position_setpoint_sub.copy(&position_sp)) {
 
-		const float max_z_velocity = _param_fd_mpc_vz_thr.get();
+		if (PX4_ISFINITE(position_sp.z) && position.z_valid) {
+			// For an explanation of the reference z position, see https://aviant.atlassian.net/wiki/x/EQBofQ
+			_reference_z_position = max(
+							position_sp.z,
+							PX4_ISFINITE(_reference_z_position) ? min(position.z, _reference_z_position) : position.z
+						);
 
-		const bool is_descending_too_fast = position.v_z_valid && position.vz > max_z_velocity;
-		const bool is_trying_to_climb = PX4_ISFINITE(position_sp.vz) && position_sp.vz < -FLT_EPSILON;
 
-		const bool mpc_vz_status = is_trying_to_climb && is_descending_too_fast;
+			const float z_error = _reference_z_position - position.z;
+			const float altitude_loss = -z_error;  // Flip the sign to make logic easier
 
-		hrt_abstime time_now = hrt_absolute_time();
+			// To safeguard against edgecases in the calculation of the reference altitude,
+			// we don't want to trigger the failure detector unless the aircraft is actually descending
+			// Maybe the reference altitude jumped up for some reason, and we are successfully tracking it
+			const bool is_descending_or_unknown = !position.v_z_valid || position.vz > _param_fd_mr_vz.get();
 
-		_mpc_vz_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_mpc_vz_ttri.get()));
-		_mpc_vz_failure_hysteresis.set_state_and_update(mpc_vz_status, time_now);
+			// Also, we don't want to trigger based on altitude error if the vehicle is actively trying to descend.
+			// Maybe the reference altitude is lagging behind for some reason, which leads to artifially large altitude loss
+			const bool is_trying_to_descend = PX4_ISFINITE(position_sp.vz) && position_sp.vz > 0;
 
-		_status.flags.mpc_vz = _mpc_vz_failure_hysteresis.get_state();
+			if (
+				_param_fd_mr_altloss.get() > FLT_EPSILON
+				&& altitude_loss > _param_fd_mr_altloss.get()
+				&& is_descending_or_unknown
+				&& !is_trying_to_descend
+			) {
+				if (!_maybe_mr_failure) {
+					PX4_WARN("FailureDetector: Multirotor altitude loss detected!");
+				}
+
+				_maybe_mr_failure = true;
+
+			} else {
+				_maybe_mr_failure = false;
+			}
+
+		} else {
+			// Invalid altitude setpoint or state, we fall back to a velocity-based trigger
+
+			// It's important to reset the z position to NAN,
+			// so it initializes properly if we regain position estimate and setpoint
+			_reference_z_position = NAN;
+
+			const bool ignore_failure_because_close_to_ground = (
+						position.dist_bottom_valid
+						&& _param_fd_mr_fb_gnd_dst.get() > FLT_EPSILON
+						&& position.dist_bottom < _param_fd_mr_fb_gnd_dst.get()
+					);
+
+
+			// NOTE: we explicitly don't check the vz setpoint here,
+			// we want to trigger the failsafe even if we don't have a velocity setpoint
+			// e.g. if we experience motor failure while flying in stabilized mode
+			if (
+				position.v_z_valid
+				&& _param_fd_mr_fb_vz.get() > FLT_EPSILON  // NOTE: Fallback VZ, not the same as above
+				&& position.vz > _param_fd_mr_fb_vz.get()
+				&& !ignore_failure_because_close_to_ground
+			) {
+				if (!_maybe_mr_failure) {
+					PX4_WARN("FailureDetector: Large multirotor descent speed detected!");
+				}
+
+				_maybe_mr_failure = true;
+
+			} else {
+				_maybe_mr_failure = false;
+			}
+		}
 	}
+
+	const hrt_abstime time_now = hrt_absolute_time();
+	_mr_altitude_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_mr_ttri.get()));
+	_mr_altitude_failure_hysteresis.set_state_and_update(_maybe_mr_failure, time_now);
+	_status.flags.mr_altloss = _mr_altitude_failure_hysteresis.get_state();
 }
