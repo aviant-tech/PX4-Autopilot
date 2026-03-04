@@ -515,15 +515,10 @@ void FailureDetector::updateMRAltLossStatus(const vtol_vehicle_status_s &vtol_ve
 			// Maybe the reference altitude jumped up for some reason, and we are successfully tracking it
 			const bool is_descending_or_unknown = !position.v_z_valid || position.vz > _param_fd_mr_vz.get();
 
-			// Also, we don't want to trigger based on altitude error if the vehicle is actively trying to descend.
-			// Maybe the reference altitude is lagging behind for some reason, which leads to artifially large altitude loss
-			const bool is_trying_to_descend = PX4_ISFINITE(position_sp.vz) && position_sp.vz > 0;
-
 			if (
 				_param_fd_mr_altloss.get() > FLT_EPSILON
 				&& altitude_loss > _param_fd_mr_altloss.get()
 				&& is_descending_or_unknown
-				&& !is_trying_to_descend
 			) {
 				if (!_maybe_mr_failure) {
 					PX4_WARN("FailureDetector: Multirotor altitude loss detected!");
