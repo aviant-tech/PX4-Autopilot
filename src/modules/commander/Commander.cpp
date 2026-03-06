@@ -1930,8 +1930,9 @@ void Commander::run()
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
 			fd_status.fd_mr_altloss = _failure_detector.getStatusFlags().mr_altloss;
+			fd_status.fd_mr_falling = _failure_detector.getStatusFlags().mr_falling;
 			fd_status.reference_z_position = _failure_detector.getReferenceZPosition();
-			fd_status.maybe_mr_failure = _failure_detector.getMaybeMRFailure();
+			fd_status.lookahead_z_position = _failure_detector.getLookaheadZPosition();
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
 			fd_status.timestamp = hrt_absolute_time();

@@ -78,6 +78,7 @@ union failure_detector_status_u {
 		uint16_t imbalanced_prop : 1;
 		uint16_t motor : 1;
 		uint16_t mr_altloss : 1;
+		uint16_t mr_falling : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -111,26 +112,28 @@ public:
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 	uint16_t getMotorFailures() const { return _motor_failure_esc_timed_out_mask | _motor_failure_esc_under_current_mask; }
 	float getReferenceZPosition() const {return _reference_z_position; }
-	float getMaybeMRFailure() const {return _maybe_mr_failure; }
+	float getLookaheadZPosition() const {return _lookahead_z_position; }
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateExternalAtsStatus();
 	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
-	void updateMRAltLossStatus(const vtol_vehicle_status_s &vtol_vehicle_status);
+	void updateMRAltLossStatus(const vehicle_local_position_s &position,
+				   const vehicle_local_position_setpoint_s &position_sp);
+	void updateMRFallingStatus(const vehicle_local_position_s &position);
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _status{};
 
 	float _reference_z_position{NAN};
-	bool _maybe_mr_failure{false};  // used for warning and logging before hysteresis
+	float _lookahead_z_position{NAN};
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 	systemlib::Hysteresis _esc_failure_hysteresis{false};
-	systemlib::Hysteresis _mr_altitude_failure_hysteresis{false};
+	systemlib::Hysteresis _mr_falling_failure_hysteresis{false};
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -170,10 +173,9 @@ private:
 		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_motor_throttle_thres,
 		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_motor_current2throttle_thres,
 		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres,
-		(ParamFloat<px4::params::FD_MR_ALTLOSS>) _param_fd_mr_altloss,
-		(ParamFloat<px4::params::FD_MR_VZ>) _param_fd_mr_vz,
-		(ParamFloat<px4::params::FD_MR_FB_VZ>) _param_fd_mr_fb_vz,
-		(ParamFloat<px4::params::FD_MR_FB_GND_DST>) _param_fd_mr_fb_gnd_dst,
-		(ParamFloat<px4::params::FD_MR_TTRI>) _param_fd_mr_ttri
+		(ParamFloat<px4::params::FD_MR_ALOS_LIM>) _param_fd_mr_alos_lim,
+		(ParamFloat<px4::params::FD_MR_ALOS_LA_T>) _param_fd_mr_alos_la_t,
+		(ParamFloat<px4::params::FD_MR_FALL_VZ>) _param_fd_mr_fall_vz,
+		(ParamFloat<px4::params::FD_MR_FALL_TTRI>) _param_fd_mr_fall_ttri
 	)
 };

@@ -10,10 +10,10 @@ bool fd_battery
 bool fd_imbalanced_prop
 bool fd_motor
 bool fd_mr_altloss
+bool fd_mr_falling
 
-# For troubleshooting and monitoring MR altloss failure detection
 float32 reference_z_position
-float32 maybe_mr_failure
+float32 lookahead_z_position
 
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
 uint16 motor_failure_mask           # Bit-mask with motor indices, indicating critical motor failures

@@ -214,74 +214,22 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
 PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
 
 /**
- * Multicopter altitude fail threshold
+ * Multicopter altitude loss trigger threshold
  *
- * Maximum multirotor altitude loss before FailureDetector triggers
- * Will only be triggered if the setpoint is negative (ascending).
- * and the aircraft is descending faster than FD_MR_VZ
+ * Maximum multirotor altitude loss before FailureDetector triggers.
+ * Note: Uses lookahead with FD_MR_AL_LA_T
  * Set to 0 to disable.
  *
  * @min 0
  * @max 20
- * @increment 1
+ * @decimal 2
  * @reboot_required true
  * @group Failure Detector
  */
-PARAM_DEFINE_FLOAT(FD_MR_ALTLOSS, 0);
+PARAM_DEFINE_FLOAT(FD_MR_ALOS_LIM, 0);
 
 /**
- * Multicopter vertical rate fail threshold
- *
- * Additional sanity check on the altitude loss failure detector
- * This parameter determines the vertical rate needed to consider a failure
- *
- * @min 0
- * @max 2.5
- * @increment 0.1
- * @reboot_required true
- * @group Failure Detector
- */
-PARAM_DEFINE_FLOAT(FD_MR_VZ, 0);
-
-/**
- * Multicopter vertical rate fallback fail threshold
- *
- * If there is no valid position setpoint, we have to detect failures based on velocity.
- * Then, we need a higher threshold in order to avoid false positives.
- * Set to 0 or negative to disable.
- *
- * @min 0
- * @max 20
- * @increment 1
- * @reboot_required true
- * @group Failure Detector
- */
-
-PARAM_DEFINE_FLOAT(FD_MR_FB_VZ, 0);
-
-/**
- * Multicopter failure detection ground distance
- *
- * Minimum distance AGL (vehicle_local_position.dist_bottom) where the backup (speed-based)
- * multirotor failure detector will trigger.
- * The intention is to avoid parachute deployments close to the ground, since we won't
- * have time to fully deploy.
- * Set to 0 or negative to disable
- * NOTE: This has no effect on the altitude-based trigger
- *
- * @min 0
- * @max 20
- * @increment 1
- * @reboot_required true
- * @group Failure Detector
- */
-PARAM_DEFINE_FLOAT(FD_MR_FB_GND_DST, 0);
-
-/**
- * Multicopter failure detection trigger time
- *
- * This applies to both the primary (altitude-based) and fallback (velocity-based)
- * multicopter failure detectors
+ * Multicopter altitude loss lookahead time
  *
  * @unit s
  * @min 0.02
@@ -291,4 +239,35 @@ PARAM_DEFINE_FLOAT(FD_MR_FB_GND_DST, 0);
  * @group Failure Detector
  *
  */
-PARAM_DEFINE_FLOAT(FD_MR_TTRI, 0.3);
+PARAM_DEFINE_FLOAT(FD_MR_ALOS_LA_T, 1.0);
+
+/**
+ * Multicopter fall trigger velocity threshold
+ *
+ * This parameter determines the vertical rate needed to consider a failure
+ * in the fall trigger multirotor failure detector
+ * NOTE: The fall trigger has no altitude loss requirement
+ * Set to 0 to disable
+ *
+ * @min 0
+ * @max 10
+ * @decimal 2
+ * @reboot_required true
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_MR_FALL_VZ, 0);
+
+/**
+ * Multicopter fall detector trigger time
+ *
+ * The consecutive time the conditions must be true to trigger the failure detector
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ * @reboot_required true
+ * @group Failure Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(FD_MR_FALL_TTRI, 0.3);
