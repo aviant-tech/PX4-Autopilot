@@ -8,6 +8,8 @@
 
 param set-default MAV_TYPE 0
 
+param set-default COM_RC_IN_MODE 1  # Joystick only (stops QGC complaining about setup)
+
 param set-default SENS_BOARD_ROT 22  # 270 roll, 90 yaw
 
 param set-default SER_TEL2_BAUD 921600
