@@ -39,6 +39,13 @@
 */
 
 #include "FailureDetector.hpp"
+#include "px4_platform_common/defines.h"
+#include "uORB/topics/vehicle_control_mode.h"
+#include "uORB/topics/vehicle_local_position.h"
+#include "uORB/topics/vehicle_local_position_setpoint.h"
+#include "uORB/topics/vehicle_status.h"
+#include "uORB/topics/vtol_vehicle_status.h"
+#include <float.h>
 
 using namespace time_literals;
 
@@ -164,17 +171,36 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 {
 }
 
-bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode)
+bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode,
+			     const vtol_vehicle_status_s &vtol_vehicle_status)
 {
 	_failure_injector.update();
 
 	failure_detector_status_u status_prev = _status;
 
-	if (vehicle_control_mode.flag_multicopter_position_control_enabled && _param_fd_mpc_vz_thr.get() > 0) {
-		updateMpcVzStatus();
+	// We check strictly for multicopter, since
+	// During VTOL transition, we want the altitude loss failure mode to be quadchute.
+	// Then, this check should not run
+	if (vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
+
+		vehicle_local_position_s position;
+		vehicle_local_position_setpoint_s position_sp;
+
+		if (_vehicle_local_position_sub.update(&position)) {
+			updateMRFallingStatus(position);
+
+			if (_vehicle_local_position_setpoint_sub.copy(&position_sp)) {
+				updateMRAltLossStatus(position, position_sp);
+			}
+		}
 
 	} else {
-		_status.flags.mpc_vz = false;
+		// it's important to reset the reference and lookahead positions,
+		// so they can initialize properly the next time we enter multirotor mode
+		_reference_z_position = NAN;
+		_lookahead_z_position = NAN;
+		_status.flags.mr_altloss = false;
+		_status.flags.mr_falling = false;
 	}
 
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
@@ -480,27 +506,51 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 	}
 }
 
-
-void FailureDetector::updateMpcVzStatus()
+void FailureDetector::updateMRAltLossStatus(const vehicle_local_position_s &position,
+		const vehicle_local_position_setpoint_s &position_sp)
 {
-	vehicle_local_position_s position;
-	vehicle_local_position_setpoint_s position_sp;
-
-	if (_vehicle_local_position_sub.update(&position) &&
-	    _vehicle_local_position_setpoint_sub.copy(&position_sp)) {
-
-		const float max_z_velocity = _param_fd_mpc_vz_thr.get();
-
-		const bool is_descending_too_fast = position.v_z_valid && position.vz > max_z_velocity;
-		const bool is_trying_to_climb = PX4_ISFINITE(position_sp.vz) && position_sp.vz < -FLT_EPSILON;
-
-		const bool mpc_vz_status = is_trying_to_climb && is_descending_too_fast;
-
-		hrt_abstime time_now = hrt_absolute_time();
-
-		_mpc_vz_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_mpc_vz_ttri.get()));
-		_mpc_vz_failure_hysteresis.set_state_and_update(mpc_vz_status, time_now);
-
-		_status.flags.mpc_vz = _mpc_vz_failure_hysteresis.get_state();
+	if (!PX4_ISFINITE(position_sp.z) || !position.z_valid) {
+		_status.flags.mr_altloss = false;
+		_reference_z_position = NAN;
+		_lookahead_z_position = NAN;
+		return;
 	}
+
+	// For an explanation of the reference z position, see https://aviant.atlassian.net/wiki/x/EQBofQ
+	_reference_z_position = max(
+					position_sp.z,
+					PX4_ISFINITE(_reference_z_position) ? min(position.z, _reference_z_position) : position.z
+				);
+
+
+	// We don't really need to store the lookahead z as a member variable,
+	// but we choose to do it so we can get it to commander,
+	// which publishes failure_detector_status, so we can inspect it in the ulog
+	_lookahead_z_position = position.v_z_valid ? position.z + position.vz * _param_fd_mr_alos_la_t.get() : position.z;
+
+	const float lookahead_z_error = _reference_z_position - _lookahead_z_position;
+	const float lookahead_altitude_loss = -lookahead_z_error;  // Flip the sign to make logic easier
+
+	_status.flags.mr_altloss = (
+					   _param_fd_mr_alos_lim.get() > FLT_EPSILON
+					   && lookahead_altitude_loss > _param_fd_mr_alos_lim.get()
+				   );
+}
+
+void FailureDetector::updateMRFallingStatus(const vehicle_local_position_s &position)
+{
+	if (!position.v_z_valid) {
+		_status.flags.mr_falling = false;
+		return;
+	}
+
+	const bool failure = (
+				     _param_fd_mr_fall_vz.get() > FLT_EPSILON
+				     && position.vz > _param_fd_mr_fall_vz.get()
+			     );
+
+	const hrt_abstime time_now = hrt_absolute_time();
+	_mr_falling_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_mr_fall_ttri.get()));
+	_mr_falling_failure_hysteresis.set_state_and_update(failure, time_now);
+	_status.flags.mr_falling = _mr_falling_failure_hysteresis.get_state();
 }

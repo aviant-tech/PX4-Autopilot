@@ -94,25 +94,39 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-
-	if (context.status().failure_detector_status & vehicle_status_s::FAILURE_MPC_VZ) {
+	if (context.status().failure_detector_status & vehicle_status_s::FAILURE_MR_ALTLOSS) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * This check can be configured via <param>FD_MPC_VZ_THR</param> parameter.
+		 * This check can be configured via <param>FD_MR_ALOS*</param> parameters.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_mpc_vz"),
-					    events::Log::Critical, "Multirotor vertical rate failure detected");
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_mr_altloss"),
+					    events::Log::Critical, "Multirotor altitude loss detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Multirotor vertical rate failure detected");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Multirotor altitude loss detected");
+		}
+	}
+
+	if (context.status().failure_detector_status & vehicle_status_s::FAILURE_MR_FALLING) {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * This check can be configured via <param>FD_MR_FALL*</param> parameters.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_mr_falling"),
+					    events::Log::Critical, "Multirotor falling detected");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Multirotor falling detected");
 		}
 	}
 
 	reporter.failsafeFlags().fd_critical_failure = context.status().failure_detector_status &
 			(vehicle_status_s::FAILURE_ROLL | vehicle_status_s::FAILURE_PITCH | vehicle_status_s::FAILURE_ALT |
-			 vehicle_status_s::FAILURE_EXT | vehicle_status_s::FAILURE_MPC_VZ);
+			 vehicle_status_s::FAILURE_EXT | vehicle_status_s::FAILURE_MR_ALTLOSS | vehicle_status_s::FAILURE_MR_FALLING);
 
 
 	reporter.failsafeFlags().fd_esc_arming_failure = context.status().failure_detector_status &

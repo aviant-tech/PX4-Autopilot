@@ -214,30 +214,60 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
 PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
 
 /**
- * Multicopter altitude rate fail threshold
+ * Multicopter altitude loss trigger threshold
  *
- * Maximum downwards vertical velocity before FailureDetector triggers the MR vertical_rate_failure flag.
- * Will only be triggered if the setpoint is negative (ascending).
+ * Maximum multirotor altitude loss before FailureDetector triggers.
+ * Note: Uses lookahead with FD_MR_AL_LA_T
  * Set to 0 to disable.
  *
  * @min 0
  * @max 20
- * @increment 1
+ * @decimal 2
+ * @reboot_required true
  * @group Failure Detector
  */
-PARAM_DEFINE_INT32(FD_MPC_VZ_THR, 0);
+PARAM_DEFINE_FLOAT(FD_MR_ALOS_LIM, 0);
 
 /**
- * Multicopter altitude rate fail trigger time
- *
- * Seconds (decimal) that MR vertical rate has to exceed FD_MPC_VZ_THR before being considered as a failure.
+ * Multicopter altitude loss lookahead time
  *
  * @unit s
  * @min 0.02
  * @max 5
  * @decimal 2
+ * @reboot_required true
+ * @group Failure Detector
  *
+ */
+PARAM_DEFINE_FLOAT(FD_MR_ALOS_LA_T, 1.0);
+
+/**
+ * Multicopter fall trigger velocity threshold
+ *
+ * This parameter determines the vertical rate needed to consider a failure
+ * in the fall trigger multirotor failure detector
+ * NOTE: The fall trigger has no altitude loss requirement
+ * Set to 0 to disable
+ *
+ * @min 0
+ * @max 10
+ * @decimal 2
+ * @reboot_required true
  * @group Failure Detector
  */
-PARAM_DEFINE_FLOAT(FD_MPC_VZ_TTRI, 0.3);
+PARAM_DEFINE_FLOAT(FD_MR_FALL_VZ, 0);
 
+/**
+ * Multicopter fall detector trigger time
+ *
+ * The consecutive time the conditions must be true to trigger the failure detector
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ * @reboot_required true
+ * @group Failure Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(FD_MR_FALL_TTRI, 0.3);

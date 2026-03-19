@@ -77,7 +77,8 @@ union failure_detector_status_u {
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
 		uint16_t motor : 1;
-		uint16_t mpc_vz : 1;
+		uint16_t mr_altloss : 1;
+		uint16_t mr_falling : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -104,27 +105,35 @@ public:
 	FailureDetector(ModuleParams *parent);
 	~FailureDetector() = default;
 
-	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
+	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode,
+		    const vtol_vehicle_status_s &vtol_vehicle_status);
 	const failure_detector_status_u &getStatus() const { return _status; }
 	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _status.flags; }
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 	uint16_t getMotorFailures() const { return _motor_failure_esc_timed_out_mask | _motor_failure_esc_under_current_mask; }
+	float getReferenceZPosition() const {return _reference_z_position; }
+	float getLookaheadZPosition() const {return _lookahead_z_position; }
 
 private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateExternalAtsStatus();
 	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
-	void updateMpcVzStatus();
+	void updateMRAltLossStatus(const vehicle_local_position_s &position,
+				   const vehicle_local_position_setpoint_s &position_sp);
+	void updateMRFallingStatus(const vehicle_local_position_s &position);
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _status{};
+
+	float _reference_z_position{NAN};
+	float _lookahead_z_position{NAN};
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 	systemlib::Hysteresis _esc_failure_hysteresis{false};
-	systemlib::Hysteresis _mpc_vz_failure_hysteresis{false};
+	systemlib::Hysteresis _mr_falling_failure_hysteresis{false};
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -164,7 +173,9 @@ private:
 		(ParamFloat<px4::params::FD_ACT_MOT_THR>) _param_fd_motor_throttle_thres,
 		(ParamFloat<px4::params::FD_ACT_MOT_C2T>) _param_fd_motor_current2throttle_thres,
 		(ParamInt<px4::params::FD_ACT_MOT_TOUT>) _param_fd_motor_time_thres,
-		(ParamInt<px4::params::FD_MPC_VZ_THR>) _param_fd_mpc_vz_thr,
-		(ParamFloat<px4::params::FD_MPC_VZ_TTRI>) _param_fd_mpc_vz_ttri
+		(ParamFloat<px4::params::FD_MR_ALOS_LIM>) _param_fd_mr_alos_lim,
+		(ParamFloat<px4::params::FD_MR_ALOS_LA_T>) _param_fd_mr_alos_la_t,
+		(ParamFloat<px4::params::FD_MR_FALL_VZ>) _param_fd_mr_fall_vz,
+		(ParamFloat<px4::params::FD_MR_FALL_TTRI>) _param_fd_mr_fall_ttri
 	)
 };
