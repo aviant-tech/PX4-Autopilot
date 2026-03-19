@@ -123,6 +123,7 @@
 
 #if defined(MAVLINK_ENABLED_AVIANT)
 #include "streams/AVIANT_HEARTBEAT.hpp"
+#include "streams/AVIANT_DETAILED_FC_STATE.hpp"
 #include "streams/AVIANT_NAV.hpp"
 #endif // MAVLINK_ENABLED_AVIANT
 
@@ -514,6 +515,9 @@ static const StreamListItem streams_list[] = {
 #if defined (AVIANT_HEARTBEAT_HPP)
 	create_stream_list_item<MavlinkStreamAviantHeartbeat>(),
 #endif // AVIANT_HEARTBEAT_HPP
+#if defined (AVIANT_DETAILED_FC_STATE_HPP)
+	create_stream_list_item<MavlinkStreamAviantDetailedFcState>(),
+#endif // AVIANT_DETAILED_FC_STATE_HPP
 #if defined (AVIANT_NAV_HPP)
 	create_stream_list_item<MavlinkStreamAviantNav>(),
 #endif // AVIANT_NAV_HPP
