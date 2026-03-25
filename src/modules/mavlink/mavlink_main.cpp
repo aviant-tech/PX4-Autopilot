@@ -1449,6 +1449,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #if defined(MAVLINK_ENABLED_AVIANT)
 		configure_stream_local("AVIANT_HEARTBEAT", 1.0f);
 		configure_stream_local("AVIANT_DETAILED_FC_STATE", 1.0f);
+		configure_stream_local("AVIANT_INDICATOR_TEMP_FC", 1.0f);
 		configure_stream_local("AVIANT_NAV", 10.0f);
 #endif // MAVLINK_ENABLED_AVIANT
 
@@ -1708,6 +1709,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #if defined(MAVLINK_ENABLED_AVIANT)
 		configure_stream_local("AVIANT_HEARTBEAT", 1.0f);
 		configure_stream_local("AVIANT_DETAILED_FC_STATE", 1.0f);
+		configure_stream_local("AVIANT_INDICATOR_TEMP_FC", 1.0f);
 		configure_stream_local("AVIANT_NAV", 10.0f);
 #endif // MAVLINK_ENABLED_AVIANT
 

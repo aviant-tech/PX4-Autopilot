@@ -53,6 +53,7 @@ set(msg_files
 	ArmingCheckRequest.msg
 	AutotuneAttitudeControlStatus.msg
 	AviantNavigation.msg
+	AviantTemperatureFc.msg
 	BatteryStatus.msg
 	Buffer128.msg
 	ButtonEvent.msg

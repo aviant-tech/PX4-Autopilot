@@ -8,6 +8,7 @@
 #include <lib/perf/perf_counter.h>
 
 #include "navigation/Navigation.hpp"
+#include "temperature/Temperature.hpp"
 
 using namespace aviant;
 
@@ -30,12 +31,14 @@ private:
 
 	void parameters_update(bool force = false);
 
-	Navigation *_navigation_indicator;
+	Navigation *_navigation_indicator{nullptr};
+	Temperature *_temperature_indicator{nullptr};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::AV_NAV_IND_EN>) _params_av_nav_ind_en
+		(ParamBool<px4::params::AV_NAV_IND_EN>) _params_av_nav_ind_en,
+		(ParamBool<px4::params::AV_TEMP_IND_EN>) _params_av_temp_ind_en
 	);
 };

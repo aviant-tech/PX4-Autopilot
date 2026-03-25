@@ -1,4 +1,5 @@
 add_subdirectory(navigation)
+add_subdirectory(temperature)
 
 px4_add_module(
 	MODULE modules__aviant
@@ -12,4 +13,4 @@ px4_add_module(
 		module.yaml
 )
 
-target_link_libraries(modules__aviant PRIVATE navigation)
+target_link_libraries(modules__aviant PRIVATE navigation temperature)
