@@ -22,3 +22,9 @@ parameters:
         reboot_required: true
         description:
           short: Enable/Disable the temperature indicator module.
+      AV_THR_IND_EN:
+        type: boolean
+        default: 1
+        reboot_required: true
+        description:
+          short: Enable/Disable the thrust indicator module.

@@ -28,6 +28,17 @@ Aviant::Aviant() :
 		}
 	}
 
+	if (_params_av_thr_ind_en.get()) {
+		_thrust_indicator = new Thrust();
+
+		if (_thrust_indicator) {
+			_thrust_indicator->start();
+
+		} else {
+			PX4_ERR("Thrust indicator alloc failed");
+		}
+	}
+
 }
 
 Aviant::~Aviant()
@@ -40,6 +51,11 @@ Aviant::~Aviant()
 	if (_temperature_indicator) {
 		_temperature_indicator->stop();
 		delete _temperature_indicator;
+	}
+
+	if (_thrust_indicator) {
+		_thrust_indicator->stop();
+		delete _thrust_indicator;
 	}
 
 	perf_free(_loop_perf);
@@ -114,6 +130,11 @@ int Aviant::print_status()
 	if (_temperature_indicator) {
 		PX4_INFO_RAW("\n");
 		_temperature_indicator->print_status();
+	}
+
+	if (_thrust_indicator) {
+		PX4_INFO_RAW("\n");
+		_thrust_indicator->print_status();
 	}
 
 	return 0;
