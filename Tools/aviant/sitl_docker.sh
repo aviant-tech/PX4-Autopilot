@@ -28,9 +28,13 @@ fi
 docker build -t aviantsitl -f "${DIR_OF_THIS_SCRIPT}/sitl.Dockerfile" .
 
 SITL_SUFFIX=""
-if [[ "${1:-}" == "debug" ]]; then
-    SITL_SUFFIX="_gdb"
-fi
+WIND_ENV="--env=PX4_SITL_WORLD=windy"
+for arg in "$@"; do
+    case "$arg" in
+        debug) SITL_SUFFIX="_gdb" ;;
+        nowind)  WIND_ENV="" ;;
+    esac
+done
 
 SITL_CMD="make px4_sitl gazebo_standard_vtol$SITL_SUFFIX"
 
@@ -39,6 +43,7 @@ docker run -it --rm --init \
     --network=host \
     --env=HEADLESS=1 \
     --env=PX4_SIM_SPEED_FACTOR=3 \
+    ${WIND_ENV} \
     --volume="${HOST_PX4_DIR}:${HOST_PX4_DIR}" \
     --workdir="${HOST_PX4_DIR}" \
     ${DOCKER_USER_FLAG} \

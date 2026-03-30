@@ -85,6 +85,15 @@ private:
 			msg.alt_error = tecs_status.altitude_sp - vehicle_global_position.alt;
 			msg.aspd_error = tecs_status.true_airspeed_filtered - tecs_status.true_airspeed_sp;
 
+			// FW position control "acceptance radius" field is really the NPFG switching distance. This value
+			// is used to calculate the "waypoint acceptance radius", but it's not one-to-one. For example, if
+			// pos_ctrl_status.acceptance_radius < NAV_ACC_RAD, then the latter is used for waypoint switching
+			// instead.
+			//
+			// It turned out impractical to publish the waypoint switching acceptance radius without nontrivial
+			// code changes, so we choose publish the fixed-wing switching distance as-is.
+			msg.acceptance_radius = pos_ctrl_status.acceptance_radius;
+
 			mavlink_msg_nav_controller_output_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
