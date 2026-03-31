@@ -36,6 +36,7 @@
 
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 
 class MavlinkStreamAviantTrnTestData : public MavlinkStream
@@ -63,6 +64,7 @@ private:
 
 	uORB::Subscription _local_pos_sub{ORB_ID(estimator_local_position)};
 	uORB::Subscription _attitude_sub{ORB_ID(estimator_attitude)};
+	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	void discoverGnssDeniedInstance()
 	{
@@ -99,9 +101,11 @@ private:
 
 		vehicle_local_position_s local_pos;
 		vehicle_attitude_s attitude;
+		vehicle_angular_velocity_s angular_velocity;
 
 		if (_local_pos_sub.update(&local_pos)) {
 			_attitude_sub.copy(&attitude);
+			_angular_velocity_sub.copy(&angular_velocity);
 
 			mavlink_aviant_trn_test_data_t msg{};
 
@@ -122,6 +126,11 @@ private:
 			msg.q2 = attitude.q[1];
 			msg.q3 = attitude.q[2];
 			msg.q4 = attitude.q[3];
+
+			// Angular velocity
+			msg.angular_velocity_x = angular_velocity.xyz[0];
+			msg.angular_velocity_y = angular_velocity.xyz[1];
+			msg.angular_velocity_z = angular_velocity.xyz[2];
 
 			mavlink_msg_aviant_trn_test_data_send_struct(_mavlink->get_channel(), &msg);
 
