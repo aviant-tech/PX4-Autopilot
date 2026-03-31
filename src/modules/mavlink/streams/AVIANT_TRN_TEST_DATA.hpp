@@ -60,19 +60,12 @@ private:
 	explicit MavlinkStreamAviantTrnTestData(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	int8_t _gnss_denied_instance{-1};
-	bool _discovery_attempted{false};
 
 	uORB::Subscription _local_pos_sub{ORB_ID(estimator_local_position)};
 	uORB::Subscription _attitude_sub{ORB_ID(estimator_attitude)};
 
 	void discoverGnssDeniedInstance()
 	{
-		if (_discovery_attempted) {
-			return;
-		}
-
-		_discovery_attempted = true;
-
 		// Search through estimator_status instances to find a GNSS-denied one
 		for (uint8_t i = 0; i < MAX_INSTANCES; i++) {
 			uORB::Subscription status_sub{ORB_ID(estimator_status), i};
@@ -91,13 +84,11 @@ private:
 				}
 			}
 		}
-
-		PX4_WARN("AVIANT_TRN_TEST_DATA: No GNSS-denied EKF instance found");
 	}
 
 	bool send() override
 	{
-		// Try to discover the GNSS-denied instance on first call
+		// Retry discovery until the GNSS-denied instance is found
 		if (_gnss_denied_instance < 0) {
 			discoverGnssDeniedInstance();
 

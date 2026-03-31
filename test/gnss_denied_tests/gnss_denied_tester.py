@@ -76,27 +76,37 @@ class GnssDeniedTester:
             return (math.nan, math.nan, math.nan)
         return (msg.x, msg.y, msg.z)
 
+    def get_global_position(self, timeout_s: float = 3.0):
+        """Return (lat_deg, lon_deg) from GLOBAL_POSITION_INT."""
+        msg = self.conn.recv_match(
+            type='GLOBAL_POSITION_INT', blocking=True, timeout=timeout_s)
+        if msg is None:
+            return (math.nan, math.nan)
+        return (msg.lat / 1e7, msg.lon / 1e7)
+
     # ------------------------------------------------------------------
     # External position estimate
     # ------------------------------------------------------------------
 
     def send_external_position_estimate(self, lat: float, lon: float,
                                         accuracy: float = 10.0):
-        """Send MAV_CMD_EXTERNAL_POSITION_ESTIMATE."""
+        """Send MAV_CMD_EXTERNAL_POSITION_ESTIMATE via COMMAND_INT for lat/lon precision."""
         att = self.conn.recv_match(type='ATTITUDE', blocking=True, timeout=3.0)
         if att is None:
             raise TimeoutError('No ATTITUDE message for timestamp')
 
-        self.conn.mav.command_long_send(
+        self.conn.mav.command_int_send(
             self._target_sys, self._target_comp,
-            MAV_CMD_EXTERNAL_POSITION_ESTIMATE, 0,
-            att.time_boot_ms / 1000.0,  # param1: FC timestamp
-            0.0,                        # param2: processing_time
-            accuracy,                   # param3: accuracy
-            0.0,                        # param4: empty
-            lat,                        # param5: latitude
-            lon,                        # param6: longitude
-            float('nan'),               # param7: altitude (unused)
+            0,                                  # frame (unused)
+            MAV_CMD_EXTERNAL_POSITION_ESTIMATE,
+            0, 0,                               # current, autocontinue
+            att.time_boot_ms / 1000.0,          # param1: FC timestamp
+            0.0,                                # param2: processing_time
+            accuracy,                           # param3: accuracy
+            0.0,                                # param4: empty
+            int(lat * 1e7),                     # x: latitude (degE7)
+            int(lon * 1e7),                     # y: longitude (degE7)
+            float('nan'),                       # z: altitude (unused)
         )
 
     # ------------------------------------------------------------------
@@ -163,6 +173,15 @@ class GnssDeniedTester:
             float(value),
             mavlink.MAV_PARAM_TYPE_INT32,
         )
+
+    def land(self):
+        """Command the vehicle to land at the current position."""
+        self.conn.mav.command_long_send(
+            self._target_sys, self._target_comp,
+            mavlink.MAV_CMD_NAV_LAND, 0,
+            0, 0, 0, 0, 0, 0, 0,
+        )
+        self._wait_ack(mavlink.MAV_CMD_NAV_LAND)
 
     def _wait_ack(self, command: int, timeout_s: float = 5.0):
         deadline = time.monotonic() + timeout_s

@@ -3,8 +3,8 @@
 Each test starts a fresh PX4 SITL with GNSS-denied mode enabled
 (PX4_EKF2_GNSS_DENIED=1).  SIH provides simulated sensors.
 
-Tests 1, 2, 4 need only a booted PX4 with EKF2 running (no flight).
-Test 3 needs armed flight to verify GPS-loss failsafe behavior.
+Tests 1, 4 need only a booted PX4 with EKF2 running (no flight).
+Tests 2, 3 need armed flight.
 """
 
 import logging
@@ -54,58 +54,75 @@ def test_gnss_denied_instance_exists(tester: GnssDeniedTester):
 
 
 def test_external_position_resets_only_gnss_denied(tester: GnssDeniedTester):
-    """External position estimate resets GNSS-denied instance, not normal."""
+    """External position estimate resets GNSS-denied instance, not normal.
+
+    1. Takeoff and hold — the GNSS-denied instance stops fusing GPS on
+       arming and enters dead reckoning within ~1 s sim time.
+    2. Send an external position reset to current position + 100 m east.
+    3. Assert LOCAL_POSITION does not jump (< 1 m) and TRN position jumps
+       significantly (> 80 m).
+
+    Note: SIH provides near-perfect IMU data so the GNSS-denied instance
+    drifts back toward reality after a reset.  A 100 m offset ensures the
+    jump is still clearly visible when TRN is read ~1 s sim-time later.
+    """
     t0 = _ts()
 
-    log.info("Getting GNSS-denied position before reset...")
-    t1 = _ts()
-    pos_before = tester.get_gnss_denied_position()
-    log.info("GNSS-denied pos (before) after %s: x=%.2f y=%.2f z=%.2f",
-             _elapsed(t1), *pos_before)
-    assert math.isfinite(pos_before[0]), "Pre-reset position not finite"
+    # Drain any pending ACKs so they don't interfere with arm ACK
+    while tester.conn.recv_match(type='COMMAND_ACK', blocking=False) is not None:
+        pass
 
-    log.info("Getting normal position before reset...")
-    t1 = _ts()
-    normal_before = tester.get_local_position()
-    log.info("Normal pos (before) after %s: x=%.2f y=%.2f z=%.2f",
-             _elapsed(t1), *normal_before)
+    # -- 1. Takeoff and hold ------------------------------------------------
+    log.info("Commanding takeoff to 10m...")
+    tester.takeoff(alt=10.0)
 
-    log.info("Getting home position...")
-    t1 = _ts()
-    home_lat, home_lon = tester.get_home()
-    log.info("Home after %s: lat=%.6f lon=%.6f", _elapsed(t1), home_lat, home_lon)
+    # At 10× speed the vehicle reaches altitude quickly — wait 1 s wall
+    # (= 10 s sim) to stay well within the armed window.
+    log.info("Waiting 1s for climb...")
+    time.sleep(1)
 
-    log.info("Sending EXTERNAL_POSITION_ESTIMATE (~50m north)...")
-    tester.send_external_position_estimate(home_lat + 0.00045, home_lon)
+    # Verify the vehicle is actually armed
+    hb = tester.conn.recv_match(type='HEARTBEAT', blocking=True, timeout=3.0)
+    assert hb and (hb.base_mode & 128), \
+        "Vehicle not armed — cannot test external position reset"
 
-    log.info("Waiting 2s for reset to take effect...")
-    time.sleep(2)
+    # -- 2. External position reset -----------------------------------------
+    #    Reset target = current position + 100 m east (in lat/lon).
+    trn_before = tester.get_gnss_denied_position()
+    log.info("TRN before reset: x=%.2f y=%.2f z=%.2f", *trn_before)
+    assert math.isfinite(trn_before[0]), "TRN position not finite"
 
-    log.info("Getting GNSS-denied position after reset...")
-    t1 = _ts()
-    pos_after = tester.get_gnss_denied_position()
-    log.info("GNSS-denied pos (after) after %s: x=%.2f y=%.2f z=%.2f",
-             _elapsed(t1), *pos_after)
+    local_before = tester.get_local_position()
+    log.info("LOCAL before reset: x=%.2f y=%.2f z=%.2f", *local_before)
 
-    dx = pos_after[0] - pos_before[0]
-    dy = pos_after[1] - pos_before[1]
-    change = math.sqrt(dx * dx + dy * dy)
-    log.info("GNSS-denied horizontal change: %.1fm", change)
-    assert change > 10.0, \
-        f"GNSS-denied position should jump >10m, got {change:.1f}m"
+    cur_lat, cur_lon = tester.get_global_position()
+    # 111320 m/deg is Earth's circumference / 360; cos(lat) corrects for longitude convergence
+    lon_offset = 100.0 / (111320.0 * math.cos(math.radians(cur_lat)))
+    tester.send_external_position_estimate(cur_lat, cur_lon + lon_offset)
 
-    log.info("Getting normal position after reset...")
-    t1 = _ts()
-    normal_after = tester.get_local_position()
-    log.info("Normal pos (after) after %s: x=%.2f y=%.2f z=%.2f",
-             _elapsed(t1), *normal_after)
+    log.info("Waiting 0.1s for reset to take effect...")
+    time.sleep(0.1)
 
-    drift = math.sqrt(
-        (normal_after[0] - normal_before[0]) ** 2
-        + (normal_after[1] - normal_before[1]) ** 2)
-    log.info("Normal instance drift: %.2fm", drift)
-    assert drift < 2.0, \
-        f"Normal instance drifted {drift:.1f}m -- should be stationary"
+    # -- 3. Assertions ------------------------------------------------------
+    # LOCAL_POSITION should not jump.
+    local_after = tester.get_local_position()
+    local_jump = math.sqrt(
+        (local_after[0] - local_before[0]) ** 2
+        + (local_after[1] - local_before[1]) ** 2)
+    log.info("LOCAL after reset: x=%.2f y=%.2f z=%.2f  jump=%.2fm",
+             *local_after, local_jump)
+    assert local_jump < 1.0, \
+        f"LOCAL_POSITION jumped {local_jump:.2f}m -- reset leaked into normal instance"
+
+    # TRN position should jump toward the reset target.
+    trn_after = tester.get_gnss_denied_position()
+    trn_jump = math.sqrt(
+        (trn_after[0] - trn_before[0]) ** 2
+        + (trn_after[1] - trn_before[1]) ** 2)
+    log.info("TRN after reset: x=%.2f y=%.2f z=%.2f  jump=%.2fm",
+             *trn_after, trn_jump)
+    assert trn_jump > 80.0, \
+        f"TRN position should jump significantly, got {trn_jump:.2f}m -- reset not accepted"
 
     log.info("Test complete in %s", _elapsed(t0))
 
