@@ -182,6 +182,12 @@ param set-default SYS_FAILURE_EN 1
 # does not go below 50% by default, but failure injection can trigger failsafes.
 param set-default COM_LOW_BAT_ACT 2
 
+# Enable GNSS-denied EKF instances for testing (requires multi-instance EKF2)
+if [ "$PX4_EKF2_GNSS_DENIED" = "1" ]; then
+	param set SENS_IMU_MODE 0
+	param set EKF2_GNSS_DENIED 1
+fi
+
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
