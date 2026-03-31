@@ -953,6 +953,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 						_status_changed = true;
 
+						// If the vehicle was disarmed (e.g. auto-disarm after parachute
+						// landing), re-arm without preflight checks. Pre-arm checks like
+						// parachute health and VTOL-in-MC-mode will fail in this recovery
+						// scenario but are not relevant — the force arm intent is explicit.
+						if (!isArmed()) {
+							arm(arm_disarm_reason_t::command_external, false /* run_preflight_checks */);
+						}
+
 					} else {
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
