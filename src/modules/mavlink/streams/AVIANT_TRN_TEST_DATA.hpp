@@ -123,6 +123,11 @@ private:
 			msg.q3 = attitude.q[2];
 			msg.q4 = attitude.q[3];
 
+			// Angular velocity
+			msg.angular_velocity_x = attitude.angular_velocity[0];
+			msg.angular_velocity_y = attitude.angular_velocity[1];
+			msg.angular_velocity_z = attitude.angular_velocity[2];
+
 			mavlink_msg_aviant_trn_test_data_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
