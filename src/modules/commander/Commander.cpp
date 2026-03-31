@@ -953,12 +953,18 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 						_status_changed = true;
 
-						// If the vehicle was disarmed (e.g. auto-disarm after parachute
-						// landing), re-arm without preflight checks. Pre-arm checks like
-						// parachute health and VTOL-in-MC-mode will fail in this recovery
-						// scenario but are not relevant — the force arm intent is explicit.
+						// Re-arm if the vehicle was disarmed (e.g. auto-disarm after
+						// parachute landing). Skip preflight checks — parachute health
+						// and VTOL-in-MC-mode checks will fail but are not relevant.
 						if (!isArmed()) {
 							arm(arm_disarm_reason_t::command_external, false /* run_preflight_checks */);
+						}
+
+						// Force VTOL immediately back to multicopter mode for recovery
+						if (_vehicle_status.is_vtol) {
+							send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
+									     (float)vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC,
+									     1.0f /* immediate transition */);
 						}
 
 					} else {
