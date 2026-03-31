@@ -168,6 +168,13 @@ public:
 	bool getDeferFailsafes() const { return _defer_failsafes; }
 	bool failsafeDeferred() const { return _failsafe_defer_started != 0; }
 
+	/**
+	 * Clear the termination state, allowing recovery from a TERMINATE failsafe.
+	 * This removes all Terminate actions and resets the selected action.
+	 * The caller must also change the user intended mode away from TERMINATION.
+	 */
+	void clearTermination();
+
 protected:
 	enum class UserTakeoverAllowed {
 		Always, ///< allow takeover (immediately)

@@ -395,6 +395,24 @@ void FailsafeBase::removeAction(ActionOptions &action) const
 	}
 }
 
+void FailsafeBase::clearTermination()
+{
+	// Forcibly invalidate Terminate actions — bypasses ClearCondition::Never
+	for (int action_idx = 0; action_idx < max_num_actions; ++action_idx) {
+		ActionOptions &cur_action = _actions[action_idx];
+
+		if (cur_action.valid() && cur_action.action == Action::Terminate) {
+			PX4_DEBUG("clearTermination: removing action from caller %i", cur_action.id);
+			cur_action.setInvalid();
+		}
+	}
+
+	// Reset selected action so getSelectedAction() won't early-return to Terminate
+	if (_selected_action == Action::Terminate) {
+		_selected_action = Action::None;
+	}
+}
+
 void FailsafeBase::removeNonActivatedActions()
 {
 	// A non-activated action means the check was not called during the last update:

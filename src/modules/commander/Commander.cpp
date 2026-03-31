@@ -940,6 +940,26 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				// Arm is forced (checks skipped) when param2 is set to a magic number.
 				const bool forced = (static_cast<int>(lroundf(cmd.param2)) == 21196);
 
+				// Allow recovery from termination (e.g. parachute failure) via force-arm
+				if (forced && arming_action == vehicle_command_s::ARMING_ACTION_ARM
+				    && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+					_failsafe.clearTermination();
+
+					if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER,
+									ModeChangeSource::User, false, true /* force */)) {
+						mavlink_log_critical(&_mavlink_log_pub, "Termination cancelled via force arm, switching to Hold\t");
+						events::send(events::ID("commander_termination_cancelled_force_arm"), events::Log::Critical,
+							     "Flight termination cancelled by force arm, switching to Hold mode");
+						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						_status_changed = true;
+
+					} else {
+						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					}
+
+					break;
+				}
+
 				transition_result_t arming_res = TRANSITION_DENIED;
 				arm_disarm_reason_t arm_disarm_reason = cmd.from_external ? arm_disarm_reason_t::command_external :
 									arm_disarm_reason_t::command_internal;
