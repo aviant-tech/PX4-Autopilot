@@ -858,7 +858,8 @@ void EKF2Selector::PrintStatus()
 
 		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s%s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
-			 inst.pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED ? "GNSS-denied, " : "",
+			 (inst.pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ARMED
+			  || inst.pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS) ? "GNSS-denied, " : "",
 			 inst.healthy.get_state() ? "healthy" : "unhealthy",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
 			 (_selected_instance == i) ? "*" : "");

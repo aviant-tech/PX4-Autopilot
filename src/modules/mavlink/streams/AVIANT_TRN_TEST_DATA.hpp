@@ -36,8 +36,8 @@
 
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 
 class MavlinkStreamAviantTrnTestData : public MavlinkStream
 {
@@ -74,7 +74,8 @@ private:
 			estimator_status_s status;
 
 			if (status_sub.copy(&status)) {
-				if (status.pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED) {
+				if (status.pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ARMED
+				    || status.pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS) {
 					_gnss_denied_instance = i;
 
 					// Subscribe to this instance's local position and attitude

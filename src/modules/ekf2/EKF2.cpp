@@ -514,7 +514,8 @@ void EKF2::Run()
 
 					// TODO add check for lat and long validity
 					if (cmd_timestamp_valid) {
-						if (_pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED) {
+						if (_pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ARMED
+						    || _pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS) {
 							_ekf.resetGlobalPosToExternalObservation(
 								vehicle_command.param5,
 								vehicle_command.param6,
@@ -727,9 +728,11 @@ void EKF2::Run()
 
 #if defined(CONFIG_EKF2_GNSS)
 
-		// Skip GPS updates when armed in GNSS-denied mode
-		// Allow GPS fusion while disarmed for proper initialization
-		if (!(_is_armed && _pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED)) {
+		// Skip GPS updates in GNSS-denied mode:
+		// - GNSS_DENIED_ARMED: skip only when armed (allows GPS for initialization)
+		// - GNSS_DENIED_ALWAYS: skip at all times
+		if (!(_pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS
+		      || (_is_armed && _pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ARMED))) {
 			UpdateGpsSample(ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
 			updateGnssHeadingSample(ekf2_timestamps);
@@ -2784,7 +2787,12 @@ int EKF2::task_spawn(int argc, char *argv[])
 	int32_t sens_imu_mode = 1;
 	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
 
-	int32_t ekf2_gnss_denied = 0;
+	// EKF2_GNSS_DENIED parameter values
+	static constexpr int32_t EKF2_GNSS_DENIED_DISABLED = 0;
+	static constexpr int32_t EKF2_GNSS_DENIED_ARMED    = 1;
+	static constexpr int32_t EKF2_GNSS_DENIED_ALWAYS   = 2;
+
+	int32_t ekf2_gnss_denied = EKF2_GNSS_DENIED_DISABLED;
 
 	if (sens_imu_mode == 0) {
 		// ekf selector requires SENS_IMU_MODE = 0
@@ -2793,9 +2801,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// Check if GNSS-denied estimator instances are enabled
 		param_get(param_find("EKF2_GNSS_DENIED"), &ekf2_gnss_denied);
 
-		if (ekf2_gnss_denied < 0 || ekf2_gnss_denied > 1) {
-			const int32_t ekf2_gnss_denied_limited = math::constrain(ekf2_gnss_denied, static_cast<int32_t>(0),
-					static_cast<int32_t>(1));
+		if (ekf2_gnss_denied < EKF2_GNSS_DENIED_DISABLED || ekf2_gnss_denied > EKF2_GNSS_DENIED_ALWAYS) {
+			const int32_t ekf2_gnss_denied_limited = math::constrain(ekf2_gnss_denied, EKF2_GNSS_DENIED_DISABLED,
+					EKF2_GNSS_DENIED_ALWAYS);
 			PX4_WARN("EKF2_GNSS_DENIED limited %" PRId32 " -> %" PRId32, ekf2_gnss_denied, ekf2_gnss_denied_limited);
 			param_set_no_notification(param_find("EKF2_GNSS_DENIED"), &ekf2_gnss_denied_limited);
 			ekf2_gnss_denied = ekf2_gnss_denied_limited;
@@ -2862,7 +2870,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const uint8_t num_pos_est_modes = (ekf2_gnss_denied == 1) ? 2 : 1;
+		const uint8_t num_pos_est_modes = (ekf2_gnss_denied != EKF2_GNSS_DENIED_DISABLED) ? 2 : 1;
 		const int multi_instances = math::min(imu_instances * mag_instances * num_pos_est_modes,
 						      static_cast<int32_t>(EKF2_MAX_INSTANCES));
 		int multi_instances_allocated = 0;
@@ -2885,7 +2893,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 				uint8_t pos_est_mode = estimator_status_s::POS_EST_MODE_NORMAL;
 
 				if (mode == 1) {
-					pos_est_mode = estimator_status_s::POS_EST_MODE_GNSS_DENIED;
+					pos_est_mode = (ekf2_gnss_denied == EKF2_GNSS_DENIED_ALWAYS) ?
+						       estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS :
+						       estimator_status_s::POS_EST_MODE_GNSS_DENIED_ARMED;
 				}
 
 				for (uint8_t mag = 0; mag < mag_instances; mag++) {
