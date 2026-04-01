@@ -763,8 +763,9 @@ void EKF2::Run()
 
 		// Skip GPS updates in GNSS-denied mode:
 		// - GNSS_DENIED_ARMED: skip only when armed (allows GPS for initialization)
-		// - GNSS_DENIED_ALWAYS: skip at all times
-		if (!(_pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS
+		// - GNSS_DENIED_ALWAYS: skip after NED origin is initialized (need first fix for reference)
+		if (!((_pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS
+		       && _ekf.global_origin_valid())
 		      || (_is_armed && _pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ARMED))) {
 			UpdateGpsSample(ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
