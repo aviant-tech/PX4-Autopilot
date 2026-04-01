@@ -494,9 +494,23 @@ void EKF2::Run()
 					 (double)vehicle_command.param5, (double)vehicle_command.param6,
 					 (double)vehicle_command.param3, (double)vehicle_command.param1);
 
-				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning) &&
-				    PX4_ISFINITE(vehicle_command.param2) && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)) {
+				const bool is_dead_reckoning = _ekf.control_status_flags().wind_dead_reckoning
+							       || _ekf.control_status_flags().inertial_dead_reckoning;
 
+				if (!is_dead_reckoning) {
+					PX4_INFO("%d - EXTPOS rejected: not dead reckoning (wind_dr=%u, inertial_dr=%u)",
+						 _instance,
+						 (unsigned)_ekf.control_status_flags().wind_dead_reckoning,
+						 (unsigned)_ekf.control_status_flags().inertial_dead_reckoning);
+
+				} else if (!PX4_ISFINITE(vehicle_command.param2) || !PX4_ISFINITE(vehicle_command.param5)
+					   || !PX4_ISFINITE(vehicle_command.param6)) {
+					PX4_WARN("%d - EXTPOS rejected: non-finite params (p2=%.6f p5=%.6f p6=%.6f)",
+						 _instance,
+						 (double)vehicle_command.param2, (double)vehicle_command.param5,
+						 (double)vehicle_command.param6);
+
+				} else {
 					// Trust the transmission_time from the message to be in flight controller time, ignoring
 					// processing_time.
 					// Cast to double first to avoid unnecessary precission loss
@@ -505,14 +519,21 @@ void EKF2::Run()
 
 					// Basic validation of the timestamp
 					if (!PX4_ISFINITE(vehicle_command.param1)) {
+						PX4_WARN("%d - EXTPOS rejected: non-finite timestamp (param1=%.6f)",
+							 _instance, (double)vehicle_command.param1);
 						cmd_timestamp_valid = false;
 					}
 
 					if (cmd_timestamp > hrt_absolute_time()) {
+						PX4_WARN("%d - EXTPOS rejected: timestamp in the future (cmd=%" PRIu64 " now=%" PRIu64 ")",
+							 _instance, cmd_timestamp, hrt_absolute_time());
 						cmd_timestamp_valid = false; // Cannot be into the future
 					}
 
 					if (cmd_timestamp < math::max(kMaxAgeExternalPosMeasurement, hrt_absolute_time() - kMaxAgeExternalPosMeasurement)) {
+						PX4_WARN("%d - EXTPOS rejected: timestamp too old (cmd=%" PRIu64 " now=%" PRIu64 " max_age=%" PRIu64 ")",
+							 _instance, cmd_timestamp, hrt_absolute_time(),
+							 static_cast<uint64_t>(kMaxAgeExternalPosMeasurement));
 						cmd_timestamp_valid = false; // Too old
 					}
 
@@ -532,10 +553,12 @@ void EKF2::Run()
 								accuracy,
 								cmd_timestamp
 							);
+
+						} else {
+							PX4_INFO("%d - EXTPOS rejected: not a GNSS-denied instance (pos_est_mode=%d)",
+								 _instance, _pos_est_mode);
 						}
 					}
-
-
 				}
 			}
 		}
