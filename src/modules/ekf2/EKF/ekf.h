@@ -420,6 +420,8 @@ public:
 	void collect_gps(const gnssSample &gps);
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
+	void setDisableFakePosFusion(bool disable) { _fake_pos_fusion_disabled = disable; }
+
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 	void set_min_required_gps_recovery_time(uint32_t time_us) { _min_gps_recovery_time_us = time_us; }
 
@@ -631,6 +633,8 @@ private:
 #if defined(CONFIG_EKF2_SIDESLIP)
 	estimator_aid_source1d_s _aid_src_sideslip{};
 #endif // CONFIG_EKF2_SIDESLIP
+
+	bool _fake_pos_fusion_disabled{false};
 
 	estimator_aid_source2d_s _aid_src_fake_pos{};
 	estimator_aid_source1d_s _aid_src_fake_hgt{};

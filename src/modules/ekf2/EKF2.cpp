@@ -239,6 +239,11 @@ bool EKF2::multi_init(int imu, int mag, uint8_t pos_est_mode)
 {
 	_pos_est_mode = pos_est_mode;
 
+	if (_pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ARMED
+	    || _pos_est_mode == estimator_status_s::POS_EST_MODE_GNSS_DENIED_ALWAYS) {
+		_ekf.setDisableFakePosFusion(true);
+	}
+
 	// advertise all topics to ensure consistent uORB instance numbering
 	_estimator_event_flags_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();

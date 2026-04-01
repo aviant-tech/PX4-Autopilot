@@ -40,6 +40,11 @@
 
 void Ekf::controlFakeHgtFusion()
 {
+	if (_fake_pos_fusion_disabled) {
+		stopFakeHgtFusion();
+		return;
+	}
+
 	auto &aid_src = _aid_src_fake_hgt;
 
 	// If we aren't doing any aiding, fake position measurements at the last known vertical position to constrain drift

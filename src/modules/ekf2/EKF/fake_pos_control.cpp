@@ -40,6 +40,11 @@
 
 void Ekf::controlFakePosFusion()
 {
+	if (_fake_pos_fusion_disabled) {
+		stopFakePosFusion();
+		return;
+	}
+
 	auto &aid_src = _aid_src_fake_pos;
 
 	// If we aren't doing any aiding, fake position measurements at the last known position to constrain drift
