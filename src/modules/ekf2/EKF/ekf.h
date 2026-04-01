@@ -419,9 +419,9 @@ public:
 #if defined(CONFIG_EKF2_GNSS)
 	void collect_gps(const gnssSample &gps);
 
-	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void setDisableFakePosFusion(bool disable) { _fake_pos_fusion_disabled = disable; }
 
+	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 	void set_min_required_gps_recovery_time(uint32_t time_us) { _min_gps_recovery_time_us = time_us; }
 
