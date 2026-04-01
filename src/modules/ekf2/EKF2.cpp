@@ -484,6 +484,11 @@ void EKF2::Run()
 			}
 
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE) {
+				PX4_INFO("%d - EXTERNAL_POSITION_ESTIMATE received: lat=%.6f lon=%.6f acc=%.2f t=%.3f",
+					 _instance,
+					 (double)vehicle_command.param5, (double)vehicle_command.param6,
+					 (double)vehicle_command.param3, (double)vehicle_command.param1);
+
 				if ((_ekf.control_status_flags().wind_dead_reckoning || _ekf.control_status_flags().inertial_dead_reckoning) &&
 				    PX4_ISFINITE(vehicle_command.param2) && PX4_ISFINITE(vehicle_command.param5) && PX4_ISFINITE(vehicle_command.param6)) {
 
