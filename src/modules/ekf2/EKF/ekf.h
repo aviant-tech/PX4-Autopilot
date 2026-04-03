@@ -87,6 +87,10 @@ public:
 
 	void print_status();
 
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	void setAuxGlobalPositionEnabled(bool enabled) { _aux_global_position.setEnabled(enabled); }
+#endif
+
 	// should be called every time new data is pushed into the filter
 	bool update();
 
