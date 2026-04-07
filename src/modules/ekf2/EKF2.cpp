@@ -235,9 +235,10 @@ EKF2::~EKF2()
 }
 
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
-bool EKF2::multi_init(int imu, int mag, uint8_t pos_est_flags)
+bool EKF2::multi_init(int imu, int mag, uint8_t pos_est_flags, uint8_t pos_est_group)
 {
 	_pos_est_flags = pos_est_flags;
+	_pos_est_group = pos_est_group;
 
 	_ekf.setFakePositionEnabled((_pos_est_flags & estimator_status_s::POS_EST_FLAG_FAKE_POSITION) != 0);
 
@@ -1894,6 +1895,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	status.pos_est_flags = _pos_est_flags;
+	status.pos_est_group = _pos_est_group;
 
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
@@ -2789,7 +2791,11 @@ int EKF2::task_spawn(int argc, char *argv[])
 	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
 
 	int32_t ekf2_main_pos = 0;
+	int32_t ekf2_back_pos = 0;
+	int32_t ekf2_back_sel = 0;
 	param_get(param_find("EKF2_MAIN_POS"), &ekf2_main_pos);
+	param_get(param_find("EKF2_BACK_POS"), &ekf2_back_pos);
+	param_get(param_find("EKF2_BACK_SEL"), &ekf2_back_sel);
 
 	if (sens_imu_mode == 0) {
 		// ekf selector requires SENS_IMU_MODE = 0
@@ -2856,17 +2862,29 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
+		const bool create_backups = (ekf2_back_pos != 0);
+		const uint8_t num_pos_est_groups = create_backups ? 2 : 1;
+		const int multi_instances = math::min(imu_instances * mag_instances * num_pos_est_groups,
+						      static_cast<int32_t>(EKF2_MAX_INSTANCES));
 
+		if (imu_instances * mag_instances * num_pos_est_groups > static_cast<int32_t>(EKF2_MAX_INSTANCES)) {
+			PX4_WARN("requested %" PRId32 " instances exceeds max %d",
+				 imu_instances * mag_instances * num_pos_est_groups, EKF2_MAX_INSTANCES);
+		}
+
+		// Force the main estimator group to always be selectable
 		const uint8_t main_pos_est_flags = static_cast<uint8_t>(ekf2_main_pos)
-					       | estimator_status_s::POS_EST_FLAG_SELECTABLE;
+						   | estimator_status_s::POS_EST_FLAG_SELECTABLE;
+		// Only allow the backup estimator group to be selected if explicitly configured
+		const uint8_t backup_pos_est_flags = static_cast<uint8_t>(ekf2_back_pos)
+						     | (ekf2_back_sel ? estimator_status_s::POS_EST_FLAG_SELECTABLE : 0);
 
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
-		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS] {}; // IMUs * mags
+		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS][MAX_NUM_POS_EST_GROUPS] {};
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
@@ -2875,51 +2893,57 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			vehicle_status_sub.update();
 
-			for (uint8_t mag = 0; mag < mag_instances; mag++) {
-				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
+			for (uint8_t pos_est_group = estimator_status_s::POS_EST_GROUP_MAIN; pos_est_group < num_pos_est_groups;
+			     pos_est_group++) {
+				const uint8_t pos_est_flags = (pos_est_group == estimator_status_s::POS_EST_GROUP_BACKUP)
+							      ? backup_pos_est_flags : main_pos_est_flags;
 
-				for (uint8_t imu = 0; imu < imu_instances; imu++) {
+				for (uint8_t mag = 0; mag < mag_instances; mag++) {
+					uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), mag};
 
-					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
-					vehicle_mag_sub.update();
+					for (uint8_t imu = 0; imu < imu_instances; imu++) {
 
-					// Mag & IMU data must be valid, first mag can be ignored initially
-					if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
+						uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
+						vehicle_mag_sub.update();
 
-						if (!ekf2_instance_created[imu][mag]) {
-							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
+						// Mag & IMU data must be valid, first mag can be ignored initially
+						if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
 
-							if (ekf2_inst && ekf2_inst->multi_init(imu, mag, main_pos_est_flags)) {
-								int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
+							if (!ekf2_instance_created[imu][mag][pos_est_group]) {
+								EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
 
-								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
-									_objects[actual_instance].store(ekf2_inst);
-									success = true;
-									multi_instances_allocated++;
-									ekf2_instance_created[imu][mag] = true;
+								if (ekf2_inst && ekf2_inst->multi_init(imu, mag, pos_est_flags, pos_est_group)) {
+									int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
-									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 "), flags:0x%02" PRIx8,
-										  actual_instance, imu, vehicle_imu_sub.get().accel_device_id,
-										  mag, vehicle_mag_sub.get().device_id, main_pos_est_flags);
+									if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
+										_objects[actual_instance].store(ekf2_inst);
+										success = true;
+										multi_instances_allocated++;
+										ekf2_instance_created[imu][mag][pos_est_group] = true;
 
-									_ekf2_selector.load()->ScheduleNow();
+										PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 "), flags:0x%02" PRIx8,
+											  actual_instance, imu, vehicle_imu_sub.get().accel_device_id,
+											  mag, vehicle_mag_sub.get().device_id, pos_est_flags);
+
+										_ekf2_selector.load()->ScheduleNow();
+
+									} else {
+										PX4_ERR("instance numbering problem instance: %d", actual_instance);
+										delete ekf2_inst;
+										break;
+									}
 
 								} else {
-									PX4_ERR("instance numbering problem instance: %d", actual_instance);
-									delete ekf2_inst;
+									PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8 " flags:0x%02" PRIx8, imu, mag, pos_est_flags);
+									px4_usleep(100000);
 									break;
 								}
-
-							} else {
-								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8 " flags:0x%02" PRIx8, imu, mag, main_pos_est_flags);
-								px4_usleep(100000);
-								break;
 							}
-						}
 
-					} else {
-						px4_usleep(1000); // give the sensors extra time to start
-						break;
+						} else {
+							px4_usleep(1000); // give the sensors extra time to start
+							break;
+						}
 					}
 				}
 			}

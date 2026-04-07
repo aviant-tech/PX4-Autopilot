@@ -269,6 +269,7 @@ bool EKF2Selector::UpdateErrorScores()
 			_instance[i].baro_device_id = status.baro_device_id;
 			_instance[i].mag_device_id = status.mag_device_id;
 			_instance[i].pos_est_flags = status.pos_est_flags;
+			_instance[i].pos_est_group = status.pos_est_group;
 
 			if ((i + 1) > _available_instances) {
 				_available_instances = i + 1;
@@ -855,7 +856,8 @@ void EKF2Selector::PrintStatus()
 	for (int i = 0; i < _available_instances; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
-		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", flags:0x%02" PRIx8 " %s%s, test ratio: %.7f (%.5f) %s",
+		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", flags:0x%02" PRIx8
+			 " %s%s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
 			 inst.pos_est_flags,
 			 !(inst.pos_est_flags & estimator_status_s::POS_EST_FLAG_SELECTABLE) ? "non-selectable, " : "",

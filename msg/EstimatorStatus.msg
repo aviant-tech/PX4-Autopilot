@@ -135,6 +135,10 @@ uint8 POS_EST_FLAG_VISION_FUSION    = 32  # Fuse EV and optical flow
 uint8 POS_EST_FLAG_FAKE_POSITION    = 64  # Allow fake position fusion
 uint8 POS_EST_FLAG_SELECTABLE       = 128 # EKF can be selected by EKF2Selector
 
+uint8 pos_est_group
+uint8 POS_EST_GROUP_MAIN   = 0
+uint8 POS_EST_GROUP_BACKUP = 1
+
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
 uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)

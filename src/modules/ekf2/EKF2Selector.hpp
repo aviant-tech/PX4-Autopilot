@@ -127,6 +127,7 @@ private:
 		uint32_t mag_device_id{0};
 
 		uint8_t pos_est_flags{0};
+		uint8_t pos_est_group{0};
 
 		hrt_abstime time_last_selected{0};
 		hrt_abstime time_last_no_warning{0};
