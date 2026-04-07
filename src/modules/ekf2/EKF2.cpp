@@ -235,8 +235,16 @@ EKF2::~EKF2()
 }
 
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
-bool EKF2::multi_init(int imu, int mag)
+bool EKF2::multi_init(int imu, int mag, uint8_t pos_est_flags)
 {
+	_pos_est_flags = pos_est_flags;
+
+	_ekf.setFakePositionEnabled((_pos_est_flags & estimator_status_s::POS_EST_FLAG_FAKE_POSITION) != 0);
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	_ekf.setAuxGlobalPositionEnabled((_pos_est_flags & estimator_status_s::POS_EST_FLAG_AUX_GPOS_FUSION) != 0);
+#endif
+
 	// advertise all topics to ensure consistent uORB instance numbering
 	_estimator_event_flags_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
@@ -512,8 +520,14 @@ void EKF2::Run()
 
 					// TODO add check for lat and long validity
 					if (cmd_timestamp_valid) {
-						_ekf.resetGlobalPosToExternalObservation(vehicle_command.param5, vehicle_command.param6,
-								accuracy, cmd_timestamp);
+						if (_pos_est_flags & estimator_status_s::POS_EST_FLAG_EXT_GPOS_RESETS) {
+							_ekf.resetGlobalPosToExternalObservation(
+								vehicle_command.param5,
+								vehicle_command.param6,
+								accuracy,
+								cmd_timestamp
+							);
+						}
 					}
 
 
@@ -702,16 +716,30 @@ void EKF2::Run()
 		UpdateBaroSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-		UpdateExtVisionSample(ekf2_timestamps);
+
+		if (_pos_est_flags & estimator_status_s::POS_EST_FLAG_VISION_FUSION) {
+			UpdateExtVisionSample(ekf2_timestamps);
+		}
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		UpdateFlowSample(ekf2_timestamps);
+
+		if (_pos_est_flags & estimator_status_s::POS_EST_FLAG_VISION_FUSION) {
+			UpdateFlowSample(ekf2_timestamps);
+		}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_GNSS)
-		UpdateGpsSample(ekf2_timestamps);
+
+		if ((!_ekf.global_origin_valid() && (_pos_est_flags & estimator_status_s::POS_EST_FLAG_GNSS_INIT))
+		    || (!_is_armed && (_pos_est_flags & estimator_status_s::POS_EST_FLAG_GNSS_DISARMED))
+		    || (_is_armed && (_pos_est_flags & estimator_status_s::POS_EST_FLAG_GNSS_ARMED))) {
+			UpdateGpsSample(ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
-		updateGnssHeadingSample(ekf2_timestamps);
+			updateGnssHeadingSample(ekf2_timestamps);
 # endif //CONFIG_EKF2_GNSS_YAW
+		}
+
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		UpdateMagSample(ekf2_timestamps);
@@ -1865,6 +1893,8 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 			    status.mag_strength_ref_gs);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+	status.pos_est_flags = _pos_est_flags;
+
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
 }
@@ -2587,8 +2617,11 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 		if (_status_sub.copy(&vehicle_status)
 		    && (ekf2_timestamps.timestamp < vehicle_status.timestamp + 3_s)) {
 
+			// Track armed state for GPS gating
+			_is_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
 			// initially set in_air from arming_state (will be overridden if land detector is available)
-			flags.in_air = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			flags.in_air = _is_armed;
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
@@ -2755,6 +2788,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 	int32_t sens_imu_mode = 1;
 	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
 
+	int32_t ekf2_main_pos = 0;
+	param_get(param_find("EKF2_MAIN_POS"), &ekf2_main_pos);
+
 	if (sens_imu_mode == 0) {
 		// ekf selector requires SENS_IMU_MODE = 0
 		multi_mode = true;
@@ -2821,6 +2857,10 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 		const hrt_abstime time_started = hrt_absolute_time();
 		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
+
+		const uint8_t main_pos_est_flags = static_cast<uint8_t>(ekf2_main_pos)
+					       | estimator_status_s::POS_EST_FLAG_SELECTABLE;
+
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
@@ -2849,7 +2889,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 						if (!ekf2_instance_created[imu][mag]) {
 							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
 
-							if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
+							if (ekf2_inst && ekf2_inst->multi_init(imu, mag, main_pos_est_flags)) {
 								int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
 								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
@@ -2858,9 +2898,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 									multi_instances_allocated++;
 									ekf2_instance_created[imu][mag] = true;
 
-									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										  imu, vehicle_imu_sub.get().accel_device_id,
-										  mag, vehicle_mag_sub.get().device_id);
+									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 "), flags:0x%02" PRIx8,
+										  actual_instance, imu, vehicle_imu_sub.get().accel_device_id,
+										  mag, vehicle_mag_sub.get().device_id, main_pos_est_flags);
 
 									_ekf2_selector.load()->ScheduleNow();
 
@@ -2871,7 +2911,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 								}
 
 							} else {
-								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
+								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8 " flags:0x%02" PRIx8, imu, mag, main_pos_est_flags);
 								px4_usleep(100000);
 								break;
 							}

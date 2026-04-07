@@ -268,6 +268,7 @@ bool EKF2Selector::UpdateErrorScores()
 			_instance[i].gyro_device_id = status.gyro_device_id;
 			_instance[i].baro_device_id = status.baro_device_id;
 			_instance[i].mag_device_id = status.mag_device_id;
+			_instance[i].pos_est_flags = status.pos_est_flags;
 
 			if ((i + 1) > _available_instances) {
 				_available_instances = i + 1;
@@ -687,11 +688,12 @@ void EKF2Selector::Run()
 	// update combined test ratio for all estimators
 	const bool updated = UpdateErrorScores();
 
-	// if no valid instance then force select first instance with valid IMU
+	// if no valid instance then force select first selectable instance with valid IMU
 	if (_selected_instance == INVALID_INSTANCE) {
 		for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			if ((_instance[i].accel_device_id != 0)
-			    && (_instance[i].gyro_device_id != 0)) {
+			    && (_instance[i].gyro_device_id != 0)
+			    && (_instance[i].pos_est_flags & estimator_status_s::POS_EST_FLAG_SELECTABLE)) {
 
 				if (SelectInstance(i)) {
 					break;
@@ -722,6 +724,11 @@ void EKF2Selector::Run()
 
 		// loop through all available instances to find if an alternative is available
 		for (int i = 0; i < _available_instances; i++) {
+			// Skip non-selectable instances
+			if (!(_instance[i].pos_est_flags & estimator_status_s::POS_EST_FLAG_SELECTABLE)) {
+				continue;
+			}
+
 			// Use an alternative instance if  -
 			// (healthy and has updated recently)
 			// AND
@@ -848,8 +855,10 @@ void EKF2Selector::PrintStatus()
 	for (int i = 0; i < _available_instances; i++) {
 		const EstimatorInstance &inst = _instance[i];
 
-		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s, test ratio: %.7f (%.5f) %s",
+		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", flags:0x%02" PRIx8 " %s%s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
+			 inst.pos_est_flags,
+			 !(inst.pos_est_flags & estimator_status_s::POS_EST_FLAG_SELECTABLE) ? "non-selectable, " : "",
 			 inst.healthy.get_state() ? "healthy" : "unhealthy",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
 			 (_selected_instance == i) ? "*" : "");

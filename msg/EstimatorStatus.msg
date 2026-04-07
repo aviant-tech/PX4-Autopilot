@@ -124,6 +124,17 @@ uint32 gyro_device_id
 uint32 baro_device_id
 uint32 mag_device_id
 
+# Position estimation flags (bitmask)
+uint8 pos_est_flags
+uint8 POS_EST_FLAG_GNSS_INIT        = 1   # Fuse first GNSS measurement (before global origin valid)
+uint8 POS_EST_FLAG_GNSS_DISARMED    = 2   # Fuse GNSS while disarmed (after origin valid)
+uint8 POS_EST_FLAG_GNSS_ARMED       = 4   # Fuse GNSS while armed
+uint8 POS_EST_FLAG_EXT_GPOS_RESETS  = 8   # Reset to external position when dead reckoning
+uint8 POS_EST_FLAG_AUX_GPOS_FUSION  = 16  # Fuse auxiliary global position
+uint8 POS_EST_FLAG_VISION_FUSION    = 32  # Fuse EV and optical flow
+uint8 POS_EST_FLAG_FAKE_POSITION    = 64  # Allow fake position fusion
+uint8 POS_EST_FLAG_SELECTABLE       = 128 # EKF can be selected by EKF2Selector
+
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
 uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)

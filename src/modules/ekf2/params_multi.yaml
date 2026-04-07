@@ -22,3 +22,22 @@ parameters:
       reboot_required: true
       min: 0
       max: 4
+    EKF2_MAIN_POS:
+      description:
+        short: Main estimator position estimation flags
+        long: Bitmask controlling which position estimation sources are enabled
+          for main EKF instances. Main estimators are always selectable.
+          Requires SENS_IMU_MODE 0.
+      type: bitmask
+      default: 127
+      reboot_required: true
+      min: 0
+      max: 127
+      bit:
+        0: Initialize origin with GNSS
+        1: Fuse GNSS while disarmed
+        2: Fuse GNSS while armed
+        3: Accept external position resets
+        4: Fuse auxiliary global position
+        5: Fuse vision and optical flow
+        6: Fuse fake position
