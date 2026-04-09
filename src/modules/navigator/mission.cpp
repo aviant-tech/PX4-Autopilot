@@ -318,7 +318,8 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 	/* do climb before going to setpoint if needed and not already executing climb */
 	/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
 	if (PX4_ISFINITE(_mission_init_climb_altitude_amsl) &&
-	    _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+	    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) &&
+	    (_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
