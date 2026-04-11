@@ -143,6 +143,11 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 	mavlink_log_request_list_t request;
 	mavlink_msg_log_request_list_decode(msg, &request);
 
+	if (request.target_system != mavlink_system.sysid ||
+	    (request.target_component != mavlink_system.compid && request.target_component != MAV_COMP_ID_ALL)) {
+		return;
+	}
+
 	//-- Check for re-requests (data loss) or new request
 	if (_current_status != LogHandlerState::Inactive) {
 		//-- Is this a new request?
@@ -193,6 +198,11 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 	mavlink_log_request_data_t request;
 	mavlink_msg_log_request_data_decode(msg, &request);
 
+	if (request.target_system != mavlink_system.sysid ||
+	    (request.target_component != mavlink_system.compid && request.target_component != MAV_COMP_ID_ALL)) {
+		return;
+	}
+
 	//-- Does the requested log exist?
 	if (request.id >= _log_count) {
 		PX4LOG_WARN("MavlinkLogHandler::_log_request_data Requested log %" PRIu16 " but we only have %u.", request.id,
@@ -237,12 +247,16 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 
 //-------------------------------------------------------------------
 void
-MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
+MavlinkLogHandler::_log_request_erase(const mavlink_message_t *msg)
 {
-	/*
 	mavlink_log_erase_t request;
 	mavlink_msg_log_erase_decode(msg, &request);
-	*/
+
+	if (request.target_system != mavlink_system.sysid ||
+	    (request.target_component != mavlink_system.compid && request.target_component != MAV_COMP_ID_ALL)) {
+		return;
+	}
+
 	_current_status = LogHandlerState::Inactive;
 	_close_and_unlink_files();
 
@@ -252,8 +266,16 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
 
 //-------------------------------------------------------------------
 void
-MavlinkLogHandler::_log_request_end(const mavlink_message_t * /*msg*/)
+MavlinkLogHandler::_log_request_end(const mavlink_message_t *msg)
 {
+	mavlink_log_request_end_t request;
+	mavlink_msg_log_request_end_decode(msg, &request);
+
+	if (request.target_system != mavlink_system.sysid ||
+	    (request.target_component != mavlink_system.compid && request.target_component != MAV_COMP_ID_ALL)) {
+		return;
+	}
+
 	PX4LOG_WARN("MavlinkLogHandler::_log_request_end");
 
 	_current_status = LogHandlerState::Inactive;
