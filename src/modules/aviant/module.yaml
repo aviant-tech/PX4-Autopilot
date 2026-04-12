@@ -5,18 +5,26 @@ parameters:
   - group: Aviant
     definitions:
       AV_EN:
-        type: int32
+        type: boolean
         default: 1
-        min: 0
-        max: 1
         reboot_required: true
         description:
           short: Enable/Disable the Aviant module.
       AV_NAV_IND_EN:
-        type: int32
+        type: boolean
         default: 1
-        min: 0
-        max: 1
         reboot_required: true
         description:
           short: Enable/Disable the navigation indicator module.
+      AV_TEMP_IND_EN:
+        type: boolean
+        default: 1
+        reboot_required: true
+        description:
+          short: Enable/Disable the temperature indicator module.
+      AV_THR_IND_EN:
+        type: boolean
+        default: 1
+        reboot_required: true
+        description:
+          short: Enable/Disable the thrust indicator module.
