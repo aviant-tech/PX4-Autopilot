@@ -915,6 +915,27 @@ void Navigator::run()
 		}
 
 		if (_pos_sp_triplet_updated) {
+
+			if (!_pos_sp_triplet.previous.valid &&
+			    (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)) {
+
+				bool is_previous_setpoint = (_mission_result.seq_current == _mission_result.seq_previous + 1);
+
+				if (is_previous_setpoint &&
+				    _last_valid_previous_setpoint.valid &&
+				    (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)) {
+					_pos_sp_triplet.previous = _last_valid_previous_setpoint;
+
+				} else {
+					_pos_sp_triplet.previous.timestamp = hrt_absolute_time();
+					_pos_sp_triplet.previous.valid = true;
+					_pos_sp_triplet.previous.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+					_pos_sp_triplet.previous.alt = get_global_position()->alt;
+					_pos_sp_triplet.previous.lon = get_global_position()->lon;
+					_pos_sp_triplet.previous.lat = get_global_position()->lat;
+				}
+			}
+
 			publish_position_setpoint_triplet();
 		}
 
@@ -1169,6 +1190,10 @@ float Navigator::get_altitude_acceptance_radius()
 
 void Navigator::reset_triplets()
 {
+	if (_pos_sp_triplet.previous.valid) {
+		_last_valid_previous_setpoint = _pos_sp_triplet.previous;
+	}
+
 	reset_position_setpoint(_pos_sp_triplet.previous);
 	reset_position_setpoint(_pos_sp_triplet.current);
 	reset_position_setpoint(_pos_sp_triplet.next);
