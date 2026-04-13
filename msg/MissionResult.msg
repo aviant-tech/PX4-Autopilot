@@ -6,6 +6,7 @@ uint32 home_position_counter  	# Counter of the home position for which the resu
 
 int32 seq_reached		# Sequence of the mission item which has been reached, default -1
 uint16 seq_current		# Sequence of the current mission item
+uint16 seq_previous		# Sequence of the previous mission item
 uint16 seq_total		# Total number of mission items
 
 bool valid			# true if mission is valid
