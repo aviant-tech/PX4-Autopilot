@@ -57,15 +57,16 @@ void Thrust::Run()
 
 	motors_out.anomalous_current_status = aviant_motors_s::STATE_INACTIVE;
 
-	battery_status_s battery;
-	actuator_outputs_s pwm_main;
-	actuator_outputs_s pwm_aux;
+	battery_status_s battery{};
+	actuator_outputs_s pwm_main{};
+	actuator_outputs_s pwm_aux{};
 
-	// Battery publishes slowly, so we can't expect new values on every iteration.
-	// Actuator outputs, however, publishes faster than our module.
-	if (_battery_status_sub.copy(&battery)
-	    && _actuator_outputs_subs[0].update(&pwm_main)
-	    && _actuator_outputs_subs[1].update(&pwm_aux)) {
+	// Bitwise | (not ||) so all three subs are consumed each cycle — avoids
+	// discarding a fresh group when another hasn't ticked, and tolerates
+	// airframes that only use one PWM group.
+	if (_battery_status_sub.update(&battery)
+	    | _actuator_outputs_subs[0].update(&pwm_main)
+	    | _actuator_outputs_subs[1].update(&pwm_aux)) {
 
 		float duties[MAX_MOTORS] = {};
 		calculateDutyCycles(duties, pwm_main, pwm_aux);
