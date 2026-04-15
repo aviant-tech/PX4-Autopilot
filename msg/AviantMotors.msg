@@ -12,4 +12,5 @@ int16[12] mot_voltage_cv		# [cV] effective voltage per motor
 uint8[12] mot_load_status		# per-motor load state
 
 int16 anomalous_current_ca		# [cA] filtered current prediction error
+float32 predicted_current_a		# [A] instantaneous total predicted bus current
 uint8 anomalous_current_status

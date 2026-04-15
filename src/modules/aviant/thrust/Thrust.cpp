@@ -276,6 +276,8 @@ void Thrust::updateAnomalousCurrent(aviant_motors_s *out, float v_bat, float cur
 		return;
 	}
 
+	out->predicted_current_a = predicted_current;
+
 	const float anomaly = current_a - predicted_current;
 	const float filtered_anomaly = _current_error_lpf.update(anomaly);
 
