@@ -186,6 +186,11 @@ Mission::do_need_move_to_takeoff()
 
 void Mission::setActiveMissionItems()
 {
+	if (_mission_item.nav_cmd == NAV_CMD_DO_JUMP) {
+		set_current_mission_index(_mission_item.do_jump_mission_index);
+		return;
+	}
+
 	/* Get mission item that comes after current if available */
 	static constexpr size_t max_num_next_items{2u};
 	int32_t next_mission_items_index[max_num_next_items];
