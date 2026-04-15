@@ -86,7 +86,6 @@ private:
 	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": interval")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::AV_NAV_INT>) _params_av_nav_int,
 		(ParamFloat<px4::params::AV_NAV_MAG_ITR>) _params_av_nav_mag_itr
 	);
 };
