@@ -27,7 +27,7 @@ bool Navigation::start()
 {
 	parametersUpdate(true);
 
-	ScheduleOnInterval(_params_av_nav_int.get() * 1_ms);
+	ScheduleOnInterval(100_ms);
 	return true;
 }
 

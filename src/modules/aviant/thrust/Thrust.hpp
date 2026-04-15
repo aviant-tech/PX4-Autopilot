@@ -50,7 +50,7 @@ private:
 	void updateFunctionMapping();
 
 	/**
-	 * For each active motor, update its phase voltage LPF and write mot_voltage_cv
+	 * For each active motor, update its phase voltage LPF and write mot_voltage_filtered_cv
 	 * + mot_load_status into `out` based on configured warn/crit thresholds.
 	 * No-op if v_bat is non-finite.
 	 */
@@ -58,7 +58,7 @@ private:
 
 	/**
 	 * Update the anomalous current LPF from (current_a - predictCurrent(v_bat, ...))
-	 * and write anomalous_current_ca + anomalous_current_status into `out`.
+	 * and write anomalous_current_filtered_ca + anomalous_current_status into `out`.
 	 * No-op if v_bat or current_a is non-finite.
 	 */
 	void updateAnomalousCurrent(aviant_motors_s *out, float v_bat, float current_a,

@@ -1,18 +1,4 @@
 /**
- * Navigation indicator calculation interval
- *
- * The navigation indicator will be recalculated at this interval
- *
- * @group Aviant
- * @unit ms
- * @decimal 1
- * @min 10
- * @max 1000
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(AV_NAV_INT, 100);
-
-/**
  * Magnetometer innovation test ratio fail threshold
  *
  * Don't consider the magnetometer healthy if any of the innovation test ratios exceed this threshold
