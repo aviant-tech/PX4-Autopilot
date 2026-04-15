@@ -45,8 +45,8 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
-	add_topic("aviant_motors", 100);
-	add_topic("aviant_navigation", 100);
+	add_topic("aviant_motors", 300);
+	add_topic("aviant_navigation", 300);
 	add_topic("aviant_temperature_fc", 1000);
 	add_topic("action_request");
 	add_topic("actuator_armed");
