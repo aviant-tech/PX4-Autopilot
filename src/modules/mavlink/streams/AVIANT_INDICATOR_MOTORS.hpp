@@ -36,9 +36,9 @@ private:
 
 			mavlink_msg_aviant_indicator_motors_send(
 				_mavlink->get_channel(),
-				msg.mot_voltage_cv,
+				msg.mot_voltage_filtered_cv,
 				msg.mot_load_status,
-				msg.anomalous_current_ca,
+				msg.anomalous_current_filtered_ca,
 				msg.anomalous_current_status
 			);
 

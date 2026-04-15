@@ -246,8 +246,8 @@ void Thrust::updateMotorVoltages(aviant_motors_s *out, float v_bat, const float 
 
 		const float raw_vpha = v_bat * duties[i];
 		const float vpha = _vpha_lpf[i].update(raw_vpha);
-		out->mot_voltage_cv[i] = (int16_t)roundf(math::constrain(vpha * 100.0f,
-					 (float)INT16_MIN, (float)INT16_MAX));
+		out->mot_voltage_filtered_cv[i] = (int16_t)roundf(math::constrain(vpha * 100.0f,
+						  (float)INT16_MIN, (float)INT16_MAX));
 
 		if (vpha_crit > 0.0f && vpha >= vpha_crit) {
 			out->mot_load_status[i] = aviant_motors_s::STATE_CRITICAL;
@@ -281,8 +281,8 @@ void Thrust::updateAnomalousCurrent(aviant_motors_s *out, float v_bat, float cur
 	const float anomaly = current_a - predicted_current;
 	const float filtered_anomaly = _current_error_lpf.update(anomaly);
 
-	out->anomalous_current_ca = (int16_t)roundf(math::constrain(filtered_anomaly * 100.0f,
-				    (float)INT16_MIN, (float)INT16_MAX));
+	out->anomalous_current_filtered_ca = (int16_t)roundf(math::constrain(filtered_anomaly * 100.0f,
+					     (float)INT16_MIN, (float)INT16_MAX));
 
 	// warn/crit pct act as feature switches: 0 disables that level.
 	// cur_min is a noise floor on top of those (default 0 = no floor).
