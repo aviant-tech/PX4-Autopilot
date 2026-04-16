@@ -314,6 +314,14 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 		return false;
 	}
 
+	if ((mission_item.nav_cmd == NAV_CMD_DO_JUMP) && (current_index == mission_item.do_jump_mission_index)) {
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: DO_JUMP item %i points to itself \t", (int)current_index + 1);
+		events::send<uint16_t>(events::ID("navigator_mis_do_jump_point_to_itslef"), {events::Log::Error, events::LogInternal::Warning},
+				       "Mission rejected: DO_JUMP item {1} points to itself", current_index + 1);
+		return false;
+	}
+
 	return true;
 }
 
