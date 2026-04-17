@@ -117,10 +117,11 @@ private:
 		(ParamFloat<px4::params::AV_THR_CUR_TAU>) _param_av_thr_cur_tau,
 		(ParamFloat<px4::params::AV_THR_VPHA_TAU>) _param_av_thr_vpha_tau,
 
-		// Anomalous current thresholds (percentage of predicted + minimum)
-		(ParamFloat<px4::params::AV_THR_WARN_PCT>) _param_av_thr_warn_pct,
-		(ParamFloat<px4::params::AV_THR_CRIT_PCT>) _param_av_thr_crit_pct,
-		(ParamFloat<px4::params::AV_THR_CUR_MIN>) _param_av_thr_cur_min,
+		// Anomalous current thresholds
+		(ParamFloat<px4::params::AV_THR_CRI_LO_A>) _param_av_thr_cri_lo_a,
+		(ParamFloat<px4::params::AV_THR_WRN_LO_A>) _param_av_thr_wrn_lo_a,
+		(ParamFloat<px4::params::AV_THR_WRN_HI_A>) _param_av_thr_wrn_hi_a,
+		(ParamFloat<px4::params::AV_THR_CRI_HI_A>) _param_av_thr_cri_hi_a,
 
 		// Top motor phase voltage
 		(ParamFloat<px4::params::AV_THR_TOP_WRN_V>) _param_av_thr_top_wrn_v,

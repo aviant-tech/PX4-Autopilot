@@ -99,38 +99,52 @@ PARAM_DEFINE_FLOAT(AV_THR_PSH_K, 0.0f);
 PARAM_DEFINE_FLOAT(AV_THR_PSH_VREF, 0.0f);
 
 /**
- * Anomalous current warning percentage
+ * Anomalous current critical low threshold
  *
- * Warning when error >= predicted * pct/100 AND error >= minimum.
- *
- * @group Aviant
- * @unit %
- * @decimal 0
- * @min 0
- */
-PARAM_DEFINE_FLOAT(AV_THR_WARN_PCT, 0.0f);
-
-/**
- * Anomalous current minimum error
- *
- * Common minimum for both warning and critical thresholds.
+ * Critical when filtered error <= -AV_THR_CRI_LO_A. 0 disables.
  *
  * @group Aviant
  * @unit A
  * @decimal 1
  * @min 0
  */
-PARAM_DEFINE_FLOAT(AV_THR_CUR_MIN, 0.0f);
+PARAM_DEFINE_FLOAT(AV_THR_CRI_LO_A, 0.0f);
 
 /**
- * Anomalous current critical percentage
+ * Anomalous current warning low threshold
+ *
+ * Warning when filtered error <= -AV_THR_WRN_LO_A. 0 disables.
  *
  * @group Aviant
- * @unit %
- * @decimal 0
+ * @unit A
+ * @decimal 1
  * @min 0
  */
-PARAM_DEFINE_FLOAT(AV_THR_CRIT_PCT, 0.0f);
+PARAM_DEFINE_FLOAT(AV_THR_WRN_LO_A, 0.0f);
+
+/**
+ * Anomalous current warning high threshold
+ *
+ * Warning when filtered error >= AV_THR_WRN_HI_A. 0 disables.
+ *
+ * @group Aviant
+ * @unit A
+ * @decimal 1
+ * @min 0
+ */
+PARAM_DEFINE_FLOAT(AV_THR_WRN_HI_A, 0.0f);
+
+/**
+ * Anomalous current critical high threshold
+ *
+ * Critical when filtered error >= AV_THR_CRI_HI_A. 0 disables.
+ *
+ * @group Aviant
+ * @unit A
+ * @decimal 1
+ * @min 0
+ */
+PARAM_DEFINE_FLOAT(AV_THR_CRI_HI_A, 0.0f);
 
 /**
  * Anomalous current LPF time constant

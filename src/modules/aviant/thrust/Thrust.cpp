@@ -284,17 +284,21 @@ void Thrust::updateAnomalousCurrent(aviant_motors_s *out, float v_bat, float cur
 	out->anomalous_current_filtered_ca = (int16_t)roundf(math::constrain(filtered_anomaly * 100.0f,
 					     (float)INT16_MIN, (float)INT16_MAX));
 
-	// warn/crit pct act as feature switches: 0 disables that level.
-	// cur_min is a noise floor on top of those (default 0 = no floor).
-	const float cur_min = _param_av_thr_cur_min.get();
-	const float crit_pct = _param_av_thr_crit_pct.get();
-	const float warn_pct = _param_av_thr_warn_pct.get();
-	const bool above_min = filtered_anomaly >= cur_min;
+	const float crit_hi = _param_av_thr_cri_hi_a.get();
+	const float crit_lo = _param_av_thr_cri_lo_a.get();
+	const float warn_hi = _param_av_thr_wrn_hi_a.get();
+	const float warn_lo = _param_av_thr_wrn_lo_a.get();
 
-	if (crit_pct > 0.0f && above_min && filtered_anomaly >= predicted_current * (crit_pct / 100.0f)) {
+	if (crit_hi > 0.0f && filtered_anomaly >= crit_hi) {
 		out->anomalous_current_status = aviant_motors_s::STATE_CRITICAL;
 
-	} else if (warn_pct > 0.0f && above_min && filtered_anomaly >= predicted_current * (warn_pct / 100.0f)) {
+	} else if (crit_lo > 0.0f && filtered_anomaly <= -crit_lo) {
+		out->anomalous_current_status = aviant_motors_s::STATE_CRITICAL;
+
+	} else if (warn_hi > 0.0f && filtered_anomaly >= warn_hi) {
+		out->anomalous_current_status = aviant_motors_s::STATE_WARNING;
+
+	} else if (warn_lo > 0.0f && filtered_anomaly <= -warn_lo) {
 		out->anomalous_current_status = aviant_motors_s::STATE_WARNING;
 
 	} else {
