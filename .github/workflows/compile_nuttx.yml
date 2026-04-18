@@ -68,11 +68,11 @@ jobs:
     - name: ccache post-run
       run: ccache -s
 
-    - name: Make SITL metadata
-      run: make parameters_metadata
+    - name: Make SITL parameter metadata
+      run: make px4_sitl_default parameters_xml
 
     - name: Rename SITL parameter metadata
-      run: mv build/px4_sitl_default/docs/parameters.json px4_sitl_default__parameters.json
+      run: mv build/px4_sitl_default/parameters.json px4_sitl_default__parameters.json
 
     - name: Rename CubeOrange parameter metadata
       run: mv build/cubepilot_cubeorange_default/parameters.json cubepilot_cubeorange__parameters.json
