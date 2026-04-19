@@ -284,7 +284,9 @@ void Mission::setActiveMissionItems()
 		}
 
 	} else {
-		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);
+		// Non-position items (e.g. DO_VTOL_TRANSITION) need no special handling here.
+		// issue_command() below publishes the command and is_mission_item_reached_or_completed()
+		// waits for completion.
 	}
 
 	// Only set the previous position item if the current one really changed
@@ -422,39 +424,6 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.autocontinue = true;
 		_mission_item.time_inside = 0.0f;
-	}
-}
-
-void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
-				   size_t &num_found_items)
-{
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	/* turn towards next waypoint before MC to FW transition */
-	if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-	    && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
-	    && new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
-	    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-	    && !_land_detected_sub.get().landed
-	    && (num_found_items > 0u)) {
-
-		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
-
-		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
-
-		/* set position setpoint to target during the transition */
-		mission_item_to_position_setpoint(next_mission_items[0u], &pos_sp_triplet->current);
-	}
-
-	/* yaw is aligned now */
-	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING &&
-	    new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
-
-		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-
-		pos_sp_triplet->previous = pos_sp_triplet->current;
-		// keep current setpoints (FW position controller generates wp to track during transition)
-		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	}
 }
 

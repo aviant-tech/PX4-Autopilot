@@ -139,12 +139,6 @@ public:
 	void copy_position_if_valid(struct mission_item_s *const mission_item,
 				    const struct position_setpoint_s *const setpoint) const;
 
-	/**
-	 * Create mission item to align towards next waypoint
-	 */
-	void set_align_mission_item(struct mission_item_s *const mission_item,
-				    const struct mission_item_s *const mission_item_next) const;
-
 protected:
 	/**
 	 * @brief heading mode for setting navigation items
