@@ -47,6 +47,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/rc_channels.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/sensors_status_imu.h>
@@ -55,6 +57,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/wind.h>
+#include <systemlib/mavlink_log.h>
 
 #if CONSTRAINED_MEMORY
 # define EKF2_MAX_INSTANCES 2
@@ -231,8 +234,12 @@ private:
 	uint8_t _global_position_instance_prev{INVALID_INSTANCE};
 	uint8_t _odometry_instance_prev{INVALID_INSTANCE};
 
+	manual_control_setpoint_s _mc_input{};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
+	uORB::Subscription _manual_control_input_sub{ORB_ID(manual_control_input)};
+	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
 
 	// Publications
 	uORB::Publication<estimator_selector_status_s> _estimator_selector_status_pub{ORB_ID(estimator_selector_status)};
@@ -242,6 +249,8 @@ private:
 	uORB::Publication<vehicle_local_position_s>    _vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<vehicle_odometry_s>          _vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
 	uORB::Publication<wind_s>             _wind_pub{ORB_ID(wind)};
+
+	orb_advert_t 	_mavlink_log_pub {nullptr};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,

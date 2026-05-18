@@ -109,6 +109,16 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 
 bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 {
+	//Inform pilot so we know if it works
+	if (ekf_instance != _selected_instance && ekf_instance != 0xFF && _selected_instance != 0xFF) {
+		// Determine the name of the new source
+		const char *source_name = (_instance[ekf_instance].pos_est_group == estimator_status_s::POS_EST_GROUP_BACKUP) ?
+					  "BACKUP (TRN)" : "MAIN (GPS)";
+
+		// Send notification to GCS
+		mavlink_log_info(&_mavlink_log_pub, "Estimator changed to %s", source_name);
+	}
+
 	if ((ekf_instance != _selected_instance) && (ekf_instance < _available_instances)) {
 		// update sensor_selection immediately
 		sensor_selection_s sensor_selection{};
@@ -294,6 +304,35 @@ bool EKF2Selector::UpdateErrorScores()
 			}
 
 			float combined_test_ratio = fmaxf(0.5f * (status.vel_test_ratio + status.pos_test_ratio), status.hgt_test_ratio);
+
+			_manual_control_input_sub.update(&_mc_input);
+
+			rc_channels_s rc_channels{};
+			_rc_channels_sub.copy(&rc_channels);
+
+			bool rc_invalid = rc_channels.signal_lost || (hrt_elapsed_time(&rc_channels.timestamp) > 3_s);
+
+			if (rc_invalid) {
+				//Override if RC is invalid so we can switch to the MAIN estimator automatically
+				_mc_input.aux6 = 0.0f;
+			}
+
+			// If the RC switch assigned to AUX6 is engaged, force a switch to the BACKUP estimator by
+			// artificially inflating the MAIN estimator's combined_test_ratio. Otherwise, inflate
+			// the BACKUP estimator's ratio to ensure the MAIN estimator is selected.
+			if (_mc_input.aux6 >= 0.5f) {
+
+				if (_instance[i].pos_est_group == estimator_status_s::POS_EST_GROUP_MAIN)  {
+					combined_test_ratio += 2.0f;
+				}
+
+			} else {
+
+				if (_instance[i].pos_est_group == estimator_status_s::POS_EST_GROUP_BACKUP
+				   )  {
+					combined_test_ratio += 2.0f;
+				}
+			}
 
 			_instance[i].combined_test_ratio = combined_test_ratio;
 
