@@ -307,12 +307,11 @@ bool EKF2Selector::UpdateErrorScores()
 
 			_manual_control_input_sub.update(&_mc_input);
 
-			rc_channels_s rc_channels{};
-			_rc_channels_sub.copy(&rc_channels);
+			vehicle_status_s vehicle_status;
+			_vehicle_status_sub.copy(&vehicle_status);
 
-			bool rc_invalid = rc_channels.signal_lost || (hrt_elapsed_time(&rc_channels.timestamp) > 3_s);
+			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 
-			if (rc_invalid) {
 				//Override if RC is invalid so we can switch to the MAIN estimator automatically
 				_mc_input.aux6 = 0.0f;
 			}
