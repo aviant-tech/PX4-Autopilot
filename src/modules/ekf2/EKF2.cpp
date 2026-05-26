@@ -735,10 +735,23 @@ void EKF2::Run()
 		if ((!_ekf.global_origin_valid() && (_pos_est_flags & estimator_status_s::POS_EST_FLAG_GNSS_INIT))
 		    || (!_is_armed && (_pos_est_flags & estimator_status_s::POS_EST_FLAG_GNSS_DISARMED))
 		    || (_is_armed && (_pos_est_flags & estimator_status_s::POS_EST_FLAG_GNSS_ARMED))) {
-			UpdateGpsSample(ekf2_timestamps);
+
+			vehicle_status_s vehicle_status;
+			_status_sub.copy(&vehicle_status);
+
+			bool allow_gnss_fusion = true;
+
+			if (_pos_est_group == estimator_status_s::POS_EST_GROUP_BACKUP) {
+				allow_gnss_fusion = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			}
+
+			if (allow_gnss_fusion) {
+
+				UpdateGpsSample(ekf2_timestamps);
 # if defined(CONFIG_EKF2_GNSS_YAW)
-			updateGnssHeadingSample(ekf2_timestamps);
+				updateGnssHeadingSample(ekf2_timestamps);
 # endif //CONFIG_EKF2_GNSS_YAW
+			}
 		}
 
 #endif // CONFIG_EKF2_GNSS
