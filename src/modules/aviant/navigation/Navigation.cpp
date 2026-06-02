@@ -259,7 +259,11 @@ float Navigation::calculateMagHeading(const estimator_states_s &states, const ma
 	const matrix::Dcmf R_to_earth = math::Utilities::updateYawInRotMat(0.f, matrix::Dcmf(attitude));
 
 	// the angle of the projection onto the horizontal gives the heading angle
-	const matrix::Vector3f mag_earth_pred = R_to_earth * (debiased_mag - mag_bias);
+	//
+	// we add back the bias that was previously subtracted. otherwise the
+	// estimated bias could hide bad calibrations. the estimated bias
+	// correction is not guaranteed to be accurate in all poses.
+	const matrix::Vector3f mag_earth_pred = R_to_earth * (debiased_mag + mag_bias);
 
 	// note: we use the estimated inclination always, unlike EKF::getMagDeclination()
 	// this is for simplicity, since we expect mag to be aligned for most of the fligh
