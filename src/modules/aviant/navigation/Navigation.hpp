@@ -53,7 +53,7 @@ private:
 
 	int getEstimatorInstance();
 	bool isTimedOut(const hrt_abstime &timestamp, uint64_t timeout_interval) const;
-	static float calculateMagHeading(const estimator_states_s &states, const matrix::Vector3f &mag);
+	static float calculateMagHeading(const estimator_states_s &states, const matrix::Vector3f &debiased_mag);
 
 	static constexpr uint64_t EKF2_TOUT = 100_ms;
 	static constexpr uint64_t EKF2_SLOW_TOUT = 1100_ms; // Some EKF2 topics are published at 1 Hz
