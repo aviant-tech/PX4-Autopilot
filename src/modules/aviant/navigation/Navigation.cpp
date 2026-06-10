@@ -229,8 +229,8 @@ void Navigation::checkMagHealthy(aviant_navigation_s *out, int estimator_instanc
 		return;
 	}
 
-	const matrix::Vector3f mag{estimator_aid_src_mag.observation[0], estimator_aid_src_mag.observation[1], estimator_aid_src_mag.observation[2]};
-	out->mag_heading = calculateMagHeading(estimator_states, mag);
+	const matrix::Vector3f debiased_mag{estimator_aid_src_mag.observation[0], estimator_aid_src_mag.observation[1], estimator_aid_src_mag.observation[2]};
+	out->mag_heading = calculateMagHeading(estimator_states, debiased_mag);
 }
 
 void Navigation::checkGnssPosFused(aviant_navigation_s *out, int estimator_instance)
@@ -244,7 +244,7 @@ void Navigation::checkGnssPosFused(aviant_navigation_s *out, int estimator_insta
 	out->ekf_gnss_pos_fused_recently = !isTimedOut(estimator_aid_src_gnss_pos.time_last_fuse, GNSS_TOUT);
 }
 
-float Navigation::calculateMagHeading(const estimator_states_s &states, const matrix::Vector3f &mag)
+float Navigation::calculateMagHeading(const estimator_states_s &states, const matrix::Vector3f &debiased_mag)
 {
 	// Modelled after Ekf::resetMagHeading
 	// see state.h in EKF for state index definitions
@@ -252,14 +252,18 @@ float Navigation::calculateMagHeading(const estimator_states_s &states, const ma
 	static_assert(sizeof(states.states) / sizeof(states.states[0]) == 24,
 		      "estimator_states_s size does not match expected EKF state size");
 	matrix::Vector3f mag_I{states.states[16], states.states[17], states.states[18]};
-	matrix::Vector3f mag_B{states.states[19], states.states[20], states.states[21]};
+	matrix::Vector3f mag_bias{states.states[19], states.states[20], states.states[21]};
 	matrix::Quaternionf attitude{states.states[0], states.states[1], states.states[2], states.states[3]};
 
 	// rotate the magnetometer measurements into earth frame using a zero yaw angle
 	const matrix::Dcmf R_to_earth = math::Utilities::updateYawInRotMat(0.f, matrix::Dcmf(attitude));
 
 	// the angle of the projection onto the horizontal gives the heading angle
-	const matrix::Vector3f mag_earth_pred = R_to_earth * (mag - mag_B);
+	//
+	// we add back the bias that was previously subtracted. otherwise the
+	// estimated bias could hide bad calibrations. the estimated bias
+	// correction is not guaranteed to be accurate in all poses.
+	const matrix::Vector3f mag_earth_pred = R_to_earth * (debiased_mag + mag_bias);
 
 	// note: we use the estimated inclination always, unlike EKF::getMagDeclination()
 	// this is for simplicity, since we expect mag to be aligned for most of the fligh
