@@ -45,8 +45,8 @@ using namespace px4::logger;
 
 /*
  * `python Tools/aviant/logger_budget.py`
- * Subscriptions: 233 non-optional, 63 optional, 296 total (max 255)
- * Bandwidth: 87.849 kbps (non-optional), 181.410 kbps (all)
+ * Subscriptions: 234 non-optional, 63 optional, 297 total (max 255)
+ * Bandwidth: 87.917 kbps (non-optional), 181.478 kbps (all)
  */
 void LoggedTopics::add_default_topics()
 {
@@ -121,6 +121,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensors_status_imu", MODERATE);
 	add_optional_topic("spoilers_setpoint", SLOW);
 	add_topic("system_power", MODERATE);
+	add_topic("task_stack_info", AUTO);  // 2 Hz
 	add_topic("takeoff_status", SLOW);
 	add_topic("tecs_status", FAST);
 	add_optional_topic("tiltrotor_extra_controls", FAST);
@@ -330,8 +331,8 @@ void LoggedTopics::add_default_topics()
 
 /*
  * `python Tools/aviant/logger_budget.py --high-rate`
- * Subscriptions: 233 non-optional, 64 optional, 297 total (max 255)
- * Bandwidth: 148.640 kbps (non-optional), 254.082 kbps (all)
+ * Subscriptions: 234 non-optional, 64 optional, 298 total (max 255)
+ * Bandwidth: 148.708 kbps (non-optional), 254.150 kbps (all)
  */
 void LoggedTopics::add_high_rate_topics()
 {
@@ -370,8 +371,8 @@ void LoggedTopics::add_debug_topics()
 
 /*
  * `python Tools/aviant/logger_budget.py --ekf-replay`
- * Subscriptions: 238 non-optional, 60 optional, 298 total (max 255)
- * Bandwidth: 106.795 kbps (non-optional), 199.807 kbps (all)
+ * Subscriptions: 239 non-optional, 60 optional, 299 total (max 255)
+ * Bandwidth: 106.863 kbps (non-optional), 199.875 kbps (all)
  */
 void LoggedTopics::add_estimator_replay_topics()
 {
