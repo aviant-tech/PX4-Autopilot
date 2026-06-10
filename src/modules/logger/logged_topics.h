@@ -79,6 +79,12 @@ public:
 
 	static constexpr int MAX_EXCLUDED_OPTIONAL_TOPICS_NUM = 40;
 
+	static constexpr uint16_t AUTO = 0;      /**< Log as fast as topic updates **/
+	static constexpr uint16_t VERY_FAST = 33;    /**< 30 Hz */
+	static constexpr uint16_t FAST = 100;    /**< 10 Hz */
+	static constexpr uint16_t MODERATE = 333;    /**< 3 Hz */
+	static constexpr uint16_t SLOW = 1000;   /**< 1 Hz */
+
 	struct RequestedSubscription {
 		uint16_t interval_ms;
 		uint8_t instance;
