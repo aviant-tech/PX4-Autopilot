@@ -201,6 +201,7 @@ MissionBase::on_inactivation()
 void
 MissionBase::on_activation()
 {
+	updateMavlinkMission();
 	/* reset the current mission to the start sequence if needed.*/
 	checkMissionRestart();
 
