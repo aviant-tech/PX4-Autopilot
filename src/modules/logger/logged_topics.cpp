@@ -46,7 +46,7 @@ using namespace px4::logger;
 /*
  * `python Tools/aviant/logger_budget.py`
  * Subscriptions: 234 non-optional, 63 optional, 297 total (max 255)
- * Bandwidth: 87.917 kbps (non-optional), 181.478 kbps (all)
+ * Bandwidth: 56.861 kbps (non-optional), 150.422 kbps (all)
  */
 void LoggedTopics::add_default_topics()
 {
@@ -251,10 +251,10 @@ void LoggedTopics::add_default_topics()
 	// additional control allocation logging
 	add_topic("actuator_motors", FAST);
 	add_topic("actuator_servos", FAST);
-	add_topic("vehicle_thrust_setpoint", AUTO, 0);  // 400 Hz, Motor thrust
+	add_topic("vehicle_thrust_setpoint", VERY_FAST, 0);  // Motor thrust
 	// add_topic("vehicle_thrust_setpoint", VERY_FAST, 1);  // Servo thrust, N/A
-	add_topic("vehicle_torque_setpoint", AUTO, 0);  // 400 Hz, Motor torque
-	add_topic("vehicle_torque_setpoint", AUTO, 1);  // 400 Hz, Servo torque
+	add_topic("vehicle_torque_setpoint", VERY_FAST, 0);  // Motor torque
+	add_topic("vehicle_torque_setpoint", VERY_FAST, 1);  // Servo torque
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
@@ -372,7 +372,7 @@ void LoggedTopics::add_debug_topics()
 /*
  * `python Tools/aviant/logger_budget.py --ekf-replay`
  * Subscriptions: 239 non-optional, 60 optional, 299 total (max 255)
- * Bandwidth: 106.863 kbps (non-optional), 199.875 kbps (all)
+ * Bandwidth: 75.807 kbps (non-optional), 168.819 kbps (all)
  */
 void LoggedTopics::add_estimator_replay_topics()
 {
