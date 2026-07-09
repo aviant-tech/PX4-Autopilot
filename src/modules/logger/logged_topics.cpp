@@ -46,7 +46,7 @@ using namespace px4::logger;
 /*
  * `python Tools/aviant/logger_budget.py`
  * Subscriptions: 234 non-optional, 63 optional, 297 total (max 255)
- * Bandwidth: 56.861 kbps (non-optional), 150.422 kbps (all)
+ * Bandwidth: 57.625 kbps (non-optional), 151.186 kbps (all)
  */
 void LoggedTopics::add_default_topics()
 {
@@ -127,7 +127,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("tiltrotor_extra_controls", FAST);
 	add_topic("trajectory_setpoint", MODERATE);
 	add_topic("transponder_report", AUTO);  // ~5 Hz or on change
-	add_topic("vehicle_acceleration", MODERATE);
+	add_topic("vehicle_acceleration", VERY_FAST);
 	add_topic("vehicle_air_data", MODERATE);
 	add_topic("vehicle_angular_velocity", VERY_FAST);
 	add_topic("vehicle_attitude", FAST);
@@ -332,7 +332,7 @@ void LoggedTopics::add_default_topics()
 /*
  * `python Tools/aviant/logger_budget.py --high-rate`
  * Subscriptions: 234 non-optional, 64 optional, 298 total (max 255)
- * Bandwidth: 148.708 kbps (non-optional), 254.150 kbps (all)
+ * Bandwidth: 149.472 kbps (non-optional), 254.914 kbps (all)
  */
 void LoggedTopics::add_high_rate_topics()
 {
@@ -372,7 +372,7 @@ void LoggedTopics::add_debug_topics()
 /*
  * `python Tools/aviant/logger_budget.py --ekf-replay`
  * Subscriptions: 239 non-optional, 60 optional, 299 total (max 255)
- * Bandwidth: 75.807 kbps (non-optional), 168.819 kbps (all)
+ * Bandwidth: 76.571 kbps (non-optional), 169.583 kbps (all)
  */
 void LoggedTopics::add_estimator_replay_topics()
 {
