@@ -49,6 +49,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("aviant_navigation", 300);
 	add_topic("aviant_temperature_fc", 1000);
 	add_topic("action_request");
+	add_topic("adc_report");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
