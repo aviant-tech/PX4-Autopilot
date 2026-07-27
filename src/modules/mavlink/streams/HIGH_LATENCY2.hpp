@@ -207,6 +207,10 @@ private:
 
 				reset_analysers(t);
 
+				vehicle_status_s vehicle_status;
+				_status_sub.copy(&vehicle_status);
+				msg.custom0 = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1 : 0;
+
 				mavlink_msg_high_latency2_send_struct(_mavlink->get_channel(), &msg);
 			}
 
