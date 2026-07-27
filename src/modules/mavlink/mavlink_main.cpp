@@ -2525,21 +2525,13 @@ void Mavlink::handleStatus()
 			set_hil_enabled(vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
 			if (_mode == MAVLINK_MODE_IRIDIUM) {
+				const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+				const bool enable = (armed || _transmitting_enabled_commanded) && !vehicle_status.high_latency_data_link_lost;
 
-				if (_transmitting_enabled && (!vehicle_status.gcs_connection_lost || (vehicle_status.high_latency_data_link_lost &&
-							      !_transmitting_enabled_commanded && _first_heartbeat_sent))) {
-
-					_transmitting_enabled = false;
-					mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
-					events::send<int8_t>(events::ID("mavlink_iridium_disable"), events::Log::Info,
-							     "Disabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
-
-				} else if (!_transmitting_enabled && vehicle_status.gcs_connection_lost
-					   && !vehicle_status.high_latency_data_link_lost) {
-					_transmitting_enabled = true;
-					mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
-					events::send<int8_t>(events::ID("mavlink_iridium_enable"), events::Log::Info,
-							     "Enabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
+				if (enable != _transmitting_enabled) {
+					_transmitting_enabled = enable;
+					mavlink_log_info(&_mavlink_log_pub, "%s transmitting with IRIDIUM mavlink on device %s\t",
+							 enable ? "Enable" : "Disable", _device_name);
 				}
 			}
 		}

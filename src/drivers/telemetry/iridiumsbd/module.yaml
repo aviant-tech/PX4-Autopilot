@@ -5,7 +5,7 @@ serial_config:
         usleep 200000
         if iridiumsbd start -d ${SERIAL_DEV}
         then
-            mavlink start -d /dev/iridium -m iridium -b 115200
+            mavlink start -d /dev/iridium -m iridium -b 115200 -F 0.1
         else
             tune_control play error
         fi
