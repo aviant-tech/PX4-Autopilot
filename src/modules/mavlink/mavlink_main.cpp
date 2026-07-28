@@ -2526,7 +2526,7 @@ void Mavlink::handleStatus()
 
 			if (_mode == MAVLINK_MODE_IRIDIUM) {
 				const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-				const bool enable = (armed || _transmitting_enabled_commanded) && !vehicle_status.high_latency_data_link_lost;
+				const bool enable = armed && !vehicle_status.high_latency_data_link_lost && !vehicle_status.failsafe;
 
 				if (enable != _transmitting_enabled) {
 					_transmitting_enabled = enable;
