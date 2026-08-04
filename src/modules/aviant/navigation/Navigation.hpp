@@ -22,6 +22,8 @@
 #include <uORB/topics/estimator_aid_source3d.h>
 #include <uORB/topics/sensor_gps.h>
 
+#include <systemlib/mavlink_log.h>
+
 #include "drivers/device/device.h"
 
 namespace aviant
@@ -51,6 +53,8 @@ private:
 	void checkMagHealthy(aviant_navigation_s *out, int estimator_instance);
 	void checkBaroHealthy(aviant_navigation_s *out, int estimator_instance);
 
+	void checkMagHeadingOffset(aviant_navigation_s *out);
+
 	int getEstimatorInstance();
 	bool isTimedOut(const hrt_abstime &timestamp, uint64_t timeout_interval) const;
 	static float calculateMagHeading(const estimator_states_s &states, const matrix::Vector3f &debiased_mag);
@@ -64,6 +68,9 @@ private:
 	static constexpr uint64_t GNSS_HDG_TOUT = 500_ms;
 
 	static constexpr float INNOVATION_CHECK_FAIL_THRESHOLD = 0.5f;
+
+	static constexpr float MAG_HDG_WARN_DEG = 20.0f;
+	static constexpr float MAG_HDG_FAIL_DEG = 45.0f;
 
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID::vehicle_local_position};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID::vehicle_gps_position};
@@ -81,6 +88,12 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID::parameter_update, 1_s};
 
 	uORB::Publication<aviant_navigation_s> _aviant_navigation_pub{ORB_ID::aviant_navigation};
+
+	orb_advert_t _mavlink_log_pub{nullptr};
+
+	// Each latches true the first time its threshold is crossed, so the operator is told once.
+	bool _mag_hdg_warn_msg_sent{false};
+	bool _mag_hdg_fail_msg_sent{false};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": interval")};
