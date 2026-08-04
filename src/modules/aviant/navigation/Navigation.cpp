@@ -46,6 +46,7 @@ void Navigation::Run()
 	// Start with a clean state. Default values matches "UNKNOWN" enums.
 	aviant_navigation_s out = {};
 	out.mag_heading = NAN; // Initialize to NaN, avoid confustion with valid 0 rad heading
+	out.mag_heading_offset = NAN;
 
 	checkLocalPosition(&out);
 	checkGnssInput(&out);
@@ -231,6 +232,37 @@ void Navigation::checkMagHealthy(aviant_navigation_s *out, int estimator_instanc
 
 	const matrix::Vector3f debiased_mag{estimator_aid_src_mag.observation[0], estimator_aid_src_mag.observation[1], estimator_aid_src_mag.observation[2]};
 	out->mag_heading = calculateMagHeading(estimator_states, debiased_mag);
+
+	checkMagHeadingOffset(out);
+}
+
+void Navigation::checkMagHeadingOffset(aviant_navigation_s *out)
+{
+	if (!out->ekf_rtk_heading_used) {
+		return;
+	}
+
+	vehicle_local_position_s vehicle_local_position;
+
+	if (!_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+		return;
+	}
+
+	const float offset = matrix::wrap_pi(out->mag_heading - vehicle_local_position.heading);
+	const float offset_deg = fabsf(math::degrees(offset));
+
+	out->mag_heading_offset = offset;
+
+	if ((offset_deg > MAG_HDG_FAIL_DEG) && !_mag_hdg_fail_msg_sent) {
+		_mag_hdg_fail_msg_sent = true;
+		mavlink_log_critical(&_mavlink_log_pub, "Mag heading offset %.0f deg, limit %.0f deg\t",
+				     (double)offset_deg, (double)MAG_HDG_FAIL_DEG);
+
+	} else if ((offset_deg > MAG_HDG_WARN_DEG) && !_mag_hdg_warn_msg_sent) {
+		_mag_hdg_warn_msg_sent = true;
+		mavlink_log_warning(&_mavlink_log_pub, "Mag heading offset %.0f deg, expected below %.0f deg\t",
+				    (double)offset_deg, (double)MAG_HDG_WARN_DEG);
+	}
 }
 
 void Navigation::checkGnssPosFused(aviant_navigation_s *out, int estimator_instance)
