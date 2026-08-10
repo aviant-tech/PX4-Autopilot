@@ -127,6 +127,7 @@
 #include "streams/AVIANT_INDICATOR_MOTORS.hpp"
 #include "streams/AVIANT_INDICATOR_TEMP_FC.hpp"
 #include "streams/AVIANT_NAV.hpp"
+#include "streams/AVIANT_TRN_TEST_DATA.hpp"
 #endif // MAVLINK_ENABLED_AVIANT
 
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
@@ -529,6 +530,9 @@ static const StreamListItem streams_list[] = {
 #if defined (AVIANT_NAV_HPP)
 	create_stream_list_item<MavlinkStreamAviantNav>(),
 #endif // AVIANT_NAV_HPP
+#if defined (AVIANT_TRN_TEST_DATA_HPP)
+	create_stream_list_item<MavlinkStreamAviantTrnTestData>(),
+#endif // AVIANT_TRN_TEST_DATA_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
