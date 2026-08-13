@@ -4,6 +4,7 @@
 #include <cstdarg>
 #include <mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/events.h>
 
 namespace aviant
 {
@@ -257,11 +258,19 @@ void Navigation::checkMagHeadingOffset(aviant_navigation_s *out)
 		_mag_hdg_fail_msg_sent = true;
 		mavlink_log_critical(&_mavlink_log_pub, "Mag heading offset %.0f deg, limit %.0f deg\t",
 				     (double)offset_deg, (double)MAG_HDG_FAIL_DEG);
+		events::send<float, float>(events::ID("aviant_nav_mag_hdg_offset_fail"),
+		{events::Log::Critical, events::LogInternal::Critical},
+		"Mag heading offset {1:.0} deg, limit {2:.0} deg",
+		offset_deg, MAG_HDG_FAIL_DEG);
 
 	} else if ((offset_deg > MAG_HDG_WARN_DEG) && !_mag_hdg_warn_msg_sent) {
 		_mag_hdg_warn_msg_sent = true;
 		mavlink_log_warning(&_mavlink_log_pub, "Mag heading offset %.0f deg, expected below %.0f deg\t",
 				    (double)offset_deg, (double)MAG_HDG_WARN_DEG);
+		events::send<float, float>(events::ID("aviant_nav_mag_hdg_offset_warn"),
+		{events::Log::Warning, events::LogInternal::Warning},
+		"Mag heading offset {1:.0} deg, expected below {2:.0} deg",
+		offset_deg, MAG_HDG_WARN_DEG);
 	}
 }
 
