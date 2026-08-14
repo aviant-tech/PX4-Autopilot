@@ -254,6 +254,17 @@ void Navigation::checkMagHeadingOffset(aviant_navigation_s *out)
 
 	out->mag_heading_offset = offset;
 
+	vehicle_status_s vehicle_status;
+
+	if (!_vehicle_status_sub.copy(&vehicle_status)) {
+		return;
+	}
+
+	if (vehicle_status.gcs_connection_lost
+	    || vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		return;
+	}
+
 	if ((offset_deg > MAG_HDG_FAIL_DEG) && !_mag_hdg_fail_msg_sent) {
 		_mag_hdg_fail_msg_sent = true;
 		mavlink_log_critical(&_mavlink_log_pub, "Mag heading offset %.0f deg, limit %.0f deg\t",

@@ -14,6 +14,7 @@
 #include <uORB/topics/aviant_navigation.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_selector_status.h>
@@ -74,6 +75,7 @@ private:
 
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID::vehicle_local_position};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID::vehicle_gps_position};
+	uORB::Subscription _vehicle_status_sub{ORB_ID::vehicle_status};
 	uORB::SubscriptionMultiArray<sensor_gps_s, 2> _sensor_gps_subs{ORB_ID::sensor_gps};
 
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID::estimator_selector_status};
