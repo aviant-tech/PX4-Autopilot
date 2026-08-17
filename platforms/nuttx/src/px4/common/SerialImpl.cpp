@@ -281,14 +281,33 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 				int bytes_available = 0;
 				err = ::ioctl(_serial_fd, FIONREAD, (unsigned long)&bytes_available);
 
+				// DEBUG: high-water mark of the kernel RX ring buffer. That ring is
+				// CONFIG_USARTn_RXBUFSIZE bytes (600 on most FMUv5/v6 boards) and the GPS
+				// driver drains it 150 bytes at a time, so it is worth knowing how close
+				// to full it gets. If it ever reaches the ring size, bytes were discarded.
+				if (err == 0 && bytes_available > (int)_rx_buf_peak) {
+					_rx_buf_peak = bytes_available;
+				}
+
+
 				if (err != 0 || bytes_available < (int)character_count) {
 					px4_usleep(sleeptime);
 				}
 
-				ret = read(&buffer[total_bytes_read], buffer_size - total_bytes_read);
+				const size_t room = buffer_size - total_bytes_read;
+				ret = read(&buffer[total_bytes_read], room);
 
 				if (ret > 0) {
+					// DEBUG: filling the caller's buffer exactly means there was very
+					// likely more data queued than we had room to take this cycle.
+					if ((size_t)ret >= room) {
+						_reads_saturated++;
+					}
+
 					total_bytes_read += ret;
+
+				} else if (ret < 0) {
+					_read_errors++;
 				}
 
 			} else {
@@ -298,7 +317,31 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 		}
 	}
 
+	// DEBUG: mirror the kernel's RX overflow counter. Needs the matching NuttX patch
+	// (TIOCGRXDROP); without it this block is compiled out and _rx_dropped stays 0.
+#ifdef TIOCGRXDROP
+	uint32_t dropped = 0;
+
+	if (::ioctl(_serial_fd, TIOCGRXDROP, (unsigned long)&dropped) == 0) {
+		_rx_dropped = dropped;
+	}
+
+#endif
+
+	if (total_bytes_read == 0) {
+		_poll_timeouts++;
+	}
+
 	return total_bytes_read;
+}
+
+void SerialImpl::resetStats()
+{
+	// _rx_dropped mirrors a monotonic kernel counter, so it is deliberately left alone.
+	_rx_buf_peak = 0;
+	_reads_saturated = 0;
+	_poll_timeouts = 0;
+	_read_errors = 0;
 }
 
 ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)

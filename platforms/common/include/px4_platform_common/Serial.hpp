@@ -96,6 +96,16 @@ public:
 	bool getInvertedMode() const;
 	bool setInvertedMode(bool enable);
 
+	// DEBUG: serial RX path instrumentation. Nothing in the flight stack consumes these,
+	// they exist so that a receiver going quiet can be told apart from bytes being lost
+	// between the wire and the parser.
+	uint32_t getRxBufPeak() const;
+	uint32_t getRxDropped() const;
+	uint32_t getReadsSaturated() const;
+	uint32_t getPollTimeouts() const;
+	uint32_t getReadErrors() const;
+	void resetStats();
+
 	static bool validatePort(const char *port);
 	bool setPort(const char *port);
 	const char *getPort() const;

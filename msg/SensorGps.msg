@@ -88,4 +88,19 @@ uint8 rf_mag_q			# UBX-MON-RF magQ: magnitude of Q-part of complex signal
 int8 rf_ofs_i			# UBX-MON-RF ofsI: imbalance of I-part of complex signal
 int8 rf_ofs_q			# UBX-MON-RF ofsQ: imbalance of Q-part of complex signal
 
+# --- serial (UART) monitoring ---------------------------------------------------
+# Filled by the gps module from device::Serial and by the u-blox parser. The peak and
+# the three counters are per RATE_MEASUREMENT_PERIOD (5 s) window; uart_rx_dropped and
+# driver_resync_bytes are monotonic since the driver last (re)configured the receiver.
+
+uint32 uart_rx_dropped		# bytes discarded by the kernel because the serial RX buffer was full. Needs the NuttX TIOCGRXDROP patch, otherwise always 0
+uint32 driver_resync_bytes	# bytes the UBX parser threw away while hunting for the next 0xB5 0x62 sync pair. Non-zero means the byte stream was damaged
+
+uint16 uart_rx_buf_peak		# high-water mark of the kernel serial RX ring buffer (bytes). Compare against CONFIG_USARTn_RXBUFSIZE, 600 on most boards
+uint16 uart_reads_saturated	# read() calls that completely filled the driver's 150 byte buffer
+uint16 uart_poll_timeouts	# readAtLeast() calls that returned no data at all
+uint16 uart_read_errors		# read() calls that returned an error
+uint16 driver_sync_errors	# UBX 0xB5 not followed by 0x62, i.e. a truncated or corrupted message header
+
+
 # TOPICS sensor_gps vehicle_gps_position

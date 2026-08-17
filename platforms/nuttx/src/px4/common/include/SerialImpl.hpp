@@ -94,6 +94,16 @@ public:
 	bool getInvertedMode() const;
 	bool setInvertedMode(bool enable);
 
+	// DEBUG: serial RX path instrumentation. Nothing in the flight stack consumes these,
+	// they exist so that a receiver going quiet can be told apart from bytes being lost
+	// between the wire and the parser.
+	uint32_t getRxBufPeak() const { return _rx_buf_peak; }
+	uint32_t getRxDropped() const { return _rx_dropped; }
+	uint32_t getReadsSaturated() const { return _reads_saturated; }
+	uint32_t getPollTimeouts() const { return _poll_timeouts; }
+	uint32_t getReadErrors() const { return _read_errors; }
+	void resetStats();
+
 private:
 
 	int _serial_fd{-1};
@@ -114,6 +124,13 @@ private:
 	bool _single_wire_mode{false};
 	bool _swap_rx_tx_mode{false};
 	bool _inverted_mode{false};
+
+	// DEBUG: see the getters above
+	uint32_t _rx_buf_peak{0};	///< high-water mark of the kernel RX ring buffer, bytes
+	uint32_t _rx_dropped{0};	///< bytes the kernel discarded because that ring buffer was full
+	uint32_t _reads_saturated{0};	///< read() calls that completely filled the caller's buffer
+	uint32_t _poll_timeouts{0};	///< readAtLeast() calls that came back with nothing
+	uint32_t _read_errors{0};	///< read() calls that returned an error
 
 };
 

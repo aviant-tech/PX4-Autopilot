@@ -233,9 +233,43 @@ private:
 	uint32_t			_bytes_at_last_message{0};	///< _rx_bytes_total at the last complete position message
 
 	static constexpr hrt_abstime MSG_GAP_WARN_US{300_ms};	///< log gaps in the message stream longer than this
+	static constexpr uint32_t UART_RX_PEAK_WARN_B{256};	///< dump the serial stats when the kernel RX ring gets this full
+
+	uint32_t			_uart_damage_reported{0};	///< sum of the damage counters at the last stats dump
 
 	/// GPS1/GPS2 as they are numbered in QGC and in sensor_gps instances
 	const char *instanceName() const { return _instance == Instance::Main ? "GPS1" : "GPS2"; }
+
+	/**
+	 * DEBUG: dump the state of the serial RX path and of the UBX framing.
+	 *
+	 * Split over two prints on purpose: PX4 log messages are truncated at 127 characters.
+	 *
+	 *  - "kernel dropped" > 0 means the NuttX RX ring buffer overflowed and bytes were
+	 *    thrown away before the driver ever saw them. Needs the NuttX TIOCGRXDROP patch;
+	 *    without it this always reads 0 and "ring peak" is the thing to watch instead.
+	 *  - "ring peak" close to CONFIG_USARTn_RXBUFSIZE (600 on this board) means the driver
+	 *    is not draining the port fast enough.
+	 *  - "ubx resync" > 0 means bytes arrived that were not part of any recognised message,
+	 *    i.e. the byte stream was damaged somewhere. It stays at 0 on a healthy link.
+	 */
+	void printUartStats(const char *why)
+	{
+		if (_interface == GPSHelper::Interface::UART) {
+			PX4_WARN("%s %s: ring peak %lu B, kernel dropped %lu B, full reads %lu, empty polls %lu, rd err %lu",
+				 instanceName(), why,
+				 (unsigned long)_uart.getRxBufPeak(), (unsigned long)_uart.getRxDropped(),
+				 (unsigned long)_uart.getReadsSaturated(), (unsigned long)_uart.getPollTimeouts(),
+				 (unsigned long)_uart.getReadErrors());
+		}
+
+		PX4_WARN("%s %s: ubx resync %lu B, sync err %lu, cksum err %lu, rx %lu B",
+			 instanceName(), why,
+			 (unsigned long)_report_gps_pos.driver_resync_bytes,
+			 (unsigned long)_report_gps_pos.driver_sync_errors,
+			 (unsigned long)_report_gps_pos.driver_ck_errors,
+			 (unsigned long)_rx_bytes_total);
+	}
 
 	/**
 	 * Publish the gps struct
@@ -1011,10 +1045,16 @@ GPS::run()
 
 					_report_gps_pos.driver_msg_gap_ms = (gap / 1000 > UINT16_MAX) ? UINT16_MAX : gap / 1000;
 					_report_gps_pos.driver_rx_bytes = _rx_bytes_total;
+					_report_gps_pos.uart_rx_dropped = _uart.getRxDropped();
+					_report_gps_pos.uart_rx_buf_peak = (uint16_t)math::min(_uart.getRxBufPeak(), (uint32_t)UINT16_MAX);
+					_report_gps_pos.uart_reads_saturated = (uint16_t)math::min(_uart.getReadsSaturated(), (uint32_t)UINT16_MAX);
+					_report_gps_pos.uart_poll_timeouts = (uint16_t)math::min(_uart.getPollTimeouts(), (uint32_t)UINT16_MAX);
+					_report_gps_pos.uart_read_errors = (uint16_t)math::min(_uart.getReadErrors(), (uint32_t)UINT16_MAX);
 
 					if (_last_message_time != 0 && gap > MSG_GAP_WARN_US) {
 						PX4_WARN("%s: %llu ms gap in position messages, %lu bytes read during the gap",
 							 instanceName(), (unsigned long long)(gap / 1000), (unsigned long)bytes_in_gap);
+						printUartStats("gap");
 					}
 
 					_last_message_time = now;
@@ -1093,6 +1133,23 @@ GPS::run()
 					_num_bytes_read = 0;
 					_helper->storeUpdateRates();
 					_helper->resetUpdateRates();
+
+					// DEBUG: serial RX path summary. Only dumped when one of the damage counters
+					// moved, or a read failed, or the RX ring got worryingly full - so a healthy
+					// link stays quiet in the log.
+					const uint32_t damage = _uart.getRxDropped()
+								+ _report_gps_pos.driver_resync_bytes
+								+ _report_gps_pos.driver_sync_errors
+								+ _report_gps_pos.driver_ck_errors;
+
+					if ((damage != _uart_damage_reported)
+					    || (_uart.getReadErrors() > 0)
+					    || (_uart.getRxBufPeak() >= UART_RX_PEAK_WARN_B)) {
+						printUartStats("5s");
+						_uart_damage_reported = damage;
+					}
+
+					_uart.resetStats();
 				}
 
 				if (!_healthy) {
@@ -1130,6 +1187,7 @@ GPS::run()
 					 instanceName(), helper_ret,
 					 (unsigned long long)((hrt_absolute_time() - _last_message_time) / 1000),
 					 (unsigned long)(_rx_bytes_total - _bytes_at_last_message));
+				printUartStats("reset");
 			}
 
 			if (_healthy) {

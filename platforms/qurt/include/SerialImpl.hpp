@@ -93,6 +93,14 @@ public:
 	bool getInvertedMode() const;
 	bool setInvertedMode(bool enable);
 
+	// DEBUG: serial RX path instrumentation, only implemented on NuttX.
+	uint32_t getRxBufPeak() const { return 0; }
+	uint32_t getRxDropped() const { return 0; }
+	uint32_t getReadsSaturated() const { return 0; }
+	uint32_t getPollTimeouts() const { return 0; }
+	uint32_t getReadErrors() const { return 0; }
+	void resetStats() {}
+
 private:
 
 	int _serial_fd{-1};

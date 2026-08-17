@@ -167,6 +167,38 @@ bool Serial::setInvertedMode(bool enable)
 	return _impl.setInvertedMode(enable);
 }
 
+// DEBUG: serial RX path instrumentation
+uint32_t Serial::getRxBufPeak() const
+{
+	return _impl.getRxBufPeak();
+}
+
+uint32_t Serial::getRxDropped() const
+{
+	return _impl.getRxDropped();
+}
+
+uint32_t Serial::getReadsSaturated() const
+{
+	return _impl.getReadsSaturated();
+}
+
+uint32_t Serial::getPollTimeouts() const
+{
+	return _impl.getPollTimeouts();
+}
+
+uint32_t Serial::getReadErrors() const
+{
+	return _impl.getReadErrors();
+}
+
+void Serial::resetStats()
+{
+	_impl.resetStats();
+}
+
+
 const char *Serial::getPort() const
 {
 	return _impl.getPort();
