@@ -227,6 +227,16 @@ private:
 	bool _rover_used_for_position{false};
 	hrt_abstime _rover_allowed_return_to_rover_mode_at{0};
 
+	// DEBUG: timing of the receiver -> autopilot message stream
+	hrt_abstime			_last_message_time{0};		///< when the last complete position message was decoded
+	uint32_t			_rx_bytes_total{0};		///< bytes read since the last (re)configuration
+	uint32_t			_bytes_at_last_message{0};	///< _rx_bytes_total at the last complete position message
+
+	static constexpr hrt_abstime MSG_GAP_WARN_US{300_ms};	///< log gaps in the message stream longer than this
+
+	/// GPS1/GPS2 as they are numbered in QGC and in sensor_gps instances
+	const char *instanceName() const { return _instance == Instance::Main ? "GPS1" : "GPS2"; }
+
 	/**
 	 * Publish the gps struct
 	 */
@@ -407,6 +417,7 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 			int num_read = gps->pollOrRead((uint8_t *)data1, data2, timeout);
 
 			if (num_read > 0) {
+				gps->_rx_bytes_total += num_read;
 				gps->dumpGpsData((uint8_t *)data1, (size_t)num_read, gps_dump_comm_mode_t::Full, false);
 			}
 
@@ -481,6 +492,10 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 	if (_interface == GPSHelper::Interface::UART) {
 		ret = _uart.readAtLeast(buf, buf_length, math::min(character_count, buf_length), timeout_adjusted);
+
+		if (ret > 0) {
+			_num_bytes_read += ret;
+		}
 
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
@@ -923,12 +938,22 @@ GPS::run()
 
 		gpsConfig.interface_protocols = static_cast<GPSHelper::InterfaceProtocolsMask>(gps_ubx_cfg_intf);
 
+		const hrt_abstime configure_started = hrt_absolute_time();
+
 		if (_helper && _helper->configure(_baudrate, gpsConfig) == 0) {
+
+			PX4_INFO("%s: configure() succeeded after %llu ms at %lu baud", instanceName(),
+				 (unsigned long long)((hrt_absolute_time() - configure_started) / 1000),
+				 (unsigned long)_baudrate);
 
 			/* reset report */
 			memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
 			_report_gps_pos.heading = NAN;
 			_report_gps_pos.heading_offset = heading_offset;
+
+			_rx_bytes_total = 0;
+			_bytes_at_last_message = 0;
+			_last_message_time = hrt_absolute_time();
 
 			if (_mode == gps_driver_mode_t::UBX) {
 
@@ -980,6 +1005,21 @@ GPS::run()
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
 
 				if (helper_ret & 1) {
+					const hrt_abstime now = hrt_absolute_time();
+					const hrt_abstime gap = now - _last_message_time;
+					const uint32_t bytes_in_gap = _rx_bytes_total - _bytes_at_last_message;
+
+					_report_gps_pos.driver_msg_gap_ms = (gap / 1000 > UINT16_MAX) ? UINT16_MAX : gap / 1000;
+					_report_gps_pos.driver_rx_bytes = _rx_bytes_total;
+
+					if (_last_message_time != 0 && gap > MSG_GAP_WARN_US) {
+						PX4_WARN("%s: %llu ms gap in position messages, %lu bytes read during the gap",
+							 instanceName(), (unsigned long long)(gap / 1000), (unsigned long)bytes_in_gap);
+					}
+
+					_last_message_time = now;
+					_bytes_at_last_message = _rx_bytes_total;
+
 					publish();
 
 					last_rate_count++;
@@ -1001,6 +1041,15 @@ GPS::run()
 					if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 						// Check if this GPS instance is used as position source
 						if (vehicle_gps_position.device_id  == get_device_id()) {
+							if (!_rover_used_for_position) {
+								PX4_WARN("%s: selected as position source (fix %d, sats %d, eph %.2f, epv %.2f, sacc %.2f, sample %llu us old)",
+									 instanceName(), (int)vehicle_gps_position.fix_type,
+									 (int)vehicle_gps_position.satellites_used,
+									 (double)vehicle_gps_position.eph, (double)vehicle_gps_position.epv,
+									 (double)vehicle_gps_position.s_variance_m_s,
+									 (unsigned long long)(hrt_absolute_time() - vehicle_gps_position.timestamp));
+							}
+
 							_rover_used_for_position = true;
 							_rover_allowed_return_to_rover_mode_at = hrt_absolute_time() + ubx_mbr_fb_hysteresis_us;
 
@@ -1011,7 +1060,11 @@ GPS::run()
 
 					if (_rover_used_for_position && !_rover_temporarily_in_normal_mode) {
 						PX4_WARN("Rover receiver used as position source. Reconfiguring to normal mode.");
-						_helper->disableUbxMBRover();
+						const hrt_abstime disable_started = hrt_absolute_time();
+						const bool disable_ok = _helper->disableUbxMBRover();
+						PX4_WARN("%s: disableUbxMBRover()=%d after %llu ms (this soft-resets the receiver's position solution)",
+							 instanceName(), (int)disable_ok,
+							 (unsigned long long)((hrt_absolute_time() - disable_started) / 1000));
 						_rover_temporarily_in_normal_mode = true;
 					}
 
@@ -1019,7 +1072,11 @@ GPS::run()
 					    && _rover_temporarily_in_normal_mode
 					    && hrt_absolute_time() > _rover_allowed_return_to_rover_mode_at) {
 						PX4_WARN("Rover receiver no longer used as position source. Reconfiguring to rover mode.");
-						_helper->enableUbxMBRover();
+						const hrt_abstime enable_started = hrt_absolute_time();
+						const bool enable_ok = _helper->enableUbxMBRover();
+						PX4_WARN("%s: enableUbxMBRover()=%d after %llu ms (this soft-resets the receiver's position solution)",
+							 instanceName(), (int)enable_ok,
+							 (unsigned long long)((hrt_absolute_time() - enable_started) / 1000));
 						_rover_temporarily_in_normal_mode = false;
 					}
 				}
@@ -1066,6 +1123,13 @@ GPS::run()
 //						PX4_WARN("module found: %s", mode_str);
 					_healthy = true;
 				}
+			}
+
+			if (!should_exit()) {
+				PX4_WARN("%s: receive() returned %d, %llu ms since the last position message, %lu bytes read in that window. Resetting driver.",
+					 instanceName(), helper_ret,
+					 (unsigned long long)((hrt_absolute_time() - _last_message_time) / 1000),
+					 (unsigned long)(_rx_bytes_total - _bytes_at_last_message));
 			}
 
 			if (_healthy) {

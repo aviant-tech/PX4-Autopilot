@@ -10,6 +10,10 @@
 #ifdef UNIT_TEST
 #undef PX4_ERR
 #define PX4_ERR(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
+#undef PX4_WARN
+#define PX4_WARN(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
+#undef PX4_INFO
+#define PX4_INFO(fmt, ...) printf(fmt "\n", ##__VA_ARGS__)
 #endif
 
 using namespace time_literals;
@@ -58,6 +62,19 @@ public:
 		_primary_instance = instance;
 	}
 
+	/**
+	 * Why a receiver was considered unhealthy by the last updateHealth() call.
+	 * Bitmask, logged on every failover so the trigger is unambiguous in the flight log.
+	 */
+	enum HealthFlags : uint8_t {
+		HEALTH_NO_DATA		= 1 << 0,	///< nothing ever received from this receiver
+		HEALTH_FIX_TYPE		= 1 << 1,	///< fix_type < 3
+		HEALTH_EPH		= 1 << 2,	///< horizontal accuracy worse than the threshold
+		HEALTH_EPV		= 1 << 3,	///< vertical accuracy worse than the threshold
+		HEALTH_SPEED_ACC	= 1 << 4,	///< speed accuracy worse than the threshold
+		HEALTH_MSG_TIMEOUT	= 1 << 5,	///< no message within SENS_GPS_TOUT
+	};
+
 	static constexpr int GNSS_MAX_RECEIVERS = 2;
 private:
 	struct GnssState {
@@ -67,6 +84,7 @@ private:
 		// health/selection bookkeeping
 		bool is_healthy{false};
 		uint64_t last_unhealthy_us{0};
+		uint8_t unhealthy_reason{0};	///< HealthFlags bitmask from the last updateHealth() call
 	};
 
 	void updateHealth(GnssState &gnss, hrt_abstime now_us);

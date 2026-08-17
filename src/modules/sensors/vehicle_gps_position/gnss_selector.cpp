@@ -36,6 +36,14 @@ void GnssSelector::update(hrt_abstime now_us)
 			// Switch to secondary if primary is unhealthy
 			// We specifically don't check for health, since if the primary is an MB Rover,
 			// its message rate may be lower than expected until we switch.
+			const GnssState &p = _receiver_state[_primary_instance];
+			PX4_WARN("GNSS failover: primary instance %d unhealthy (reason 0x%02x), selecting instance %d."
+				 " last msg %llu us ago, fix %d, sats %d, eph %.2f, epv %.2f, sacc %.2f",
+				 _primary_instance, (unsigned)p.unhealthy_reason, secondary_instance,
+				 (unsigned long long)(now_us - p.gnss_data.timestamp),
+				 (int)p.gnss_data.fix_type, (int)p.gnss_data.satellites_used,
+				 (double)p.gnss_data.eph, (double)p.gnss_data.epv, (double)p.gnss_data.s_variance_m_s);
+
 			_selected = secondary_instance;
 		}
 
@@ -53,6 +61,10 @@ void GnssSelector::update(hrt_abstime now_us)
 			// when reconfiguring the secondary instance.
 
 			if (now_us - _receiver_state[_primary_instance].last_unhealthy_us >= _hysteresis_us) {
+				PX4_INFO("GNSS failover: primary instance %d healthy for %llu ms, switching back",
+					 _primary_instance,
+					 (unsigned long long)((now_us - _receiver_state[_primary_instance].last_unhealthy_us) / 1000));
+
 				_selected = _primary_instance;
 			}
 
@@ -68,9 +80,11 @@ void GnssSelector::update(hrt_abstime now_us)
 void GnssSelector::updateHealth(GnssState &gnss, uint64_t now_us)
 {
 	bool check_failed{false};
+	gnss.unhealthy_reason = 0;
 
 	if (gnss.gnss_data.timestamp == 0) {
 		check_failed = true;
+		gnss.unhealthy_reason |= HEALTH_NO_DATA;
 	}
 
 	// Mirror checks from Ekf::runSimplifiedGnssChecks, but with lower thresholds.
@@ -84,16 +98,29 @@ void GnssSelector::updateHealth(GnssState &gnss, uint64_t now_us)
 	// Speed variance appears to be a particularly good early indicator, trigering within 1 seconds of the first
 	// signs of discrepancy between primary and secondary.
 
-	if ((gnss.gnss_data.fix_type < 3) ||
-	    (gnss.gnss_data.eph > 5.f) || // = hacc
-	    (gnss.gnss_data.epv > 8.f) || // = vacc
-	    (gnss.gnss_data.s_variance_m_s > 1.f) // = sacc
-	   ) {
+	if (gnss.gnss_data.fix_type < 3) {
 		check_failed = true;
+		gnss.unhealthy_reason |= HEALTH_FIX_TYPE;
+	}
+
+	if (gnss.gnss_data.eph > 5.f) { // = hacc
+		check_failed = true;
+		gnss.unhealthy_reason |= HEALTH_EPH;
+	}
+
+	if (gnss.gnss_data.epv > 8.f) { // = vacc
+		check_failed = true;
+		gnss.unhealthy_reason |= HEALTH_EPV;
+	}
+
+	if (gnss.gnss_data.s_variance_m_s > 1.f) { // = sacc
+		check_failed = true;
+		gnss.unhealthy_reason |= HEALTH_SPEED_ACC;
 	}
 
 	if (now_us - gnss.gnss_data.timestamp >= _msg_timeout_us) {
 		check_failed = true;
+		gnss.unhealthy_reason |= HEALTH_MSG_TIMEOUT;
 	}
 
 
