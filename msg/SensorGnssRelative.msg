@@ -28,3 +28,12 @@ bool reference_position_miss      # extrapolated reference position was used to 
 bool reference_observations_miss  # extrapolated reference observations were used to compute moving base solution this epoch
 bool heading_valid
 bool relative_position_normalized # the components of the relative position vector (including the high-precision parts) are normalized
+
+# --- moving-baseline cross-link monitoring --------------------------------------
+# reference_observations_miss / reference_position_miss above are per-epoch booleans. At
+# any throttled logging rate a single missed epoch is invisible, so count them as well.
+
+uint32 reference_observations_miss_count  # monotonic count of epochs that had to use extrapolated reference observations, i.e. fresh RTCM from the moving base did not arrive in time
+uint32 reference_position_miss_count      # monotonic count of epochs that had to use an extrapolated reference position
+
+uint16 msg_gap_ms                         # time since the previous NAV-RELPOSNED (ms), nominally 125 at 8 Hz

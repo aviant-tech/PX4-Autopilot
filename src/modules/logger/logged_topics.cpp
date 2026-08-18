@@ -222,7 +222,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("sensor_accel", 1000, 4);
 	add_optional_topic_multi("sensor_baro", 1000, 4);
 	add_topic_multi("sensor_gps", 0, 2);	// DEBUG: unthrottled - at 1 Hz per-receiver dropouts are invisible
-	add_topic_multi("sensor_gnss_relative", 1000, 1);
+	add_topic_multi("sensor_gnss_relative", 0, 1);	// DEBUG: unthrottled, NAV-RELPOSNED arrives at 8 Hz and a 1 Hz sample cannot resolve a missed epoch
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("sensor_optical_flow", 1000, 2);

@@ -103,4 +103,35 @@ uint16 uart_read_errors		# read() calls that returned an error
 uint16 driver_sync_errors	# UBX 0xB5 not followed by 0x62, i.e. a truncated or corrupted message header
 
 
+# --- moving-baseline cross-link monitoring --------------------------------------
+# The moving base sends RTCM straight to the rover over a direct receiver-to-receiver UART2
+# link that never passes through the autopilot, so none of the counters above can see it.
+# These fields watch that link from both ends: what the rover reports receiving
+# (UBX-RXM-RTCM) and what each receiver reports moving through its own UART2 port
+# (UBX-MON-COMMS). Comparing the base's crosslink_tx_bytes against the rover's
+# crosslink_rx_bytes measures loss on the wire itself.
+
+uint32 rtcm_msgs_received	# monotonic count of RTCM frames this receiver decoded. On the moving-baseline rover these are the frames arriving from the moving base
+uint32 rtcm_crc_errors		# monotonic count of RTCM frames that failed CRC. rtcm_crc_failed above is a single bool that is overwritten several times a second and can never be sampled reliably
+uint32 crosslink_tx_bytes	# UBX-MON-COMMS txBytes for this receiver's UART2 port: on the moving base, RTCM actually pushed towards the rover
+uint32 crosslink_rx_bytes	# UBX-MON-COMMS rxBytes for the same port: on the rover, bytes actually arriving from the moving base
+uint32 crosslink_skipped_bytes	# UBX-MON-COMMS skipped: bytes received on that port and thrown away because they matched no enabled protocol, i.e. corrupted RTCM framing
+
+uint16 rtcm_age_ms		# time since the last RTCM frame was decoded (ms), i.e. age of the moving-base corrections. Nominally below 125 ms at the 8 Hz moving-baseline rate. Counted from the end of configuration while no frame has arrived yet
+uint16 rtcm_age_peak_ms		# worst rtcm_age_ms since boot: one number per flight for the longest cross-link outage
+uint16 crosslink_overrun_errors	# UBX-MON-COMMS overrunErrs for that port: the receiver's own UART2 receive buffer overflowed
+uint16 crosslink_port_id	# UBX-MON-COMMS portId the crosslink_* fields came from. 0 = MON-COMMS never arrived, 65535 = it did but reported no UART2 port
+
+uint8 rtcm_types_seen		# bitmask of the RTCM types decoded in the last second, see RTCM_SEEN_* below. A bit that stops being set means the base stopped sending that type
+uint8 crosslink_tx_peak_usage	# UBX-MON-COMMS txPeakUsage (percent) for that port
+uint8 crosslink_rx_peak_usage	# UBX-MON-COMMS rxPeakUsage (percent) for that port
+
+uint8 RTCM_SEEN_1074 = 1	# GPS MSM4
+uint8 RTCM_SEEN_1084 = 2	# GLONASS MSM4
+uint8 RTCM_SEEN_1094 = 4	# Galileo MSM4
+uint8 RTCM_SEEN_1124 = 8	# BeiDou MSM4
+uint8 RTCM_SEEN_1230 = 16	# GLONASS code-phase biases
+uint8 RTCM_SEEN_4072 = 32	# u-blox proprietary reference station message. The moving-baseline solution depends on this one
+uint8 RTCM_SEEN_OTHER = 64	# any other type, e.g. a static base stream injected by the autopilot
+
 # TOPICS sensor_gps vehicle_gps_position
