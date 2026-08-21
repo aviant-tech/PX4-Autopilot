@@ -49,7 +49,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("aviant_navigation", 300);
 	add_topic("aviant_temperature_fc", 1000);
 	add_topic("action_request");
-	add_topic("adc_report");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
@@ -145,6 +144,8 @@ void LoggedTopics::add_default_topics()
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
+	// internal board_adc (instance 0) + external ads1115 (instance 1)
+	add_topic_multi("adc_report", 0, 2);
 	add_optional_topic_multi("airspeed_wind", 1000, 4);
 	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
