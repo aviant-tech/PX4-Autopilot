@@ -4,6 +4,13 @@
 #------------------------------------------------------------------------------
 board_adc start
 
+if param compare -s ADC_ADS1115_EN 1
+then
+	# board_adc starts first and is a single-instance advertiser, so it keeps
+	# adc_report instance 0. No '-n' here, or that would hand 0 to the ADS1115.
+	ads1115 start -X
+fi
+
 # SPI4
 ms5611 -s -b 4 start
 icm20602 -s -b 4 -R 12 start
