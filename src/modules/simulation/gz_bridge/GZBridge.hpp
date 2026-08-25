@@ -152,7 +152,7 @@ private:
 	const std::string _model_sim;
 	const std::string _model_pose;
 
-	float _temperature{288.15};  // 15 degrees
+	float _temperature{15.0f}; // ambient temperature in degrees Celsius (sensor_baro.temperature is Celsius; 288.15 K here inflated rho computation by 2x)
 
 	gz::transport::Node _node;
 };
