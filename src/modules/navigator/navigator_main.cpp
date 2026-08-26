@@ -916,7 +916,10 @@ void Navigator::run()
 
 		if (_pos_sp_triplet_updated) {
 
-			if (!_pos_sp_triplet.previous.valid &&
+			const bool on_landing_waypoint = _pos_sp_triplet.next.valid
+							 && (_pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+
+			if (!_pos_sp_triplet.previous.valid && !on_landing_waypoint &&
 			    (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)) {
 
 				bool is_previous_setpoint = (_mission_result.seq_current == _mission_result.seq_previous + 1);
