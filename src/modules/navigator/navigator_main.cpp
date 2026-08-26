@@ -919,12 +919,15 @@ void Navigator::run()
 			const bool on_landing_waypoint = _pos_sp_triplet.next.valid
 							 && (_pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
 
+			const bool leaving_loiter = (_published_current_setpoint_type == position_setpoint_s::SETPOINT_TYPE_LOITER);
+
 			if (!_pos_sp_triplet.previous.valid && !on_landing_waypoint &&
 			    (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)) {
 
 				bool is_previous_setpoint = (_mission_result.seq_current == _mission_result.seq_previous + 1);
 
 				if (is_previous_setpoint &&
+				    !leaving_loiter &&
 				    _last_valid_previous_setpoint.valid &&
 				    (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)) {
 					_pos_sp_triplet.previous = _last_valid_previous_setpoint;
@@ -940,6 +943,10 @@ void Navigator::run()
 			}
 
 			publish_position_setpoint_triplet();
+
+			if (_pos_sp_triplet.current.valid) {
+				_published_current_setpoint_type = _pos_sp_triplet.current.type;
+			}
 		}
 
 		if (_mission_result_updated) {
