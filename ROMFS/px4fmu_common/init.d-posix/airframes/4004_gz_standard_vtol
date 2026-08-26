@@ -103,16 +103,16 @@ param set-default MPC_XY_VEL_D_ACC 0.1
 param set-default NAV_ACC_RAD 5
 
 param set-default VT_FWD_THRUST_EN 4
-param set-default VT_F_TRANS_THR 0.75
+param set-default VT_F_TRANS_THR 0.4
 param set-default VT_TYPE 2
-param set-default VT_F_TRANS_THR 0.40
+param set-default VT_F_TRANS_THR 0.4
 param set-default VT_ARSP_TAU 0.3
 param set-default VT_ARSP_TRANS 12
 param set-default VT_FW_QC_R 60
 param set-default FD_ESCS_EN 0
 param set-default FW_R_LIM 40
-param set-default FW_RR_P 0.15
-param set-default FW_PR_P 0.15
-param set-default FW_PR_FF 0.1
+param set-default FW_RR_P 0.3
+param set-default FW_PR_P 0.9
+param set-default FW_PR_FF 0.2
 param set-default VT_FW_QC_P 55
-param set-default NPFG_PERIOD 18
+param set-default NPFG_PERIOD 12
