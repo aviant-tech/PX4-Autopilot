@@ -72,6 +72,7 @@ private:
 
 	static constexpr float MAG_HDG_WARN_DEG = 20.0f;
 	static constexpr float MAG_HDG_FAIL_DEG = 45.0f;
+	static constexpr uint8_t MAG_HDG_DEBOUNCE_CYCLES = 10;
 
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID::vehicle_local_position};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID::vehicle_gps_position};
@@ -96,6 +97,10 @@ private:
 	// Each latches true the first time its threshold is crossed, so the operator is told once.
 	bool _mag_hdg_warn_msg_sent{false};
 	bool _mag_hdg_fail_msg_sent{false};
+	bool _mag_hdg_reporting_muted{false};
+	bool _vehicle_at_rest{false};
+	uint8_t _mag_hdg_warn_count{0};
+	uint8_t _mag_hdg_fail_count{0};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME ": cycle")};
 	perf_counter_t _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME ": interval")};

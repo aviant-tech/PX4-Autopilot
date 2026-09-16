@@ -60,6 +60,7 @@ void Navigation::Run()
 		checkGnssPosFused(&out, ekf_idx);
 		checkMagHealthy(&out, ekf_idx);
 		checkBaroHealthy(&out, ekf_idx);
+		checkMagHeadingOffset(&out);
 
 	} else {
 		// No valid EKF instance
@@ -180,10 +181,12 @@ void Navigation::checkRtkHeadingUsed(aviant_navigation_s *out, int estimator_ins
 
 	if (!_estimator_status_flags_subs[estimator_instance].copy(&estimator_status_flags)
 	    || isTimedOut(estimator_status_flags.timestamp, EKF2_SLOW_TOUT)) {
+		_vehicle_at_rest = false;
 		return;
 	}
 
 	out->ekf_rtk_heading_used = estimator_status_flags.cs_gps_yaw;
+	_vehicle_at_rest = estimator_status_flags.cs_vehicle_at_rest;
 }
 
 void Navigation::checkBaroHealthy(aviant_navigation_s *out, int estimator_instance)
@@ -233,13 +236,13 @@ void Navigation::checkMagHealthy(aviant_navigation_s *out, int estimator_instanc
 
 	const matrix::Vector3f debiased_mag{estimator_aid_src_mag.observation[0], estimator_aid_src_mag.observation[1], estimator_aid_src_mag.observation[2]};
 	out->mag_heading = calculateMagHeading(estimator_states, debiased_mag);
-
-	checkMagHeadingOffset(out);
 }
 
 void Navigation::checkMagHeadingOffset(aviant_navigation_s *out)
 {
-	if (!out->ekf_rtk_heading_used) {
+	if (!out->ekf_rtk_heading_used || !PX4_ISFINITE(out->mag_heading)) {
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
 		return;
 	}
 
@@ -254,20 +257,58 @@ void Navigation::checkMagHeadingOffset(aviant_navigation_s *out)
 
 	out->mag_heading_offset = offset;
 
+	// This is a pre-flight check. Once the vehicle has armed we stop reporting for the rest
+	// of the boot, including after landing and disarming.
+	if (_mag_hdg_reporting_muted) {
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
+		return;
+	}
+
 	vehicle_status_s vehicle_status;
 
 	if (!_vehicle_status_sub.copy(&vehicle_status)) {
 		return;
 	}
 
-	if (vehicle_status.gcs_connection_lost
-	    || vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		_mag_hdg_reporting_muted = true;
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
 		return;
+	}
+
+	if (vehicle_status.gcs_connection_lost) {
+		return;
+	}
+
+	if (!_vehicle_at_rest) {
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
+		return;
+	}
+
+	if (offset_deg > MAG_HDG_WARN_DEG) {
+		if (_mag_hdg_warn_count < MAG_HDG_DEBOUNCE_CYCLES) {
+			_mag_hdg_warn_count++;
+		}
+
+	} else {
+		_mag_hdg_warn_count = 0;
+	}
+
+	if (offset_deg > MAG_HDG_FAIL_DEG) {
+		if (_mag_hdg_fail_count < MAG_HDG_DEBOUNCE_CYCLES) {
+			_mag_hdg_fail_count++;
+		}
+
+	} else {
+		_mag_hdg_fail_count = 0;
 	}
 
 	const int offset_rounded = (int)roundf(offset_deg);
 
-	if ((offset_deg > MAG_HDG_FAIL_DEG) && !_mag_hdg_fail_msg_sent) {
+	if ((_mag_hdg_fail_count >= MAG_HDG_DEBOUNCE_CYCLES) && !_mag_hdg_fail_msg_sent) {
 		_mag_hdg_fail_msg_sent = true;
 		mavlink_log_critical(&_mavlink_log_pub, "Mag heading offset %d deg, limit %d deg\t",
 				     offset_rounded, (int)MAG_HDG_FAIL_DEG);
@@ -276,7 +317,7 @@ void Navigation::checkMagHeadingOffset(aviant_navigation_s *out)
 		"Mag heading offset {1:.0} deg, limit {2:.0} deg",
 		offset_deg, MAG_HDG_FAIL_DEG);
 
-	} else if ((offset_deg > MAG_HDG_WARN_DEG) && !_mag_hdg_warn_msg_sent) {
+	} else if ((_mag_hdg_warn_count >= MAG_HDG_DEBOUNCE_CYCLES) && !_mag_hdg_warn_msg_sent) {
 		_mag_hdg_warn_msg_sent = true;
 		mavlink_log_warning(&_mavlink_log_pub, "Mag heading offset %d deg, expected below %d deg\t",
 				    offset_rounded, (int)MAG_HDG_WARN_DEG);
