@@ -740,6 +740,9 @@ private:
 		_param_ekf2_abl_tau,	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
 
 		(ParamExtFloat<px4::params::EKF2_GYR_B_LIM>) _param_ekf2_gyr_b_lim,	///< Gyro bias learning limit (rad/s)
+		(ParamExtFloat<px4::params::EKF2_GBZ_LIM>) _param_ekf2_gbz_lim,
+		(ParamExtFloat<px4::params::EKF2_GBZ_CTR_RT>) _param_ekf2_gbz_ctr_rt,
+		(ParamExtFloat<px4::params::EKF2_GBZ_CTR_YR>) _param_ekf2_gbz_ctr_yr,
 
 		// output predictor filter time constants
 		(ParamFloat<px4::params::EKF2_TAU_VEL>) _param_ekf2_tau_vel,

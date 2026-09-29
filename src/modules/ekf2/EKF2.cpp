@@ -214,7 +214,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
 	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
-	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim)
+	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
+	_param_ekf2_gbz_lim(_params->gyro_bias_z_lim),
+	_param_ekf2_gbz_ctr_rt(_params->gyro_bias_z_center_rate),
+	_param_ekf2_gbz_ctr_yr(_params->gyro_bias_z_center_hold_rate)
 {
 	// advertise expected minimal topic set immediately to ensure logging
 	_attitude_pub.advertise();

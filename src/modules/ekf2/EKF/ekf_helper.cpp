@@ -771,6 +771,27 @@ void Ekf::resetWindCov()
 }
 #endif // CONFIG_EKF2_WIND
 
+void Ekf::limitGyroBiasZ(const imuSample &imu_delayed)
+{
+	const float dt = math::max(imu_delayed.delta_ang_dt, 1e-4f);
+	_body_z_rate_lpf.setParameters(dt, 2.f);
+	_body_z_rate_lpf.update(fabsf(imu_delayed.delta_ang(2)) / dt);
+
+	if (!_control_status.flags.in_air) {
+		_gyro_bias_z_center = _state.gyro_bias(2);
+		return;
+	}
+
+	// the center follows real bias changes slowly, but is held in turns, where the z bias is learned wrongly without GNSS yaw
+	if (_body_z_rate_lpf.getState() < math::radians(_params.gyro_bias_z_center_hold_rate)) {
+		const float max_step = math::radians(_params.gyro_bias_z_center_rate) * dt;
+		_gyro_bias_z_center += math::constrain(_state.gyro_bias(2) - _gyro_bias_z_center, -max_step, max_step);
+	}
+
+	const float lim = math::radians(_params.gyro_bias_z_lim);
+	_state.gyro_bias(2) = math::constrain(_state.gyro_bias(2), _gyro_bias_z_center - lim, _gyro_bias_z_center + lim);
+}
+
 void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 {
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected

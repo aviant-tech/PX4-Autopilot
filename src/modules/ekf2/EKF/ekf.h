@@ -731,6 +731,8 @@ private:
 	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
+	AlphaFilter<float> _body_z_rate_lpf{};		///< low-pass filtered absolute body z rate (rad/sec)
+	float _gyro_bias_z_center{0.0f};		///< center of the in-air z gyro bias limit (rad/sec)
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -762,6 +764,7 @@ private:
 	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
 
 	void updateIMUBiasInhibit(const imuSample &imu_delayed);
+	void limitGyroBiasZ(const imuSample &imu_delayed);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
