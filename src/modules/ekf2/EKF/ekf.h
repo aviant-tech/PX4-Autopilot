@@ -87,6 +87,12 @@ public:
 
 	void print_status();
 
+	void setFakePositionEnabled(bool enabled) { _fake_pos_enabled = enabled; }
+
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
+	void setAuxGlobalPositionEnabled(bool enabled) { _aux_global_position.setEnabled(enabled); }
+#endif
+
 	// should be called every time new data is pushed into the filter
 	bool update();
 
@@ -632,6 +638,7 @@ private:
 	estimator_aid_source1d_s _aid_src_sideslip{};
 #endif // CONFIG_EKF2_SIDESLIP
 
+	bool _fake_pos_enabled{true};
 	estimator_aid_source2d_s _aid_src_fake_pos{};
 	estimator_aid_source1d_s _aid_src_fake_hgt{};
 
