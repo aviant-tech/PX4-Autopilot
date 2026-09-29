@@ -370,6 +370,9 @@ struct parameters {
 	int32_t mag_declination_source{3};      ///< bitmask used to control the handling of declination data
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
+	float mag_heading_consistency_gate{0.0f}; ///< heading consistency check threshold, 0 = mag_heading_noise (rad)
+	float mag_fault_clear_time{0.0f};       ///< time after which a magnetometer fault set by an emergency yaw reset is cleared, 0 = never (s)
+	int32_t mag_fail_reset_yaw{1};          ///< reset the yaw as well when failing 3D magnetometer fusion resets the magnetometer states
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
@@ -473,6 +476,7 @@ struct parameters {
 	float acc_bias_learn_tc{0.5f};          ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
 	float gyro_bias_lim{0.4f};              ///< maximum gyro bias magnitude (rad/sec)
+	float gyro_bias_z_inhibit_rate{0.0f};   ///< in-air z gyro bias learning is inhibited above this filtered body z rate, 0 = off (deg/s)
 
 	const unsigned reset_timeout_max{4'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
 	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)

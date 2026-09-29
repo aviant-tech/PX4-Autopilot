@@ -49,6 +49,12 @@ void Ekf::controlMagFusion()
 
 	checkYawAngleObservability();
 
+	if (_control_status.flags.mag_fault && (_params.mag_fault_clear_time > 0.f)
+	    && isTimedOut(_time_mag_fault_us, static_cast<uint64_t>(_params.mag_fault_clear_time * 1e6f))) {
+		ECL_INFO("clearing mag fault");
+		_control_status.flags.mag_fault = false;
+	}
+
 	if (_params.mag_fusion_type == MagFuseType::NONE) {
 		stopMagFusion();
 		return;
@@ -264,7 +270,10 @@ void Ekf::checkMagHeadingConsistency(const magSample &mag_sample)
 		_mag_heading_innov_lpf.reset(0.f);
 	}
 
-	if (fabsf(_mag_heading_innov_lpf.getState()) < _params.mag_heading_noise) {
+	const float gate = (_params.mag_heading_consistency_gate > 0.f) ? _params.mag_heading_consistency_gate
+			   : _params.mag_heading_noise;
+
+	if (fabsf(_mag_heading_innov_lpf.getState()) < gate) {
 		if (_yaw_angle_observable) {
 			// yaw angle must be observable to consider consistency
 			_control_status.flags.mag_heading_consistent = true;

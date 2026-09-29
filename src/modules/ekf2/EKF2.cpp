@@ -136,6 +136,9 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_decl_type(_params->mag_declination_source),
 	_param_ekf2_mag_type(_params->mag_fusion_type),
 	_param_ekf2_mag_acclim(_params->mag_acc_gate),
+	_param_ekf2_mag_hc_gate(_params->mag_heading_consistency_gate),
+	_param_ekf2_mag_flt_clr(_params->mag_fault_clear_time),
+	_param_ekf2_mag_rst_yaw(_params->mag_fail_reset_yaw),
 	_param_ekf2_mag_check(_params->mag_check),
 	_param_ekf2_mag_chk_str(_params->mag_check_strength_tolerance_gs),
 	_param_ekf2_mag_chk_inc(_params->mag_check_inclination_tolerance_deg),
@@ -212,7 +215,8 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
 	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
-	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim)
+	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
+	_param_ekf2_gbz_inh_yr(_params->gyro_bias_z_inhibit_rate)
 {
 	// advertise expected minimal topic set immediately to ensure logging
 	_attitude_pub.advertise();

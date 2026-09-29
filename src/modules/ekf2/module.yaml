@@ -428,6 +428,37 @@ parameters:
       max: 5.0
       unit: m/s^2
       decimal: 2
+    EKF2_MAG_HC_GATE:
+      description:
+        short: Magnetometer heading consistency gate
+        long: The magnetometer is treated as inconsistent, and stops constraining yaw, when
+          the low-pass filtered difference between its heading and the EKF yaw exceeds this
+          value. A value above pi never locks the magnetometer out. Set to 0 to use EKF2_HEAD_NOISE.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 4.0
+      unit: rad
+      decimal: 2
+    EKF2_MAG_FLT_CLR:
+      description:
+        short: Magnetometer fault clear time after emergency yaw reset
+        long: An emergency yaw reset to the GNSS velocity based yaw estimate (GSF) stops
+          magnetometer fusion. If greater than zero, magnetometer fusion may resume after
+          this time; otherwise it stays stopped for the rest of the flight.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1000.0
+      unit: s
+      decimal: 1
+    EKF2_MAG_RST_YAW:
+      description:
+        short: Reset yaw when failing 3D magnetometer fusion is reset
+        long: If disabled, a reset triggered by failing 3D magnetometer fusion resets only
+          the magnetometer states and keeps the yaw.
+      type: boolean
+      default: 1
     EKF2_BARO_GATE:
       description:
         short: Gate size for barometric and GPS height fusion
@@ -1231,6 +1262,18 @@ parameters:
       max: 0.4
       unit: rad/s
       decimal: 3
+    EKF2_GBZ_INH_YR:
+      description:
+        short: Body z rate above which z gyro bias learning is inhibited in the air
+        long: Without GNSS yaw the z gyro bias is poorly observable and can be learned
+          wrongly in sustained turns. If greater than zero, z gyro bias learning is inhibited
+          in the air while the peak-held absolute body z rate (2 s decay) exceeds this value.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 90.0
+      unit: deg/s
+      decimal: 1
     EKF2_REQ_GPS_H:
       description:
         short: Required GPS health time on startup

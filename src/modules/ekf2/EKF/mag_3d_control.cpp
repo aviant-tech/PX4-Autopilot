@@ -134,7 +134,8 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 				if (_nb_mag_3d_reset_available > 0) {
 					// Data seems good, attempt a reset (mag states only unless mag_3D currently active)
 					ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
-					resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
+					resetMagStates(_mag_lpf.getState(), _params.mag_fail_reset_yaw
+						       && (_control_status.flags.mag_hdg || _control_status.flags.mag_3D));
 					aid_src.time_last_fuse = _time_delayed_us;
 
 					if (_control_status.flags.in_air) {
