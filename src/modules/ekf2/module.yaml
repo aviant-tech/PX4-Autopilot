@@ -452,6 +452,13 @@ parameters:
       max: 1000.0
       unit: s
       decimal: 1
+    EKF2_MAG_RST_YAW:
+      description:
+        short: Reset yaw when failing 3D magnetometer fusion is reset
+        long: If disabled, a reset triggered by failing 3D magnetometer fusion resets only
+          the magnetometer states and keeps the yaw.
+      type: boolean
+      default: 1
     EKF2_BARO_GATE:
       description:
         short: Gate size for barometric and GPS height fusion
