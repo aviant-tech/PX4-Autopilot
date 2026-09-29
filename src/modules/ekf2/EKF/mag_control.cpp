@@ -49,6 +49,19 @@ void Ekf::controlMagFusion()
 
 	checkYawAngleObservability();
 
+	if ((_params.mag_bias_mc_noise > 0.f) && (_control_status.flags.fixed_wing != _control_status_prev.flags.fixed_wing)
+	    && _control_status.flags.in_air && _control_status.flags.mag_aligned_in_flight) {
+		// the body bias differs between multicopter and fixed-wing flight (motor currents): do not carry correlations
+		// learned in one phase into the other, and let the bias adapt quickly when returning to multicopter flight
+		Vector3f mag_B_var = getStateVariance<State::mag_B>();
+
+		if (!_control_status.flags.fixed_wing) {
+			mag_B_var += sq(_params.mag_bias_mc_noise);
+		}
+
+		P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, mag_B_var);
+	}
+
 	if (_params.mag_fusion_type == MagFuseType::NONE) {
 		stopMagFusion();
 		return;

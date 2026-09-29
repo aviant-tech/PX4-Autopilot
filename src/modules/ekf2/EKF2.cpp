@@ -96,6 +96,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default),
+	_param_ekf2_gsf_magstop(_params->gsf_reset_mag_stop),
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_BAROMETER)
 	_param_ekf2_baro_ctrl(_params->baro_ctrl),
@@ -136,6 +137,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_decl_type(_params->mag_declination_source),
 	_param_ekf2_mag_type(_params->mag_fusion_type),
 	_param_ekf2_mag_acclim(_params->mag_acc_gate),
+	_param_ekf2_magb_mc_nse(_params->mag_bias_mc_noise),
 	_param_ekf2_mag_check(_params->mag_check),
 	_param_ekf2_mag_chk_str(_params->mag_check_strength_tolerance_gs),
 	_param_ekf2_mag_chk_inc(_params->mag_check_inclination_tolerance_deg),
@@ -212,7 +214,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
 	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
-	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim)
+	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
+	_param_ekf2_gbz_lim(_params->gyro_bias_z_lim),
+	_param_ekf2_gbz_ctr_rt(_params->gyro_bias_z_center_rate),
+	_param_ekf2_gbz_ctr_yr(_params->gyro_bias_z_center_hold_rate)
 {
 	// advertise expected minimal topic set immediately to ensure logging
 	_attitude_pub.advertise();

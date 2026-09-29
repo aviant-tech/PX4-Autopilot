@@ -207,6 +207,10 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
+		if (_params.gyro_bias_z_lim > 0.f) {
+			limitGyroBiasZ(imu_sample_delayed);
+		}
+
 #if defined(CONFIG_EKF2_TERRAIN)
 		// run a separate filter for terrain estimation
 		runTerrainEstimator(imu_sample_delayed);

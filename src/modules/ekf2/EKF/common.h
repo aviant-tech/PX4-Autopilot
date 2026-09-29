@@ -347,6 +347,7 @@ struct parameters {
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
+	int32_t gsf_reset_mag_stop{1};          ///< stop magnetometer fusion after an emergency yaw reset
 	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
 
@@ -370,6 +371,7 @@ struct parameters {
 	int32_t mag_declination_source{3};      ///< bitmask used to control the handling of declination data
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
+	float mag_bias_mc_noise{0.0f};          ///< magnetometer bias uncertainty added on each switch to multicopter flight (Gauss)
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
@@ -473,6 +475,9 @@ struct parameters {
 	float acc_bias_learn_tc{0.5f};          ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
 	float gyro_bias_lim{0.4f};              ///< maximum gyro bias magnitude (rad/sec)
+	float gyro_bias_z_lim{0.0f};            ///< in-air limit of the z gyro bias around a slowly moving center, 0 = off (deg/s)
+	float gyro_bias_z_center_rate{0.005f};  ///< maximum rate at which that center follows the z gyro bias estimate (deg/s^2)
+	float gyro_bias_z_center_hold_rate{5.0f}; ///< the center is held while the filtered body z rate exceeds this (deg/s)
 
 	const unsigned reset_timeout_max{4'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
 	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)

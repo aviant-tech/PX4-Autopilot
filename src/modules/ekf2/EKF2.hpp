@@ -559,6 +559,7 @@ private:
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas_default,
+		(ParamExtInt<px4::params::EKF2_GSF_MAGSTOP>) _param_ekf2_gsf_magstop,
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -614,6 +615,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_DECL_TYPE>) _param_ekf2_decl_type,
 		(ParamExtInt<px4::params::EKF2_MAG_TYPE>) _param_ekf2_mag_type,
 		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>) _param_ekf2_mag_acclim,
+		(ParamExtFloat<px4::params::EKF2_MAGB_MC_NSE>) _param_ekf2_magb_mc_nse,
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,
@@ -738,6 +740,9 @@ private:
 		_param_ekf2_abl_tau,	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
 
 		(ParamExtFloat<px4::params::EKF2_GYR_B_LIM>) _param_ekf2_gyr_b_lim,	///< Gyro bias learning limit (rad/s)
+		(ParamExtFloat<px4::params::EKF2_GBZ_LIM>) _param_ekf2_gbz_lim,
+		(ParamExtFloat<px4::params::EKF2_GBZ_CTR_RT>) _param_ekf2_gbz_ctr_rt,
+		(ParamExtFloat<px4::params::EKF2_GBZ_CTR_YR>) _param_ekf2_gbz_ctr_yr,
 
 		// output predictor filter time constants
 		(ParamFloat<px4::params::EKF2_TAU_VEL>) _param_ekf2_tau_vel,
