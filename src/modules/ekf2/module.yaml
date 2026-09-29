@@ -428,6 +428,18 @@ parameters:
       max: 5.0
       unit: m/s^2
       decimal: 2
+    EKF2_MAG_HC_GATE:
+      description:
+        short: Magnetometer heading consistency gate
+        long: The magnetometer is treated as inconsistent, and stops constraining yaw, when
+          the low-pass filtered difference between its heading and the EKF yaw exceeds this
+          value. A value above pi never locks the magnetometer out. Set to 0 to use EKF2_HEAD_NOISE.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 4.0
+      unit: rad
+      decimal: 2
     EKF2_BARO_GATE:
       description:
         short: Gate size for barometric and GPS height fusion
