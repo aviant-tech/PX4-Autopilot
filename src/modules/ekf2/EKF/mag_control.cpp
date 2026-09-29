@@ -49,6 +49,12 @@ void Ekf::controlMagFusion()
 
 	checkYawAngleObservability();
 
+	if (_control_status.flags.mag_fault && (_params.mag_fault_clear_time > 0.f)
+	    && isTimedOut(_time_mag_fault_us, static_cast<uint64_t>(_params.mag_fault_clear_time * 1e6f))) {
+		ECL_INFO("clearing mag fault");
+		_control_status.flags.mag_fault = false;
+	}
+
 	if (_params.mag_fusion_type == MagFuseType::NONE) {
 		stopMagFusion();
 		return;

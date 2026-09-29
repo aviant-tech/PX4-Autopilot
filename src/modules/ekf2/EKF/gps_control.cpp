@@ -254,6 +254,9 @@ bool Ekf::tryYawEmergencyReset()
 			// stop using the magnetometer in the main EKF otherwise its fusion could drag the yaw around
 			// and cause another navigation failure
 			_control_status.flags.mag_fault = true;
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+			_time_mag_fault_us = _time_delayed_us;
+#endif // CONFIG_EKF2_MAGNETOMETER
 			_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
 		}
 

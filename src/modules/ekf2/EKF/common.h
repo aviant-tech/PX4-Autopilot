@@ -371,6 +371,7 @@ struct parameters {
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
 	float mag_heading_consistency_gate{0.0f}; ///< heading consistency check threshold, 0 = mag_heading_noise (rad)
+	float mag_fault_clear_time{0.0f};       ///< time after which a magnetometer fault set by an emergency yaw reset is cleared, 0 = never (s)
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};

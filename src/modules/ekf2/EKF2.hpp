@@ -615,6 +615,7 @@ private:
 		(ParamExtInt<px4::params::EKF2_MAG_TYPE>) _param_ekf2_mag_type,
 		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>) _param_ekf2_mag_acclim,
 		(ParamExtFloat<px4::params::EKF2_MAG_HC_GATE>) _param_ekf2_mag_hc_gate,
+		(ParamExtFloat<px4::params::EKF2_MAG_FLT_CLR>) _param_ekf2_mag_flt_clr,
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
 		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,

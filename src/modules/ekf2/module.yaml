@@ -440,6 +440,18 @@ parameters:
       max: 4.0
       unit: rad
       decimal: 2
+    EKF2_MAG_FLT_CLR:
+      description:
+        short: Magnetometer fault clear time after emergency yaw reset
+        long: An emergency yaw reset to the GNSS velocity based yaw estimate (GSF) stops
+          magnetometer fusion. If greater than zero, magnetometer fusion may resume after
+          this time; otherwise it stays stopped for the rest of the flight.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1000.0
+      unit: s
+      decimal: 1
     EKF2_BARO_GATE:
       description:
         short: Gate size for barometric and GPS height fusion

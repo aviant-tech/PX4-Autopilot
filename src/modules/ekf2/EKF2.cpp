@@ -137,6 +137,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_mag_type(_params->mag_fusion_type),
 	_param_ekf2_mag_acclim(_params->mag_acc_gate),
 	_param_ekf2_mag_hc_gate(_params->mag_heading_consistency_gate),
+	_param_ekf2_mag_flt_clr(_params->mag_fault_clear_time),
 	_param_ekf2_mag_check(_params->mag_check),
 	_param_ekf2_mag_chk_str(_params->mag_check_strength_tolerance_gs),
 	_param_ekf2_mag_chk_inc(_params->mag_check_inclination_tolerance_deg),
