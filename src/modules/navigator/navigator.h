@@ -377,6 +377,7 @@ private:
 	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
 
 	position_setpoint_s _last_valid_previous_setpoint {};
+	uint8_t	_published_current_setpoint_type{position_setpoint_s::SETPOINT_TYPE_POSITION};
 
 	// update subscriptions
 	void params_update();

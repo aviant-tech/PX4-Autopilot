@@ -54,7 +54,6 @@ void FeasibilityChecker::reset()
 	_fixed_wing_land_approach_failed = false;
 	_takeoff_land_available_failed = false;
 
-	_found_item_with_position = false;
 	_has_vtol_takeoff = false;
 	_has_takeoff = false;
 
@@ -350,45 +349,6 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 		if (!_has_takeoff) {
 			_has_takeoff = true;
 		}
-
-
-		if (_found_item_with_position) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: takeoff not first waypoint item\t");
-			events::send(events::ID("navigator_mis_takeoff_not_first"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: takeoff is not the first waypoint item");
-			return false;
-		}
-	}
-
-	if (!_found_item_with_position) {
-		_found_item_with_position = (mission_item.nav_cmd != NAV_CMD_IDLE &&
-					     mission_item.nav_cmd != NAV_CMD_DELAY &&
-					     mission_item.nav_cmd != NAV_CMD_DO_JUMP &&
-					     mission_item.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_HOME &&
-					     mission_item.nav_cmd != NAV_CMD_DO_LAND_START &&
-					     mission_item.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
-					     mission_item.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
-					     mission_item.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
-					     mission_item.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
-					     mission_item.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
-					     mission_item.nav_cmd != NAV_CMD_VIDEO_STOP_CAPTURE &&
-					     mission_item.nav_cmd != NAV_CMD_DO_CONTROL_VIDEO &&
-					     mission_item.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
-					     mission_item.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
-					     mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW &&
-					     mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_ROI &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_NONE &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
-					     mission_item.nav_cmd != NAV_CMD_OBLIQUE_SURVEY &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
-					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
-					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
-					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
-					     mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION);
 	}
 
 	return true;

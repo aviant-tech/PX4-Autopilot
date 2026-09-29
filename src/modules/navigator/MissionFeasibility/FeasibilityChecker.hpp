@@ -124,7 +124,6 @@ private:
 	bool _items_fit_to_vehicle_type_failed{false};
 
 	// internal checkTakeoff related variables
-	bool _found_item_with_position{false};
 	bool _has_vtol_takeoff{false};
 	bool _has_takeoff{false};
 

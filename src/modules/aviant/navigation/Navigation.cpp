@@ -4,6 +4,7 @@
 #include <cstdarg>
 #include <mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
+#include <px4_platform_common/events.h>
 
 namespace aviant
 {
@@ -46,6 +47,7 @@ void Navigation::Run()
 	// Start with a clean state. Default values matches "UNKNOWN" enums.
 	aviant_navigation_s out = {};
 	out.mag_heading = NAN; // Initialize to NaN, avoid confustion with valid 0 rad heading
+	out.mag_heading_offset = NAN;
 
 	checkLocalPosition(&out);
 	checkGnssInput(&out);
@@ -58,6 +60,7 @@ void Navigation::Run()
 		checkGnssPosFused(&out, ekf_idx);
 		checkMagHealthy(&out, ekf_idx);
 		checkBaroHealthy(&out, ekf_idx);
+		checkMagHeadingOffset(&out);
 
 	} else {
 		// No valid EKF instance
@@ -178,10 +181,12 @@ void Navigation::checkRtkHeadingUsed(aviant_navigation_s *out, int estimator_ins
 
 	if (!_estimator_status_flags_subs[estimator_instance].copy(&estimator_status_flags)
 	    || isTimedOut(estimator_status_flags.timestamp, EKF2_SLOW_TOUT)) {
+		_vehicle_at_rest = false;
 		return;
 	}
 
 	out->ekf_rtk_heading_used = estimator_status_flags.cs_gps_yaw;
+	_vehicle_at_rest = estimator_status_flags.cs_vehicle_at_rest;
 }
 
 void Navigation::checkBaroHealthy(aviant_navigation_s *out, int estimator_instance)
@@ -231,6 +236,96 @@ void Navigation::checkMagHealthy(aviant_navigation_s *out, int estimator_instanc
 
 	const matrix::Vector3f debiased_mag{estimator_aid_src_mag.observation[0], estimator_aid_src_mag.observation[1], estimator_aid_src_mag.observation[2]};
 	out->mag_heading = calculateMagHeading(estimator_states, debiased_mag);
+}
+
+void Navigation::checkMagHeadingOffset(aviant_navigation_s *out)
+{
+	if (!out->ekf_rtk_heading_used || !PX4_ISFINITE(out->mag_heading)) {
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
+		return;
+	}
+
+	vehicle_local_position_s vehicle_local_position;
+
+	if (!_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+		return;
+	}
+
+	const float offset = matrix::wrap_pi(out->mag_heading - vehicle_local_position.heading);
+	const float offset_deg = fabsf(math::degrees(offset));
+
+	out->mag_heading_offset = offset;
+
+	// This is a pre-flight check. Once the vehicle has armed we stop reporting for the rest
+	// of the boot, including after landing and disarming.
+	if (_mag_hdg_reporting_muted) {
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
+		return;
+	}
+
+	vehicle_status_s vehicle_status;
+
+	if (!_vehicle_status_sub.copy(&vehicle_status)) {
+		return;
+	}
+
+	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		_mag_hdg_reporting_muted = true;
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
+		return;
+	}
+
+	if (vehicle_status.gcs_connection_lost) {
+		return;
+	}
+
+	if (!_vehicle_at_rest) {
+		_mag_hdg_warn_count = 0;
+		_mag_hdg_fail_count = 0;
+		return;
+	}
+
+	if (offset_deg > MAG_HDG_WARN_DEG) {
+		if (_mag_hdg_warn_count < MAG_HDG_DEBOUNCE_CYCLES) {
+			_mag_hdg_warn_count++;
+		}
+
+	} else {
+		_mag_hdg_warn_count = 0;
+	}
+
+	if (offset_deg > MAG_HDG_FAIL_DEG) {
+		if (_mag_hdg_fail_count < MAG_HDG_DEBOUNCE_CYCLES) {
+			_mag_hdg_fail_count++;
+		}
+
+	} else {
+		_mag_hdg_fail_count = 0;
+	}
+
+	const int offset_rounded = (int)roundf(offset_deg);
+
+	if ((_mag_hdg_fail_count >= MAG_HDG_DEBOUNCE_CYCLES) && !_mag_hdg_fail_msg_sent) {
+		_mag_hdg_fail_msg_sent = true;
+		mavlink_log_critical(&_mavlink_log_pub, "Mag heading offset %d deg, limit %d deg\t",
+				     offset_rounded, (int)MAG_HDG_FAIL_DEG);
+		events::send<float, float>(events::ID("aviant_nav_mag_hdg_offset_fail"),
+		{events::Log::Critical, events::LogInternal::Critical},
+		"Mag heading offset {1:.0} deg, limit {2:.0} deg",
+		offset_deg, MAG_HDG_FAIL_DEG);
+
+	} else if ((_mag_hdg_warn_count >= MAG_HDG_DEBOUNCE_CYCLES) && !_mag_hdg_warn_msg_sent) {
+		_mag_hdg_warn_msg_sent = true;
+		mavlink_log_warning(&_mavlink_log_pub, "Mag heading offset %d deg, expected below %d deg\t",
+				    offset_rounded, (int)MAG_HDG_WARN_DEG);
+		events::send<float, float>(events::ID("aviant_nav_mag_hdg_offset_warn"),
+		{events::Log::Warning, events::LogInternal::Warning},
+		"Mag heading offset {1:.0} deg, expected below {2:.0} deg",
+		offset_deg, MAG_HDG_WARN_DEG);
+	}
 }
 
 void Navigation::checkGnssPosFused(aviant_navigation_s *out, int estimator_instance)

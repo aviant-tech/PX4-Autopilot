@@ -238,22 +238,6 @@ TEST_F(FeasibilityCheckerTest, check_takeoff)
 	checker.processNextItem(mission_item, 0, 1);
 
 	ASSERT_EQ(checker.someCheckFailed(), false);
-
-
-	// takeoff item needs to be first item
-	checker.reset();
-	checker.publishLanded(true);
-	checker.publishHomePosition(0, 0, 100);
-
-	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-
-	checker.processNextItem(mission_item, 0, 2);
-
-	mission_item.nav_cmd = NAV_CMD_TAKEOFF;
-
-	checker.processNextItem(mission_item, 1, 2);
-
-	ASSERT_EQ(checker.someCheckFailed(), true);
 }
 
 TEST_F(FeasibilityCheckerTest, fixed_wing_land_approach)

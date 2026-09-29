@@ -25,3 +25,4 @@ bool ekf_rtk_heading_used
 bool ekf_gnss_pos_fused_recently
 
 float32 mag_heading
+float32 mag_heading_offset
