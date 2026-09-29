@@ -801,6 +801,17 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 		_gyro_bias_inhibit[index] = do_inhibit_all_gyro_axes || !is_bias_observable;
 	}
 
+	if (_params.gyro_bias_z_inhibit_rate > 0.f) {
+		const float dt = math::max(imu_delayed.delta_ang_dt, 1e-4f);
+		const float beta = 1.f - math::constrain(dt / 2.f, 0.f, 1.f);
+		_body_z_rate_filt = fmaxf(fabsf(imu_delayed.delta_ang(2)) / dt, beta * _body_z_rate_filt);
+
+		// without GNSS yaw the z bias is learned wrongly in sustained turns
+		if (_control_status.flags.in_air && (_body_z_rate_filt > math::radians(_params.gyro_bias_z_inhibit_rate))) {
+			_gyro_bias_inhibit[2] = true;
+		}
+	}
+
 	// accel bias inhibit
 	const bool do_inhibit_all_accel_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
 					 || is_manoeuvre_level_high

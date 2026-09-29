@@ -476,6 +476,7 @@ struct parameters {
 	float acc_bias_learn_tc{0.5f};          ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
 	float gyro_bias_lim{0.4f};              ///< maximum gyro bias magnitude (rad/sec)
+	float gyro_bias_z_inhibit_rate{0.0f};   ///< in-air z gyro bias learning is inhibited above this filtered body z rate, 0 = off (deg/s)
 
 	const unsigned reset_timeout_max{4'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
 	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)

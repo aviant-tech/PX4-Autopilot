@@ -1262,6 +1262,18 @@ parameters:
       max: 0.4
       unit: rad/s
       decimal: 3
+    EKF2_GBZ_INH_YR:
+      description:
+        short: Body z rate above which z gyro bias learning is inhibited in the air
+        long: Without GNSS yaw the z gyro bias is poorly observable and can be learned
+          wrongly in sustained turns. If greater than zero, z gyro bias learning is inhibited
+          in the air while the peak-held absolute body z rate (2 s decay) exceeds this value.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 90.0
+      unit: deg/s
+      decimal: 1
     EKF2_REQ_GPS_H:
       description:
         short: Required GPS health time on startup
