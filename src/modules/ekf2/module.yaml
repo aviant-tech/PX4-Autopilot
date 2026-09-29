@@ -428,6 +428,21 @@ parameters:
       max: 5.0
       unit: m/s^2
       decimal: 2
+    EKF2_MAGB_MC_NSE:
+      description:
+        short: Magnetometer bias noise added on switches to multicopter
+        long: The magnetometer body bias differs between multicopter and fixed-wing flight
+          because of motor currents. If greater than zero, once the magnetometer has been
+          aligned in flight, the bias states are decorrelated from the other states at each
+          in-air switch between multicopter and fixed-wing flight, and this uncertainty
+          (1-sigma) is added on each switch to multicopter flight.
+          Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 0.5
+      unit: gauss
+      decimal: 3
     EKF2_BARO_GATE:
       description:
         short: Gate size for barometric and GPS height fusion
