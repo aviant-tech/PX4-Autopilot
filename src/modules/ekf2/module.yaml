@@ -1309,6 +1309,13 @@ parameters:
       unit: m/s
       max: 100.0
       decimal: 1
+    EKF2_GSF_MAGSTOP:
+      description:
+        short: Stop magnetometer fusion after an emergency yaw reset
+        long: If enabled, magnetometer fusion is stopped for the rest of the flight after
+          the yaw has been reset to the GNSS velocity based yaw estimate (GSF).
+      type: boolean
+      default: 1
     EKF2_AGP_CTRL:
       description:
         short: Aux global position (AGP) sensor aiding
