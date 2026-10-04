@@ -49,3 +49,20 @@ PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
  */
 PARAM_DEFINE_INT32(SIM_GZ_EN_LIDAR, 1);
 
+/**
+ * Simulated motor thrust model factor
+ *
+ * Shapes the rotor speed sent to Gazebo so that the simulated thrust follows
+ * thrust = (1 - f) * u + f * u^2 (normalised) of the motor command u.
+ * Set it equal to THR_MDL_FAC of the simulated vehicle. With 1 the rotor speed
+ * is proportional to the command, i.e. thrust is quadratic.
+ * u is normalised over [SIM_GZ_EC_MINn, SIM_GZ_EC_MAXn] and the shaped rotor
+ * speed is mapped back to that range; outputs at or below the minimum are not shaped.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_GZ_THR_MDL, 1.0f);

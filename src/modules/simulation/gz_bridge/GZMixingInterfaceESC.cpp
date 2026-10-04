@@ -80,8 +80,21 @@ bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_
 		gz::msgs::Actuators rotor_velocity_message;
 		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 
+		const float thrust_model_factor = math::constrain(_param_sim_gz_thr_mdl.get(), 0.f, 1.f);
+
 		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
+			float rotor_velocity = outputs[i];
+			const float min_velocity = _mixing_output.minValue(i);
+			const float max_velocity = _mixing_output.maxValue(i);
+
+			if (thrust_model_factor < 1.f && max_velocity > min_velocity && rotor_velocity > min_velocity) {
+				const float u = math::constrain((rotor_velocity - min_velocity) / (max_velocity - min_velocity), 0.f, 1.f);
+				const float normalized_thrust = (1.f - thrust_model_factor) * u + thrust_model_factor * u * u;
+				const float normalized_rotor_velocity = sqrtf(normalized_thrust);
+				rotor_velocity = min_velocity + (max_velocity - min_velocity) * normalized_rotor_velocity;
+			}
+
+			rotor_velocity_message.set_velocity(i, rotor_velocity);
 		}
 
 		if (_actuators_pub.Valid()) {
