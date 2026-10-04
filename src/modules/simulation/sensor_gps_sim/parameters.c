@@ -50,3 +50,86 @@ PARAM_DEFINE_INT32(SENS_EN_GPSSIM, 0);
  * @group Simulator
  */
 PARAM_DEFINE_INT32(SIM_GPS_USED, 10);
+
+/**
+ * Simulated dual GPS with moving-baseline heading
+ *
+ * 1: two RTK-fixed receivers in a moving-baseline pair. sensor_gps instance 0 is the
+ * rover at SIM_GPS_POS + SIM_GPS_REL, it reports the heading of the base->rover vector
+ * (sensor_gps.heading, sensor_gnss_relative); instance 1 is the moving base at SIM_GPS_POS.
+ * 0: one GPS at the CG (default).
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Simulator
+ */
+PARAM_DEFINE_INT32(SIM_GPS_DUAL, 0);
+
+/**
+ * Simulated GPS antenna X position (moving base with SIM_GPS_DUAL)
+ *
+ * Body frame (forward) position relative to the CG. Only used with SIM_GPS_DUAL 1.
+ *
+ * @unit m
+ * @decimal 2
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_GPS_POS_X, 0.f);
+
+/**
+ * Simulated GPS antenna Y position (moving base with SIM_GPS_DUAL)
+ *
+ * Body frame (right) position relative to the CG. Only used with SIM_GPS_DUAL 1.
+ *
+ * @unit m
+ * @decimal 2
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_GPS_POS_Y, 0.f);
+
+/**
+ * Simulated GPS antenna Z position (moving base with SIM_GPS_DUAL)
+ *
+ * Body frame (down) position relative to the CG. Only used with SIM_GPS_DUAL 1.
+ *
+ * @unit m
+ * @decimal 2
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_GPS_POS_Z, 0.f);
+
+/**
+ * Simulated GPS rover antenna X offset from the moving base
+ *
+ * Body frame (forward) offset of the rover antenna from the moving base antenna (SIM_GPS_DUAL 1),
+ * the simulated counterpart of SENS_GNSSREL_PX.
+ *
+ * @unit m
+ * @decimal 2
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_GPS_REL_X, -0.5f);
+
+/**
+ * Simulated GPS rover antenna Y offset from the moving base
+ *
+ * Body frame (right) offset of the rover antenna from the moving base antenna (SIM_GPS_DUAL 1),
+ * the simulated counterpart of SENS_GNSSREL_PY.
+ *
+ * @unit m
+ * @decimal 2
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_GPS_REL_Y, 0.f);
+
+/**
+ * Simulated GPS rover antenna Z offset from the moving base
+ *
+ * Body frame (down) offset of the rover antenna from the moving base antenna (SIM_GPS_DUAL 1),
+ * the simulated counterpart of SENS_GNSSREL_PZ.
+ *
+ * @unit m
+ * @decimal 2
+ * @group Simulator
+ */
+PARAM_DEFINE_FLOAT(SIM_GPS_REL_Z, 0.f);
