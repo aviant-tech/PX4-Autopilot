@@ -85,4 +85,8 @@ private:
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SIM_GZ_THR_MDL>) _param_sim_gz_thr_mdl
+	)
+
 };
