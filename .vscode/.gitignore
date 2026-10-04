@@ -12,3 +12,5 @@ ipch/
 browse.vc.db*
 
 *.log
+
+sitl_gz_external.*

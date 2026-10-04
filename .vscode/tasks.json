@@ -194,6 +194,30 @@
             "dependsOn":["gazebo kill"]
         },
         {
+            "label": "gz external model",
+            "type": "shell",
+            "command": "${workspaceFolder}/platforms/posix/Debug/gz_external_model.sh",
+            "args": ["${workspaceFolder}"],
+            "presentation": {
+                "reveal": "silent",
+                "revealProblems": "onProblem",
+                "panel": "dedicated",
+                "showReuseMessage": false
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "gz external model: pick",
+            "type": "shell",
+            "command": "${workspaceFolder}/platforms/posix/Debug/gz_external_model.sh",
+            "args": ["${workspaceFolder}", "pick"],
+            "presentation": {
+                "panel": "dedicated",
+                "showReuseMessage": false
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "gazebo-classic kill",
             "type": "shell",
             "command": "pkill -9 -f gzserver || true",
