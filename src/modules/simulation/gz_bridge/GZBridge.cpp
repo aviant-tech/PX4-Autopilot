@@ -150,15 +150,24 @@ int GZBridge::init()
 
 		// If PX4_GZ_STANDALONE has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
 		else {
-			if (_node.Request(create_service, req, 1000, rep, result)) {
-				if (!rep.data() || !result) {
-					PX4_ERR("EntityFactory service call failed.");
-					return PX4_ERROR;
-				}
+			static constexpr int CREATE_ATTEMPTS = 60;
 
-			} else {
-				PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
-				return PX4_ERROR;
+			for (int attempt = 1; ; attempt++) {
+				if (_node.Request(create_service, req, 1000, rep, result)) {
+					if (!rep.data() || !result) {
+						PX4_ERR("EntityFactory service call failed.");
+						return PX4_ERROR;
+					}
+
+					break;
+
+				} else if (attempt >= CREATE_ATTEMPTS) {
+					PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+					return PX4_ERROR;
+
+				} else if (attempt == 1) {
+					PX4_INFO("waiting for gz sim (%s)", create_service.c_str());
+				}
 			}
 		}
 	}
