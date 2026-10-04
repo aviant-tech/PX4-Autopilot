@@ -43,6 +43,9 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <drivers/drv_sensor.h>
+#include <lib/drivers/device/Device.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/geo/geo.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -74,6 +77,7 @@ using GZAirspeedMsg = gz::msgs::AirSpeedSensor;
 #endif
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
+#include <gz/msgs/laserscan.pb.h>
 
 using namespace time_literals;
 
@@ -105,6 +109,8 @@ private:
 
 	bool updateClock(const uint64_t tv_sec, const uint64_t tv_nsec);
 
+	bool subscribeDistanceSensor(bool required);
+
 	void clockCallback(const gz::msgs::Clock &clock);
 
 	void airspeedCallback(const GZAirspeedMsg &air_speed);
@@ -113,6 +119,7 @@ private:
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
+	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg);
 
 	/**
 	*
@@ -138,6 +145,18 @@ private:
 	uORB::PublicationMulti<sensor_gyro_s>  _sensor_gyro_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<vehicle_odometry_s> _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
+	static uint32_t rangefinderDeviceId()
+	{
+		device::Device::DeviceId device_id{};
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+		device_id.devid_s.bus = 0;
+		device_id.devid_s.address = 0;
+		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+		return device_id.devid;
+	}
+
+	PX4Rangefinder   _px4_rangefinder{rangefinderDeviceId()};
+
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
 	GZMixingInterfaceWheel _mixing_interface_wheel{_node, _node_mutex};
@@ -162,4 +181,8 @@ private:
 	float _temperature{15.0f};
 
 	gz::transport::Node _node;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SIM_GZ_EN_LIDAR>) _sim_gz_en_lidar
+	)
 };

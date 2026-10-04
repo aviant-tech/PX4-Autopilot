@@ -40,3 +40,12 @@
  */
 PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
 
+/**
+ * Enable laser/lidar sensors in Gazebo bridge
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Simulator
+ */
+PARAM_DEFINE_INT32(SIM_GZ_EN_LIDAR, 1);
+

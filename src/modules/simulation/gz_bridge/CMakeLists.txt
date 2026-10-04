@@ -67,6 +67,7 @@ if(gz-transport_FOUND)
 			GZMixingInterfaceWheel.cpp
 			GZMixingInterfaceWheel.hpp
 		DEPENDS
+			drivers_rangefinder
 			mixer_module
 			px4_work_queue
 			${GZ_TRANSPORT_LIB}

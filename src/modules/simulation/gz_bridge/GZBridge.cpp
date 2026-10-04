@@ -232,6 +232,12 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	if (_sim_gz_en_lidar.get()) {
+		if (!subscribeDistanceSensor(false)) {
+			return PX4_ERROR;
+		}
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -249,6 +255,19 @@ int GZBridge::init()
 
 	ScheduleNow();
 	return OK;
+}
+
+bool GZBridge::subscribeDistanceSensor(bool required)
+{
+	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+				   "/link/lidar_sensor_link/sensor/lidar/scan";
+
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
+		return required ? false : true;
+	}
+
+	return true;
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])
@@ -706,6 +725,51 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 
 	// odom.reset_counter = vpe.reset_counter;
 	_visual_odometry_pub.publish(odom);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
+{
+	if (hrt_absolute_time() == 0 || msg.ranges_size() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	_px4_rangefinder.set_min_distance(static_cast<float>(msg.range_min()));
+	_px4_rangefinder.set_max_distance(static_cast<float>(msg.range_max()));
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+
+	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();
+	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
+			pose_orientation.w(),
+			pose_orientation.x(),
+			pose_orientation.y(),
+			pose_orientation.z());
+
+	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
+
+	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
+
+	const gz::math::Quaterniond q_down(0, 1, 0, 0);
+
+	const float distance = static_cast<float>(msg.ranges()[0]);
+
+	uint8_t orientation = distance_sensor_s::ROTATION_CUSTOM;
+
+	if (q_sensor.Equal(q_front, 0.03)) {
+		orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+
+	} else if (q_sensor.Equal(q_down, 0.03)) {
+		orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	} else if (q_sensor.Equal(q_left, 0.03)) {
+		orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+	}
+
+	_px4_rangefinder.set_orientation(orientation);
+	_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	pthread_mutex_unlock(&_node_mutex);
 }
