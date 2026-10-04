@@ -65,6 +65,13 @@
 
 #include <gz/msgs/imu.pb.h>
 #include <gz/msgs/fluid_pressure.pb.h>
+#if __has_include(<gz/msgs/air_speed.pb.h>)
+#include <gz/msgs/air_speed.pb.h>
+using GZAirspeedMsg = gz::msgs::AirSpeed;
+#else
+#include <gz/msgs/air_speed_sensor.pb.h>
+using GZAirspeedMsg = gz::msgs::AirSpeedSensor;
+#endif
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
 
@@ -100,7 +107,7 @@ private:
 
 	void clockCallback(const gz::msgs::Clock &clock);
 
-	// void airspeedCallback(const gz::msgs::AirSpeedSensor &air_pressure);
+	void airspeedCallback(const GZAirspeedMsg &air_speed);
 	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
@@ -120,7 +127,7 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	//uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
