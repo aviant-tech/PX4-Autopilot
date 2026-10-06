@@ -40,6 +40,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
@@ -142,6 +143,20 @@ namespace logger
 
 constexpr const char *Logger::LOG_ROOT[(int)LogType::Count];
 
+static bool parse_int_arg(const char *arg, int min, int max, int &value)
+{
+	char *end;
+	const long parsed = strtol(arg, &end, 10);
+
+	if (*arg == '\0' || *end != '\0' || parsed < min || parsed > max) {
+		PX4_ERR("invalid argument '%s' (expected %i..%i)", arg, min, max);
+		return false;
+	}
+
+	value = (int)parsed;
+	return true;
+}
+
 int Logger::custom_command(int argc, char *argv[])
 {
 	if (!is_running()) {
@@ -165,6 +180,51 @@ int Logger::custom_command(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "off")) {
 		get_instance()->set_arm_override(false);
+		return 0;
+	}
+
+	if (!strcmp(argv[0], "interval")) {
+		if (argc < 3 || argc > 4) {
+			print_usage("interval: expected <topic_name> <interval_ms> [instance]");
+			return 1;
+		}
+
+		int interval_ms = 0;
+		int instance = -1; // -1: all logged instances
+
+		if (!parse_int_arg(argv[2], 0, UINT16_MAX, interval_ms)
+		    || (argc == 4 && !parse_int_arg(argv[3], 0, ORB_MULTI_MAX_INSTANCES - 1, instance))) {
+			return 1;
+		}
+
+		const orb_metadata *topic = nullptr;
+		const orb_metadata *const *topics = orb_get_topics();
+
+		for (size_t i = 0; i < orb_topics_count(); ++i) {
+			if (strcmp(argv[1], topics[i]->o_name) == 0) {
+				topic = topics[i];
+				break;
+			}
+		}
+
+		if (topic == nullptr) {
+			PX4_ERR("unknown uORB topic '%s'", argv[1]);
+			return 1;
+		}
+
+		const int num_updated = get_instance()->set_topic_interval(topic, interval_ms, instance);
+
+		if (num_updated < 0) {
+			PX4_ERR("logger did not confirm the interval change (it may still be applied)");
+			return 1;
+		}
+
+		if (num_updated == 0) {
+			PX4_ERR("'%s'%s is not logged (adding topics at runtime is not supported)", argv[1],
+				instance >= 0 ? " (this instance)" : "");
+			return 1;
+		}
+
 		return 0;
 	}
 
@@ -709,6 +769,9 @@ void Logger::run()
 		/* check for logging command from MAVLink (start/stop streaming) */
 		handle_vehicle_command_update();
 
+		/* check for a runtime topic interval change requested from the console */
+		handle_interval_request();
+
 		if (_timer_callback_data.watchdog_triggered.load()) {
 			_timer_callback_data.watchdog_triggered.store(false);
 			initialize_load_output(PrintLoadReason::Watchdog);
@@ -1193,6 +1256,70 @@ void Logger::handle_vehicle_command_update()
 			ack_vehicle_command(&command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		}
 	}
+}
+
+int Logger::set_topic_interval(const orb_metadata *topic, uint16_t interval_ms, int instance)
+{
+	if (_interval_request.request_seq.load() != _interval_request.applied_seq.load()) {
+		// a previous request is still outstanding: its fields must not be overwritten
+		return -1;
+	}
+
+	// _subscriptions is owned by the logger thread, so hand the request over and let it apply the change
+	_interval_request.topic = topic;
+	_interval_request.interval_ms = interval_ms;
+	_interval_request.instance = instance;
+
+	const uint32_t seq = _interval_request.request_seq.load() + 1;
+	_interval_request.request_seq.store(seq);
+
+	const hrt_abstime request_time = hrt_absolute_time();
+
+	while (_interval_request.applied_seq.load() != seq && hrt_elapsed_time(&request_time) < INTERVAL_REQUEST_TIMEOUT) {
+		px4_usleep(10_ms);
+	}
+
+	if (_interval_request.applied_seq.load() != seq) {
+		// the logger thread is not keeping up: leave the request, it is superseded by the next one
+		return -1;
+	}
+
+	return _interval_request.num_updated;
+}
+
+void Logger::handle_interval_request()
+{
+	const uint32_t seq = _interval_request.request_seq.load();
+
+	if (seq == _interval_request.applied_seq.load()) {
+		return;
+	}
+
+	int num_updated = 0;
+
+	for (int i = 0; i < _num_subscriptions; ++i) {
+		LoggerSubscription &sub = _subscriptions[i];
+
+		if (sub.get_topic() != _interval_request.topic) {
+			continue;
+		}
+
+		if (_interval_request.instance >= 0 && sub.get_instance() != _interval_request.instance) {
+			continue;
+		}
+
+		sub.set_interval_ms(_interval_request.interval_ms);
+		++num_updated;
+	}
+
+	if (num_updated > 0) {
+		// record it in the log itself: a rate change mid-file is misleading if it is not visible
+		mavlink_log_info(&_mavlink_log_pub, "%s interval %" PRIu16 "ms x%d",
+				 _interval_request.topic->o_name, _interval_request.interval_ms, num_updated);
+	}
+
+	_interval_request.num_updated = num_updated;
+	_interval_request.applied_seq.store(seq);
 }
 
 bool Logger::write_message(LogType type, void *ptr, size_t size)
@@ -2422,6 +2549,11 @@ $ logger start -e -t
 
 Or if already running:
 $ logger on
+
+Change the logging interval of an already logged topic without restarting:
+$ logger interval sensor_gps 0
+Raising a rate increases the write bandwidth and can overflow the write buffer,
+which shows up as dropouts. The change is written to the log as a message.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("logger", "system");
@@ -2439,6 +2571,10 @@ $ logger on
 	PRINT_MODULE_USAGE_PARAM_FLOAT('c', 1.0, 0.2, 2.0, "Log rate factor (higher is faster)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("interval", "change the logging interval of an already logged topic");
+	PRINT_MODULE_USAGE_ARG("<topic_name>", "uORB topic, must already be logged", false);
+	PRINT_MODULE_USAGE_ARG("<interval_ms>", "logging interval, 0 means log at the full topic rate", false);
+	PRINT_MODULE_USAGE_ARG("<instance>", "topic instance, default: all logged instances", true);
 #ifdef __PX4_NUTTX
 	PRINT_MODULE_USAGE_COMMAND_DESCR("trigger_watchdog", "manually trigger the watchdog now");
 #endif
