@@ -975,6 +975,13 @@ GPS::run()
 				/* The MB rover will wait as long as possible to compute a navigation solution,
 				 * possibly lowering the navigation rate all the way to 1 Hz while doing so. */
 				receive_timeout = TIMEOUT_1HZ;
+
+			} else if ((ubx_mode == GPSDriverUBX::UBXMode::MovingBase)
+				   || (ubx_mode == GPSDriverUBX::UBXMode::MovingBaseUART1)) {
+				/* The moving base can also skip several navigation epochs in a row while it
+				 * struggles to compute a solution. Use the same timeout as the rover so that
+				 * such a gap does not reset a healthy receiver. */
+				receive_timeout = TIMEOUT_1HZ;
 			}
 
 			while ((helper_ret = _helper->receive(receive_timeout)) > 0 && !should_exit()) {
