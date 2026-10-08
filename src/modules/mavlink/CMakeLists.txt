@@ -88,11 +88,6 @@ set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${C
 # mavlink header only library
 add_library(mavlink_c INTERFACE)
 target_compile_options(mavlink_c INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
-target_sources(mavlink_c
-	INTERFACE
-		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h
-		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h
-)
 target_include_directories(mavlink_c
 	INTERFACE
 		${MAVLINK_LIBRARY_DIR}
@@ -139,6 +134,7 @@ px4_add_module(
 		sensor_calibration
 		geo
 		mavlink_c
+		mavlink_c_generate
 		timesync
 		tunes
 		variable_length_ringbuffer
