@@ -1026,7 +1026,7 @@ GPS::run()
 
 					if (_rover_used_for_position && !_rover_temporarily_in_normal_mode) {
 						PX4_WARN("Rover receiver used as position source. Reconfiguring to normal mode.");
-						_helper->disableUbxMBRover();
+						//_helper->disableUbxMBRover();
 						_rover_temporarily_in_normal_mode = true;
 					}
 
@@ -1034,7 +1034,7 @@ GPS::run()
 					    && _rover_temporarily_in_normal_mode
 					    && hrt_absolute_time() > _rover_allowed_return_to_rover_mode_at) {
 						PX4_WARN("Rover receiver no longer used as position source. Reconfiguring to rover mode.");
-						_helper->enableUbxMBRover();
+						//_helper->enableUbxMBRover();
 						_rover_temporarily_in_normal_mode = false;
 					}
 				}
