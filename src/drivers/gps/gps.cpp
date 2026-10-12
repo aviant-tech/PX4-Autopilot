@@ -176,6 +176,7 @@ private:
 	unsigned			_baudrate{0};					///< current baudrate
 	const unsigned			_configured_baudrate{0};			///< configured baudrate (0=auto-detect)
 	char				_port[20] {};					///< device / serial port path
+	char				_log_name[8] {};
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
 	bool				_mode_auto;					///< if true, auto-detect which GPS is attached
@@ -318,6 +319,8 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	strncpy(_port, path, sizeof(_port) - 1);
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
+
+	snprintf(_log_name, sizeof(_log_name), "gps %d", (int)_instance + 1);
 
 	_report_gps_pos.heading = NAN;
 	_report_gps_pos.heading_offset = NAN;
@@ -901,6 +904,10 @@ GPS::run()
 
 		default:
 			break;
+		}
+
+		if (_helper) {
+			_helper->setLogName(_log_name);
 		}
 
 		_baudrate = _configured_baudrate;

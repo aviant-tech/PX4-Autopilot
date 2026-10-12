@@ -46,9 +46,9 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 
-#define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
-#define GPS_WARN(...) PX4_WARN(__VA_ARGS__)
-#define GPS_ERR(...) PX4_ERR(__VA_ARGS__)
+#define GPS_INFO(...) px4_log_modulename(_PX4_LOG_LEVEL_INFO, _log_name, __VA_ARGS__)
+#define GPS_WARN(...) px4_log_modulename(_PX4_LOG_LEVEL_WARN, _log_name, __VA_ARGS__)
+#define GPS_ERR(...) px4_log_modulename(_PX4_LOG_LEVEL_ERROR, _log_name, __VA_ARGS__)
 
 #define gps_usleep px4_usleep
 
