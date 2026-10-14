@@ -365,6 +365,10 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		// will be accepted immediately and the work items will be skipped
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
+		if (_vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			_mission_item.lat = _global_pos_sub.get().lat;
+			_mission_item.lon = _global_pos_sub.get().lon;
+		}
 
 		/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
 		_mission_item.yaw = NAN;
