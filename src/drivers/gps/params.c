@@ -70,6 +70,24 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
 /**
+ * u-blox GPS DGNSS timeout
+ *
+ * Maximum age of differential (RTK) corrections before the receiver stops using them.
+ * Sets CFG-NAVSPG-DGNSSTO. Only supported on u-blox 9th generation (and newer) receivers.
+ * Set to 0 to leave the receiver setting untouched. The value is not persisted on the receiver,
+ * so going back to 0 only restores the receiver default (60 s) after a receiver power cycle.
+ *
+ * @min 0
+ * @max 255
+ * @unit s
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_DGNSSTO, 0);
+
+/**
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.

@@ -176,6 +176,7 @@ private:
 	unsigned			_baudrate{0};					///< current baudrate
 	const unsigned			_configured_baudrate{0};			///< configured baudrate (0=auto-detect)
 	char				_port[20] {};					///< device / serial port path
+	char				_log_name[8] {};
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
 	bool				_mode_auto;					///< if true, auto-detect which GPS is attached
@@ -318,6 +319,8 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	strncpy(_port, path, sizeof(_port) - 1);
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
+
+	snprintf(_log_name, sizeof(_log_name), "gps %d", (int)_instance + 1);
 
 	_report_gps_pos.heading = NAN;
 	_report_gps_pos.heading_offset = NAN;
@@ -715,6 +718,13 @@ GPS::run()
 		param_get(handle, &gps_ubx_dynmodel);
 	}
 
+	int32_t gps_ubx_dgnssto = 0;
+	handle = param_find("GPS_UBX_DGNSSTO");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_dgnssto);
+	}
+
 	handle = param_find("GPS_UBX_MODE");
 
 	GPSDriverUBX::UBXMode ubx_mode{GPSDriverUBX::UBXMode::Normal};
@@ -868,7 +878,8 @@ GPS::run()
 		/* FALLTHROUGH */
 		case gps_driver_mode_t::UBX:
 			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-						   gps_ubx_dynmodel, heading_offset, f9p_uart2_baudrate, ubx_mode);
+						   gps_ubx_dynmodel, heading_offset, f9p_uart2_baudrate, ubx_mode,
+						   math::constrain(gps_ubx_dgnssto, (int32_t)0, (int32_t)255));
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
 #ifndef CONSTRAINED_FLASH
@@ -901,6 +912,10 @@ GPS::run()
 
 		default:
 			break;
+		}
+
+		if (_helper) {
+			_helper->setLogName(_log_name);
 		}
 
 		_baudrate = _configured_baudrate;
@@ -974,6 +989,13 @@ GPS::run()
 			    || (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
 				/* The MB rover will wait as long as possible to compute a navigation solution,
 				 * possibly lowering the navigation rate all the way to 1 Hz while doing so. */
+				receive_timeout = TIMEOUT_1HZ;
+
+			} else if ((ubx_mode == GPSDriverUBX::UBXMode::MovingBase)
+				   || (ubx_mode == GPSDriverUBX::UBXMode::MovingBaseUART1)) {
+				/* The moving base can also skip several navigation epochs in a row while it
+				 * struggles to compute a solution. Use the same timeout as the rover so that
+				 * such a gap does not reset a healthy receiver. */
 				receive_timeout = TIMEOUT_1HZ;
 			}
 
