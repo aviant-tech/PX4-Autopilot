@@ -39,6 +39,9 @@
 
 void AuxGlobalPosition::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 {
+	if (!_enabled) {
+		return;
+	}
 
 #if defined(MODULE_NAME)
 

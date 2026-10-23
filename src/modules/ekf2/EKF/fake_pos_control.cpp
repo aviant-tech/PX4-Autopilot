@@ -42,6 +42,11 @@ void Ekf::controlFakePosFusion()
 {
 	auto &aid_src = _aid_src_fake_pos;
 
+	if (!_fake_pos_enabled) {
+		stopFakePosFusion();
+		return;
+	}
+
 	// If we aren't doing any aiding, fake position measurements at the last known position to constrain drift
 	// During initial tilt alignment, fake position is used to perform a "quasi-stationary" leveling of the EKF
 	const bool fake_pos_data_ready = !isHorizontalAidingActive()

@@ -22,3 +22,69 @@ parameters:
       reboot_required: true
       min: 0
       max: 4
+    EKF2_MAIN_POS:
+      description:
+        short: Main estimator position estimation flags
+        long: Bitmask controlling which position estimation sources are enabled
+          for main EKF instances. Main estimators are always selectable.
+          Requires SENS_IMU_MODE 0.
+      type: bitmask
+      default: 127
+      reboot_required: true
+      min: 0
+      max: 127
+      bit:
+        0: Initialize origin with GNSS
+        1: Fuse GNSS while disarmed
+        2: Fuse GNSS while armed
+        3: Accept external position resets
+        4: Fuse auxiliary global position
+        5: Fuse vision and optical flow
+        6: Fuse fake position
+    EKF2_BACK_POS:
+      description:
+        short: Backup estimator position estimation flags
+        long: Bitmask controlling which position estimation sources are enabled
+          for backup EKF instances. Set 0 to disable backup instances. Backup
+          instances double the number of estimators. Requires SENS_IMU_MODE 0.
+      type: bitmask
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 127
+      bit:
+        0: Initialize origin with GNSS
+        1: Fuse GNSS while disarmed
+        2: Fuse GNSS while armed
+        3: Accept external position resets
+        4: Fuse auxiliary global position
+        5: Fuse vision and optical flow
+        6: Fuse fake position
+    EKF2_BACK_SEL:
+      description:
+        short: Backup estimator selectable
+        long: When enabled, the EKF2 selector can switch to backup estimator
+          instances. When disabled, backup estimators run in the background only.
+      type: int32
+      default: 0
+      reboot_required: true
+      min: 0
+      max: 1
+      values:
+        0: Not selectable
+        1: Selectable
+    EKF2_TRN_PUB:
+      description:
+        short: TRN test data source
+        long: Which estimator instance to publish on AVIANT_TRN_TEST_DATA.
+          None disables publishing. Selected publishes the currently selected
+          estimator. First backup publishes the first backup estimator instance.
+      type: int32
+      default: 0
+      reboot_required: false
+      min: 0
+      max: 2
+      values:
+        0: None
+        1: Selected
+        2: First backup

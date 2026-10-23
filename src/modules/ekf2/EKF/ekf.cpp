@@ -334,6 +334,7 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 {
 
 	if (!_pos_ref.isInitialized()) {
+		ECL_WARN("EXTPOS: pos_ref not initialized, cannot reset");
 		return;
 	}
 

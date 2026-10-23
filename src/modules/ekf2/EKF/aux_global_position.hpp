@@ -69,12 +69,15 @@ public:
 
 	void update(Ekf &ekf, const estimator::imuSample &imu_delayed);
 
+	void setEnabled(bool enabled) { _enabled = enabled; }
+
 	void updateParameters()
 	{
 		updateParams();
 	}
 
 private:
+	bool _enabled{true};
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t time_delayed_us, uint64_t timeout_period) const
 	{
 		return (last_sensor_timestamp == 0) || (last_sensor_timestamp + timeout_period < time_delayed_us);
