@@ -404,6 +404,34 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_Y, 0.1f);
 PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
 
 /**
+ * Back-transition stops at the waypoint
+ *
+ * If enabled, a mission waypoint flown in fixed-wing with no acceptance radius set that is followed by
+ * a transition to multicopter starts the back-transition at the speed based distance (as a VTOL landing
+ * does, see VT_B_DEC_MSS), and during any back-transition towards a position setpoint the deceleration
+ * setpoint follows the distance left to it, so the vehicle stops on it instead of at a fixed deceleration.
+ * Set VT_B_DEC_MSS below the deceleration the vehicle can reach, so the closed loop has margin.
+ *
+ * @boolean
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_B_STOP_WP, 0);
+
+/**
+ * Fly the last leg to a stop or landing waypoint into the wind
+ *
+ * If enabled and the estimated wind is above 2 m/s, a mission waypoint where the vehicle stops (see VT_B_STOP_WP)
+ * or a VTOL landing reached in fixed-wing is approached through an extra waypoint downwind of it, unless the
+ * vehicle already comes from downwind (within 30 degrees). The last leg is the stop distance at the ground speed
+ * into the wind (FW_AIRSPD_TRIM, VT_B_DEC_MSS) plus twice NAV_LOITER_RAD to turn onto it. The vehicle leaves the
+ * planned path by up to that distance, so the area around the waypoint must be clear.
+ *
+ * @boolean
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_B_INTO_WIND, 0);
+
+/**
  * Minimum pitch angle during hover.
  *
  * Any pitch setpoint below this value is translated to a forward force by the fixed-wing forward actuation if

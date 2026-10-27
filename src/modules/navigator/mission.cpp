@@ -233,9 +233,37 @@ void Mission::setActiveMissionItems()
 
 	if (item_contains_position(_mission_item)) {
 
-		handleTakeoff(new_work_item_type, next_mission_items, num_found_items);
+		mission_item_s following_item;
+		static const param_t stop_wp_handle = param_find("VT_B_STOP_WP");
+		int32_t stop_wp = 0;
+		param_get(stop_wp_handle, &stop_wp);
 
-		handleLanding(new_work_item_type, next_mission_items, num_found_items);
+		const bool fixed_wing = _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+		const bool stops_here = stop_wp
+					&& _mission_item.acceptance_radius < FLT_EPSILON
+					&& fixed_wing
+					&& _dataman_cache.loadWait(mission_dataman_id, _mission.current_seq + 1, reinterpret_cast<uint8_t *>(&following_item),
+							sizeof(following_item), MAX_DATAMAN_LOAD_WAIT)
+					&& following_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+					&& static_cast<int>(following_item.params[0] + 0.5f) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+		const bool lands_here = fixed_wing && _vehicle_status_sub.get().is_vtol && _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+					&& !_land_detected_sub.get().landed;
+		const mission_item_s stop_item = _mission_item;
+
+		if ((stops_here || lands_here) && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT && setIntoWindEntry()) {
+			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_INTO_WIND;
+			num_found_items = 1u;
+			next_mission_items[0u] = stop_item;
+
+		} else {
+			handleTakeoff(new_work_item_type, next_mission_items, num_found_items);
+
+			handleLanding(new_work_item_type, next_mission_items, num_found_items);
+
+			if (stops_here) {
+				_mission_item.vtol_back_transition = true;
+			}
+		}
 
 		// TODO Precision land needs to be refactored: https://github.com/PX4/Firmware/issues/14320
 		if (new_work_item_type != WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
@@ -485,4 +513,68 @@ Mission::save_mission_state()
 			PX4_ERR("Can't save mission state");
 		}
 	}
+}
+
+bool Mission::setIntoWindEntry()
+{
+	static const param_t into_wind_handle = param_find("VT_B_INTO_WIND");
+	static const param_t dec_handle = param_find("VT_B_DEC_MSS");
+	static const param_t trim_handle = param_find("FW_AIRSPD_TRIM");
+	static const param_t loiter_rad_handle = param_find("NAV_LOITER_RAD");
+	int32_t into_wind = 0;
+	float dec = 2.f;
+	float trim = 15.f;
+	float loiter_rad = 80.f;
+	param_get(into_wind_handle, &into_wind);
+	param_get(dec_handle, &dec);
+	param_get(trim_handle, &trim);
+	param_get(loiter_rad_handle, &loiter_rad);
+
+	_wind_sub.update();
+	const wind_s &wind = _wind_sub.get();
+	const matrix::Vector2f wind_vel(wind.windspeed_north, wind.windspeed_east);
+	const float wind_speed = wind_vel.norm();
+
+	if (!into_wind || hrt_elapsed_time(&wind.timestamp) > 5_s || wind_speed < 2.f || !PX4_ISFINITE(wind_speed)) {
+		return false;
+	}
+
+	const matrix::Vector2f downwind = wind_vel / wind_speed;
+	float to_wp_north;
+	float to_wp_east;
+	get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, _mission_item.lat, _mission_item.lon,
+				    &to_wp_north, &to_wp_east);
+	const matrix::Vector2f to_wp(to_wp_north, to_wp_east);
+
+	if (to_wp.norm() > FLT_EPSILON && to_wp.unit_or_zero().dot(-downwind) > cosf(math::radians(30.f))) {
+		return false;
+	}
+
+	const float ground_speed = math::max(trim - wind_speed, 1.f);
+	const float leg = ground_speed * ground_speed / (2.f * math::max(dec, 0.1f)) + 2.f * math::max(loiter_rad, 25.f);
+
+	double entry_lat;
+	double entry_lon;
+	waypoint_from_heading_and_distance(_mission_item.lat, _mission_item.lon, atan2f(downwind(1), downwind(0)), leg,
+					   &entry_lat, &entry_lon);
+
+	if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
+		const position_setpoint_s &current = _navigator->get_position_setpoint_triplet()->current;
+		_mission_item.altitude = (current.valid && current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ?
+					 current.alt : _global_pos_sub.get().alt;
+		_mission_item.altitude_is_relative = false;
+	}
+
+	_mission_item.lat = entry_lat;
+	_mission_item.lon = entry_lon;
+	_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+	_mission_item.acceptance_radius = 0.f;
+	_mission_item.time_inside = 0.f;
+	_mission_item.autocontinue = true;
+	_mission_item.vtol_back_transition = false;
+
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Approach into the wind, %.0f m leg\t", (double)leg);
+	events::send<float>(events::ID("mission_into_wind_approach"), events::Log::Info,
+			    "Approach into the wind, {1:.0m} leg", leg);
+	return true;
 }

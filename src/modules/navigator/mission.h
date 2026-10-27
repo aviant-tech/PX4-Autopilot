@@ -51,6 +51,8 @@
 #include "mission_base.h"
 #include "navigation.h"
 
+#include <uORB/topics/wind.h>
+
 class Navigator;
 
 class Mission : public MissionBase
@@ -92,5 +94,9 @@ private:
 
 	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
+	bool setIntoWindEntry();
+
 	bool _need_mission_save{false};
+
+	uORB::SubscriptionData<wind_s> _wind_sub{ORB_ID(wind)};
 };

@@ -46,6 +46,7 @@
 #include <px4_platform_common/defines.h>
 #include <matrix/math.hpp>
 #include <lib/atmosphere/atmosphere.h>
+#include <lib/geo/geo.h>
 
 using namespace matrix;
 
@@ -79,6 +80,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_thrust_setpoint_1 = _attc->get_thrust_setpoint_1();
 	_local_pos = _attc->get_local_pos();
 	_local_pos_sp = _attc->get_local_pos_sp();
+	_pos_sp_triplet = _attc->get_pos_sp_triplet();
 	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
@@ -179,7 +181,24 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 
 	// increase the target deceleration setpoint provided to the controller by 20%
 	// to make overshooting the transition waypoint less likely in the presence of tracking errors
-	const float dec_sp = _param_vt_b_dec_mss.get() * 1.2f;
+	float dec_sp = _param_vt_b_dec_mss.get() * 1.2f;
+
+	if (_param_vt_b_stop_wp.get() && _pos_sp_triplet->current.valid
+	    && _pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION
+	    && _local_pos->xy_valid && _local_pos->xy_global) {
+		MapProjection ref{_local_pos->ref_lat, _local_pos->ref_lon};
+		float wp_x;
+		float wp_y;
+		ref.project(_pos_sp_triplet->current.lat, _pos_sp_triplet->current.lon, wp_x, wp_y);
+
+		const float speed = cosf(track) * _local_pos->vx + sinf(track) * _local_pos->vy;
+		const float exit_speed = _param_mpc_xy_cruise.get();
+		const float dist = cosf(track) * (wp_x - _local_pos->x) + sinf(track) * (wp_y - _local_pos->y) - exit_speed;
+
+		if (speed > exit_speed && PX4_ISFINITE(dist)) {
+			dec_sp = dist > 1.f ? (speed * speed - exit_speed * exit_speed) / (2.f * dist) : 10.f;
+		}
+	}
 
 	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
 	const float accel_error_forward = dec_sp + accel_body_forward;

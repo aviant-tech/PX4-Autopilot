@@ -295,6 +295,7 @@ protected:
 	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_fw;
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
+	struct position_setpoint_triplet_s		*_pos_sp_triplet;
 	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
 	const float		    			&_airspeed_filtered;					// filtered airspeed
 	struct tecs_status_s				*_tecs_status;
@@ -364,6 +365,7 @@ protected:
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_R>) _param_vt_fw_difthr_s_r,
 					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
 					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
+					(ParamBool<px4::params::VT_B_STOP_WP>) _param_vt_b_stop_wp,
 
 					(ParamFloat<px4::params::VT_PITCH_MIN>) _param_vt_pitch_min,
 					(ParamFloat<px4::params::VT_FWD_THRUST_SC>) _param_vt_fwd_thrust_sc,

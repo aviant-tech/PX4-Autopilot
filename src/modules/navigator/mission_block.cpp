@@ -341,8 +341,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 			if (_mission_item.vtol_back_transition
 			    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
-						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
+				float to_wp_north = 0.f;
+				float to_wp_east = 0.f;
+				get_vector_to_next_waypoint(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+							    _mission_item.lat, _mission_item.lon, &to_wp_north, &to_wp_east);
+				const matrix::Vector2f to_wp = matrix::Vector2f(to_wp_north, to_wp_east).unit_or_zero();
+				float velocity = to_wp(0) * _navigator->get_local_position()->vx + to_wp(1) * _navigator->get_local_position()->vy;
 
 				const float back_trans_dec = _navigator->get_vtol_back_trans_deceleration();
 

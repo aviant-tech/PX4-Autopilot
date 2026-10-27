@@ -310,7 +310,8 @@ MissionBase::on_active()
 	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
-		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB
+		    && _work_item_type != WorkItemType::WORK_ITEM_TYPE_INTO_WIND) {
 			set_mission_item_reached();
 		}
 
@@ -568,7 +569,8 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
-		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
+		    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_INTO_WIND) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
