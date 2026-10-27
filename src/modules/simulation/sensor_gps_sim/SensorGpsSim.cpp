@@ -52,6 +52,7 @@ SensorGpsSim::~SensorGpsSim()
 
 bool SensorGpsSim::init()
 {
+	_dual = (_sim_gps_dual.get() == 1);
 	ScheduleOnInterval(125_ms); // 8 Hz
 	return true;
 }
@@ -113,6 +114,12 @@ void SensorGpsSim::Run()
 
 		vehicle_global_position_s gpos{};
 		_vehicle_global_position_sub.copy(&gpos);
+
+		if (_dual) {
+			publishDualGps(gpos, lpos);
+			perf_end(_loop_perf);
+			return;
+		}
 
 		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
 		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
@@ -180,6 +187,137 @@ void SensorGpsSim::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void SensorGpsSim::publishDualGps(const vehicle_global_position_s &gpos, const vehicle_local_position_s &lpos)
+{
+	static constexpr float POS_NOISE_H{0.005f};
+	static constexpr float POS_NOISE_V{0.008f};
+	static constexpr float VEL_NOISE_H{0.015f};
+	static constexpr float VEL_NOISE_V{0.04f};
+	static constexpr float REL_POS_NOISE{0.003f};
+	static constexpr float HEADING_ACCURACY{0.0235f};
+	static constexpr int MIN_SATELLITES_FOR_FIX{4};
+	static constexpr unsigned SATELLITE_DROP_REDRAW_CYCLES{40};
+	static constexpr float NO_SATELLITE_DROPPED_PROBABILITY{0.7f};
+	static constexpr float AT_MOST_ONE_SATELLITE_DROPPED_PROBABILITY{0.95f};
+	static constexpr int ROVER_INSTANCE{0};
+	static constexpr int NUM_RECEIVERS{2};
+	static constexpr float RTK_EPH{0.014f};
+	static constexpr float ROVER_EPV{0.012f};
+	static constexpr float BASE_EPV{0.010f};
+	static constexpr float ROVER_SPEED_VARIANCE{0.10f};
+	static constexpr float BASE_SPEED_VARIANCE{0.09f};
+	static constexpr float COURSE_VARIANCE{0.1f};
+	static constexpr float ROVER_HDOP{0.55f};
+	static constexpr float BASE_HDOP{0.63f};
+	static constexpr float ROVER_VDOP{0.86f};
+	static constexpr float BASE_VDOP{1.10f};
+	static constexpr float NO_FIX_ACCURACY{100.f};
+	static constexpr float REL_POS_ACCURACY{0.01f};
+
+	vehicle_attitude_s attitude;
+
+	if (_vehicle_attitude_sub.update(&attitude)) {
+		_q_groundtruth = Quatf(attitude.q);
+	}
+
+	const Dcmf R_nb{_q_groundtruth};
+	const Vector3f base_ned = R_nb * Vector3f{_sim_gps_pos_x.get(), _sim_gps_pos_y.get(), _sim_gps_pos_z.get()};
+	const Vector3f rel_ned = R_nb * Vector3f{_sim_gps_rel_x.get(), _sim_gps_rel_y.get(), _sim_gps_rel_z.get()};
+
+	const bool fix = _sim_gps_used.get() >= MIN_SATELLITES_FOR_FIX;
+
+	if (_dual_cycle++ % SATELLITE_DROP_REDRAW_CYCLES == 0) {
+		for (int &dropped : _satellites_dropped) {
+			const float u = (float)rand() / (float)RAND_MAX;
+			dropped = (u < NO_SATELLITE_DROPPED_PROBABILITY) ? 0 : ((u < AT_MOST_ONE_SATELLITE_DROPPED_PROBABILITY) ? 1 : 2);
+		}
+	}
+
+	const Vector3f rel_meas = rel_ned + noiseGauss3f(REL_POS_NOISE, REL_POS_NOISE, REL_POS_NOISE);
+	const float rel_heading = atan2f(rel_meas(1), rel_meas(0));
+	const float heading_offset = atan2f(_sim_gps_rel_y.get(), _sim_gps_rel_x.get());
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	for (int i = 0; i < NUM_RECEIVERS; i++) {
+		const bool rover = (i == ROVER_INSTANCE);
+		const Vector3f pos = (rover ? base_ned + rel_ned : base_ned) + noiseGauss3f(POS_NOISE_H, POS_NOISE_H, POS_NOISE_V);
+		const Vector3f vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(VEL_NOISE_H, VEL_NOISE_H, VEL_NOISE_V);
+
+		device::Device::DeviceId device_id;
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+		device_id.devid_s.bus = 0;
+		device_id.devid_s.address = i;
+		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+
+		sensor_gps_s gps{};
+		gps.timestamp_sample = gpos.timestamp_sample;
+		gps.device_id = device_id.devid;
+
+		const double lat = gpos.lat + math::degrees((double)pos(0) / CONSTANTS_RADIUS_OF_EARTH);
+		gps.latitude_deg = lat;
+		gps.longitude_deg = gpos.lon + math::degrees((double)pos(1) / (CONSTANTS_RADIUS_OF_EARTH * cos(math::radians(lat))));
+		gps.altitude_msl_m = (double)(gpos.alt - pos(2));
+		gps.altitude_ellipsoid_m = gps.altitude_msl_m;
+
+		if (fix) {
+			gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+			gps.eph = RTK_EPH;
+			gps.epv = rover ? ROVER_EPV : BASE_EPV;
+			gps.s_variance_m_s = rover ? ROVER_SPEED_VARIANCE : BASE_SPEED_VARIANCE;
+			gps.c_variance_rad = COURSE_VARIANCE;
+			gps.hdop = rover ? ROVER_HDOP : BASE_HDOP;
+			gps.vdop = rover ? ROVER_VDOP : BASE_VDOP;
+
+		} else {
+			gps.fix_type = 0;
+			gps.eph = NO_FIX_ACCURACY;
+			gps.epv = NO_FIX_ACCURACY;
+			gps.s_variance_m_s = NO_FIX_ACCURACY;
+			gps.c_variance_rad = NO_FIX_ACCURACY;
+			gps.hdop = NO_FIX_ACCURACY;
+			gps.vdop = NO_FIX_ACCURACY;
+		}
+
+		gps.vel_m_s = sqrtf(vel(0) * vel(0) + vel(1) * vel(1));
+		gps.vel_n_m_s = vel(0);
+		gps.vel_e_m_s = vel(1);
+		gps.vel_d_m_s = vel(2);
+		gps.cog_rad = atan2f(vel(1), vel(0));
+		gps.vel_ned_valid = true;
+		gps.satellites_used = math::max(_sim_gps_used.get() - _satellites_dropped[i], 0);
+		gps.heading = (rover && fix) ? matrix::wrap_pi(rel_heading - heading_offset) : NAN;
+		gps.heading_offset = rover ? heading_offset : NAN;
+		gps.heading_accuracy = (rover && fix) ? HEADING_ACCURACY : 0.f;
+		gps.timestamp = now;
+
+		if (!rover) {
+			_sensor_gps_base_pub.publish(gps);
+
+		} else {
+			_sensor_gps_pub.publish(gps);
+
+			sensor_gnss_relative_s rel{};
+			rel.timestamp_sample = gpos.timestamp_sample;
+			rel.device_id = device_id.devid;
+			rel_meas.copyTo(rel.position);
+			rel.position_accuracy[0] = rel.position_accuracy[1] = rel.position_accuracy[2] = REL_POS_ACCURACY;
+			rel.heading = matrix::wrap_2pi(rel_heading);
+			rel.heading_accuracy = HEADING_ACCURACY;
+			rel.position_length = rel_meas.norm();
+			rel.accuracy_length = REL_POS_ACCURACY;
+			rel.gnss_fix_ok = fix;
+			rel.differential_solution = fix;
+			rel.relative_position_valid = fix;
+			rel.carrier_solution_fixed = fix;
+			rel.moving_base_mode = true;
+			rel.heading_valid = fix;
+			rel.timestamp = now;
+			_sensor_gnss_relative_pub.publish(rel);
+		}
+	}
 }
 
 int SensorGpsSim::task_spawn(int argc, char *argv[])

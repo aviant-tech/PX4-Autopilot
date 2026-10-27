@@ -42,7 +42,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_gnss_relative.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -68,6 +70,8 @@ public:
 private:
 	void Run() override;
 
+	void publishDualGps(const vehicle_global_position_s &gpos, const vehicle_local_position_s &lpos);
+
 	// generate white Gaussian noise sample with std=1
 	static float generate_wgn();
 
@@ -78,11 +82,27 @@ private:
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
 
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude_groundtruth)};
+
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_base_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
+
+	matrix::Quatf _q_groundtruth{};
+	int _satellites_dropped[2] {};
+	unsigned _dual_cycle{0};
+	bool _dual{false};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
+		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used,
+		(ParamInt<px4::params::SIM_GPS_DUAL>) _sim_gps_dual,
+		(ParamFloat<px4::params::SIM_GPS_POS_X>) _sim_gps_pos_x,
+		(ParamFloat<px4::params::SIM_GPS_POS_Y>) _sim_gps_pos_y,
+		(ParamFloat<px4::params::SIM_GPS_POS_Z>) _sim_gps_pos_z,
+		(ParamFloat<px4::params::SIM_GPS_REL_X>) _sim_gps_rel_x,
+		(ParamFloat<px4::params::SIM_GPS_REL_Y>) _sim_gps_rel_y,
+		(ParamFloat<px4::params::SIM_GPS_REL_Z>) _sim_gps_rel_z
 	)
 };

@@ -67,6 +67,7 @@ if(gz-transport_FOUND)
 			GZMixingInterfaceWheel.cpp
 			GZMixingInterfaceWheel.hpp
 		DEPENDS
+			drivers_rangefinder
 			mixer_module
 			px4_work_queue
 			${GZ_TRANSPORT_LIB}
@@ -119,14 +120,14 @@ if(gz-transport_FOUND)
 
 			if(world_name STREQUAL "default")
 				add_custom_target(gz_${model_only}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} $<TARGET_FILE:px4>
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} GZ_IP=127.0.0.1 $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
 					DEPENDS px4
 				)
 			else()
 				add_custom_target(gz_${model_only}_${world_name}
-					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} $<TARGET_FILE:px4>
+					COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=gz_${model_only} PX4_GZ_WORLD=${world_name} GZ_IP=127.0.0.1 $<TARGET_FILE:px4>
 					WORKING_DIRECTORY ${SITL_WORKING_DIR}
 					USES_TERMINAL
 					DEPENDS px4

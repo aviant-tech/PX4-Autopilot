@@ -150,15 +150,24 @@ int GZBridge::init()
 
 		// If PX4_GZ_STANDALONE has been set, you can try to connect but GZ_SIM_RESOURCE_PATH needs to be set correctly to work.
 		else {
-			if (_node.Request(create_service, req, 1000, rep, result)) {
-				if (!rep.data() || !result) {
-					PX4_ERR("EntityFactory service call failed.");
-					return PX4_ERROR;
-				}
+			static constexpr int CREATE_ATTEMPTS = 60;
 
-			} else {
-				PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
-				return PX4_ERROR;
+			for (int attempt = 1; ; attempt++) {
+				if (_node.Request(create_service, req, 1000, rep, result)) {
+					if (!rep.data() || !result) {
+						PX4_ERR("EntityFactory service call failed.");
+						return PX4_ERROR;
+					}
+
+					break;
+
+				} else if (attempt >= CREATE_ATTEMPTS) {
+					PX4_ERR("Service call timed out. Check GZ_SIM_RESOURCE_PATH is set correctly.");
+					return PX4_ERROR;
+
+				} else if (attempt == 1) {
+					PX4_INFO("waiting for gz sim (%s)", create_service.c_str());
+				}
 			}
 		}
 	}
@@ -196,7 +205,6 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-#if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
 					"/link/airspeed_link/sensor/air_speed/air_speed";
@@ -206,7 +214,6 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-#endif
 	// Air pressure: /world/$WORLD/model/$MODEL/link/base_link/sensor/air_pressure_sensor/air_pressure
 	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
 					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
@@ -223,6 +230,12 @@ int GZBridge::init()
 	if (!_node.Subscribe(nav_sat_topic, &GZBridge::navSatCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", nav_sat_topic.c_str());
 		return PX4_ERROR;
+	}
+
+	if (_sim_gz_en_lidar.get()) {
+		if (!subscribeDistanceSensor(false)) {
+			return PX4_ERROR;
+		}
 	}
 
 	if (!_mixing_interface_esc.init(_model_name)) {
@@ -242,6 +255,19 @@ int GZBridge::init()
 
 	ScheduleNow();
 	return OK;
+}
+
+bool GZBridge::subscribeDistanceSensor(bool required)
+{
+	std::string lidar_sensor = "/world/" + _world_name + "/model/" + _model_name +
+				   "/link/lidar_sensor_link/sensor/lidar/scan";
+
+	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
+		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
+		return required ? false : true;
+	}
+
+	return true;
 }
 
 int GZBridge::task_spawn(int argc, char *argv[])
@@ -419,8 +445,7 @@ void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-#if 0
-void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
+void GZBridge::airspeedCallback(const GZAirspeedMsg &air_speed)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -445,7 +470,6 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 
 	pthread_mutex_unlock(&_node_mutex);
 }
-#endif
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {
@@ -701,6 +725,51 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry
 
 	// odom.reset_counter = vpe.reset_counter;
 	_visual_odometry_pub.publish(odom);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
+{
+	if (hrt_absolute_time() == 0 || msg.ranges_size() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	_px4_rangefinder.set_min_distance(static_cast<float>(msg.range_min()));
+	_px4_rangefinder.set_max_distance(static_cast<float>(msg.range_max()));
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+
+	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();
+	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
+			pose_orientation.w(),
+			pose_orientation.x(),
+			pose_orientation.y(),
+			pose_orientation.z());
+
+	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
+
+	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
+
+	const gz::math::Quaterniond q_down(0, 1, 0, 0);
+
+	const float distance = static_cast<float>(msg.ranges()[0]);
+
+	uint8_t orientation = distance_sensor_s::ROTATION_CUSTOM;
+
+	if (q_sensor.Equal(q_front, 0.03)) {
+		orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+
+	} else if (q_sensor.Equal(q_down, 0.03)) {
+		orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	} else if (q_sensor.Equal(q_left, 0.03)) {
+		orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+	}
+
+	_px4_rangefinder.set_orientation(orientation);
+	_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	pthread_mutex_unlock(&_node_mutex);
 }

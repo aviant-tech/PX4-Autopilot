@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
 export PX4_GZ_MODELS=@PX4_SOURCE_DIR@/Tools/simulation/gz/models
-export PX4_GZ_WORLDS=@PX4_SOURCE_DIR@/Tools/simulation/gz/worlds
+if [ -z "$PX4_GZ_WORLDS" ] || [ ! -f "$PX4_GZ_WORLDS/$PX4_GZ_WORLD.sdf" ]; then
+	export PX4_GZ_WORLDS=@PX4_SOURCE_DIR@/Tools/simulation/gz/worlds
+fi
+
+export PX4_GZ_SERVER_CONFIG=@PX4_SOURCE_DIR@/src/modules/simulation/gz_bridge/server.config
 
 export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:$PX4_GZ_MODELS:$PX4_GZ_WORLDS
+export GZ_SIM_SERVER_CONFIG_PATH=$PX4_GZ_SERVER_CONFIG

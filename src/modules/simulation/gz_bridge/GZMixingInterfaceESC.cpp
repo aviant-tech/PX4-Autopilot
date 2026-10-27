@@ -33,6 +33,8 @@
 
 #include "GZMixingInterfaceESC.hpp"
 
+#include <lib/mathlib/mathlib.h>
+
 bool GZMixingInterfaceESC::init(const std::string &model_name)
 {
 
@@ -78,8 +80,21 @@ bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_
 		gz::msgs::Actuators rotor_velocity_message;
 		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 
+		const float thrust_model_factor = math::constrain(_param_sim_gz_thr_mdl.get(), 0.f, 1.f);
+
 		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
+			float rotor_velocity = outputs[i];
+			const float min_velocity = _mixing_output.minValue(i);
+			const float max_velocity = _mixing_output.maxValue(i);
+
+			if (thrust_model_factor < 1.f && max_velocity > min_velocity && rotor_velocity > min_velocity) {
+				const float u = math::constrain((rotor_velocity - min_velocity) / (max_velocity - min_velocity), 0.f, 1.f);
+				const float normalized_thrust = (1.f - thrust_model_factor) * u + thrust_model_factor * u * u;
+				const float normalized_rotor_velocity = sqrtf(normalized_thrust);
+				rotor_velocity = min_velocity + (max_velocity - min_velocity) * normalized_rotor_velocity;
+			}
+
+			rotor_velocity_message.set_velocity(i, rotor_velocity);
 		}
 
 		if (_actuators_pub.Valid()) {
@@ -107,15 +122,20 @@ void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuato
 	pthread_mutex_lock(&_node_mutex);
 
 	esc_status_s esc_status{};
-	esc_status.esc_count = actuators.velocity_size();
+	int limited_escs = math::min(actuators.velocity_size(), (int)esc_status_s::CONNECTED_ESC_MAX);
+	esc_status.esc_count = limited_escs;
 
-	for (int i = 0; i < actuators.velocity_size(); i++) {
+	for (int i = 0; i < limited_escs; i++) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
 		esc_status.esc[i].esc_rpm = actuators.velocity(i);
 		esc_status.esc_online_flags |= 1 << i;
 
 		if (actuators.velocity(i) > 0) {
-			esc_status.esc_armed_flags |= 1 << i;
+			// This is a race condition with the failure detector, for smaller models it always resolves before
+			// the failure detector runs, but for larger models (with more than 8 ESCs) the failure detector
+			// can run before the velocity of some escs is set > 0. To mitigate this, if one esc has a velocity > 0,
+			// we assume all escs are armed.
+			esc_status.esc_armed_flags = (1 << limited_escs) - 1;
 		}
 	}
 

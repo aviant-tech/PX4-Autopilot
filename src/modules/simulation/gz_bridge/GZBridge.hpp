@@ -43,6 +43,9 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <drivers/drv_sensor.h>
+#include <lib/drivers/device/Device.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <lib/geo/geo.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -65,8 +68,16 @@
 
 #include <gz/msgs/imu.pb.h>
 #include <gz/msgs/fluid_pressure.pb.h>
+#if __has_include(<gz/msgs/air_speed.pb.h>)
+#include <gz/msgs/air_speed.pb.h>
+using GZAirspeedMsg = gz::msgs::AirSpeed;
+#else
+#include <gz/msgs/air_speed_sensor.pb.h>
+using GZAirspeedMsg = gz::msgs::AirSpeedSensor;
+#endif
 #include <gz/msgs/model.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
+#include <gz/msgs/laserscan.pb.h>
 
 using namespace time_literals;
 
@@ -98,14 +109,17 @@ private:
 
 	bool updateClock(const uint64_t tv_sec, const uint64_t tv_nsec);
 
+	bool subscribeDistanceSensor(bool required);
+
 	void clockCallback(const gz::msgs::Clock &clock);
 
-	// void airspeedCallback(const gz::msgs::AirSpeedSensor &air_pressure);
+	void airspeedCallback(const GZAirspeedMsg &air_speed);
 	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
+	void laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg);
 
 	/**
 	*
@@ -120,7 +134,7 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	//uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
@@ -130,6 +144,18 @@ private:
 	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
 	uORB::PublicationMulti<sensor_gyro_s>  _sensor_gyro_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<vehicle_odometry_s> _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+
+	static uint32_t rangefinderDeviceId()
+	{
+		device::Device::DeviceId device_id{};
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+		device_id.devid_s.bus = 0;
+		device_id.devid_s.address = 0;
+		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_SIM;
+		return device_id.devid;
+	}
+
+	PX4Rangefinder   _px4_rangefinder{rangefinderDeviceId()};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
@@ -152,7 +178,11 @@ private:
 	const std::string _model_sim;
 	const std::string _model_pose;
 
-	float _temperature{288.15};  // 15 degrees
+	float _temperature{15.0f};
 
 	gz::transport::Node _node;
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SIM_GZ_EN_LIDAR>) _sim_gz_en_lidar
+	)
 };
