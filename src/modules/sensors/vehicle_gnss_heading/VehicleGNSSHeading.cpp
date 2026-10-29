@@ -108,8 +108,8 @@ void VehicleGNSSHeading::Run()
 		_last_valid_timestamp = d.timestamp;
 
 		// Reject if the delta time to previous valid update is too large, ublox receivers can output stale data
-		// when in rover mode. F9P rovers publish every 125 ms, we accept up to 200 ms additional delay.
-		if (prev_valid == 0 || d.timestamp - prev_valid > 325_ms) {
+		// when in rover mode. F9P rovers publish every 200 ms, we accept one missed epoch and up to 100 ms additional delay.
+		if (prev_valid == 0 || d.timestamp - prev_valid > 500_ms) {
 			perf_end(_cycle_perf);
 			return;
 		}
