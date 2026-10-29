@@ -46,7 +46,7 @@ using namespace px4::logger;
 /*
  * `python Tools/aviant/logger_budget.py`
  * Subscriptions: 234 non-optional, 63 optional, 297 total (max 255)
- * Bandwidth: 57.625 kbps (non-optional), 151.186 kbps (all)
+ * Bandwidth: 59.253 kbps (non-optional), 152.814 kbps (all)
  */
 void LoggedTopics::add_default_topics()
 {
@@ -233,8 +233,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("distance_sensor", MODERATE, 1);
 	add_topic_multi("sensor_accel", SLOW, 4);
 	add_topic_multi("sensor_baro", SLOW, 4);
-	add_topic_multi("sensor_gps", SLOW, 2);
-	add_topic_multi("sensor_gnss_relative", SLOW, 1);
+	add_topic_multi("sensor_gps", AUTO, 2);  // 5 Hz
+	add_topic_multi("sensor_gnss_relative", AUTO, 1);  // 5 Hz
 	add_topic_multi("sensor_gyro", SLOW, 4);
 	add_topic_multi("sensor_mag", SLOW, 4);
 	add_optional_topic_multi("sensor_optical_flow", SLOW, 2);
