@@ -38,6 +38,8 @@ uint8 jamming_state		# indicates whether jamming has been detected or suspected 
 int32 jamming_indicator		# indicates jamming is occurring
 bool jamming_state_inhibited # indicates whether we are in the inhibited JAMMING_STATE_CRITICAL state.
 
+uint8 cpu_load
+
 uint8 SPOOFING_STATE_UNKNOWN   = 0
 uint8 SPOOFING_STATE_NONE      = 1
 uint8 SPOOFING_STATE_INDICATED = 2
