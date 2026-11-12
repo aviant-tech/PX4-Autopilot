@@ -146,6 +146,17 @@ public:
 
 	void set_arm_override(bool override) { _manually_logging_override = override; }
 
+	/**
+	 * Change the logging interval of an already subscribed topic.
+	 * Called from another thread: the request is queued and applied by the logger thread,
+	 * which owns the subscriptions. Blocks until the request is applied, or until it times out.
+	 * @param topic topic to change
+	 * @param interval_ms logging interval, 0 means log at the full topic rate. Not scaled by the log rate factor
+	 * @param instance topic instance, or -1 for all logged instances
+	 * @return number of updated subscriptions (0 if the topic is not logged), or -1 on timeout
+	 */
+	int set_topic_interval(const orb_metadata *topic, uint16_t interval_ms, int instance);
+
 	void trigger_watchdog_now()
 	{
 #ifdef __PX4_NUTTX
@@ -156,6 +167,7 @@ public:
 private:
 
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
+	static constexpr hrt_abstime	INTERVAL_REQUEST_TIMEOUT = 1_s; /**< how long to wait for the logger thread to apply an interval change */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
 		PX4_STORAGEDIR "/log",
@@ -180,6 +192,20 @@ private:
 	struct MissionSubscription {
 		unsigned min_delta_ms{0};        ///< minimum time between 2 topic writes [ms]
 		unsigned next_write_time{0};     ///< next time to write in 0.1 seconds
+	};
+
+	/**
+	 * A runtime logging interval change, handed from the requesting thread to the logger thread.
+	 * The request fields are only read by the logger thread after it observes a new request_seq,
+	 * and num_updated is only read by the requester after it observes the matching applied_seq.
+	 */
+	struct IntervalRequest {
+		const orb_metadata *topic{nullptr};
+		uint16_t interval_ms{0};
+		int instance{-1};                   ///< -1: all logged instances
+		int num_updated{0};                 ///< result, written by the logger thread
+		px4::atomic<uint32_t> request_seq{0};
+		px4::atomic<uint32_t> applied_seq{0};
 	};
 
 	/**
@@ -310,6 +336,11 @@ private:
 	void handle_vehicle_command_update();
 	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
 
+	/**
+	 * Apply a pending interval change requested via set_topic_interval() (logger thread only).
+	 */
+	void handle_interval_request();
+
 	void handle_file_write_error();
 
 	/**
@@ -354,6 +385,7 @@ private:
 
 	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
 	int						_num_subscriptions{0};
+	IntervalRequest					_interval_request; ///< pending runtime interval change
 	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
 	int						_num_mission_subs{0};
 	LoggerSubscription				_event_subscription; ///< Subscription for the event topic (handled separately)
