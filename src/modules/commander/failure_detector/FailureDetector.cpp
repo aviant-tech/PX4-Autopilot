@@ -548,6 +548,7 @@ void FailureDetector::updateMRAltLossStatus(const vehicle_local_position_s &posi
 
 void FailureDetector::resetMRFallingStatus()
 {
+	_mr_falling_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	_status.flags.mr_falling = false;
 }
 
