@@ -122,6 +122,8 @@ private:
 	void updateMRAltLossStatus(const vehicle_local_position_s &position,
 				   const vehicle_local_position_setpoint_s &position_sp);
 	void updateMRFallingStatus(const vehicle_local_position_s &position);
+	void resetMRAltLossStatus();
+	void resetMRFallingStatus();
 	void updateImbalancedPropStatus();
 
 	failure_detector_status_u _status{};
