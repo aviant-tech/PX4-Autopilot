@@ -193,6 +193,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 							  && position.z_valid;
 
 			const bool fall_check_active = _param_fd_mr_fall_vz.get() > FLT_EPSILON
+						       && !altloss_check_active
 						       && position.v_z_valid;
 
 			if (altloss_check_active) {
