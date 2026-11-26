@@ -217,7 +217,7 @@ PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
  * Multicopter altitude loss trigger threshold
  *
  * Maximum multirotor altitude loss before FailureDetector triggers.
- * Note: Uses lookahead with FD_MR_AL_LA_T
+ * Note: Uses lookahead with FD_MR_ALOS_LA_T
  * Set to 0 to disable.
  *
  * @min 0
@@ -246,7 +246,10 @@ PARAM_DEFINE_FLOAT(FD_MR_ALOS_LA_T, 1.0);
  *
  * This parameter determines the vertical rate needed to consider a failure
  * in the fall trigger multirotor failure detector
- * NOTE: The fall trigger has no altitude loss requirement
+ * NOTE: The fall trigger is a backup for the altitude loss trigger. It has no
+ * altitude loss requirement and only runs when the altitude loss trigger is
+ * inactive: no altitude setpoint, an invalid height estimate, or
+ * FD_MR_ALOS_LIM set to 0.
  * Set to 0 to disable
  *
  * @min 0

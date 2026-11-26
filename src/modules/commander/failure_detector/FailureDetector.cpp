@@ -184,23 +184,37 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	if (vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC) {
 
 		vehicle_local_position_s position;
-		vehicle_local_position_setpoint_s position_sp;
+		vehicle_local_position_setpoint_s position_sp{};
 
 		if (_vehicle_local_position_sub.update(&position)) {
-			updateMRFallingStatus(position);
+			const bool altloss_check_active = _param_fd_mr_alos_lim.get() > FLT_EPSILON
+							  && _vehicle_local_position_setpoint_sub.copy(&position_sp)
+							  && PX4_ISFINITE(position_sp.z)
+							  && position.z_valid;
 
-			if (_vehicle_local_position_setpoint_sub.copy(&position_sp)) {
+			const bool fall_check_active = _param_fd_mr_fall_vz.get() > FLT_EPSILON
+						       && !altloss_check_active
+						       && position.v_z_valid;
+
+			if (altloss_check_active) {
 				updateMRAltLossStatus(position, position_sp);
+
+			} else {
+				resetMRAltLossStatus();
+			}
+
+			if (fall_check_active) {
+				updateMRFallingStatus(position);
+
+			} else {
+				resetMRFallingStatus();
 			}
 		}
 
 	} else {
-		// it's important to reset the reference and lookahead positions,
-		// so they can initialize properly the next time we enter multirotor mode
-		_reference_z_position = NAN;
-		_lookahead_z_position = NAN;
-		_status.flags.mr_altloss = false;
-		_status.flags.mr_falling = false;
+		// reset the checks so they start clean the next time we enter multicopter state
+		resetMRAltLossStatus();
+		resetMRFallingStatus();
 	}
 
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
@@ -506,16 +520,16 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 	}
 }
 
+void FailureDetector::resetMRAltLossStatus()
+{
+	_status.flags.mr_altloss = false;
+	_reference_z_position = NAN;
+	_lookahead_z_position = NAN;
+}
+
 void FailureDetector::updateMRAltLossStatus(const vehicle_local_position_s &position,
 		const vehicle_local_position_setpoint_s &position_sp)
 {
-	if (!PX4_ISFINITE(position_sp.z) || !position.z_valid) {
-		_status.flags.mr_altloss = false;
-		_reference_z_position = NAN;
-		_lookahead_z_position = NAN;
-		return;
-	}
-
 	// For an explanation of the reference z position, see https://aviant.atlassian.net/wiki/x/EQBofQ
 	_reference_z_position = max(
 					position_sp.z,
@@ -528,26 +542,20 @@ void FailureDetector::updateMRAltLossStatus(const vehicle_local_position_s &posi
 	// which publishes failure_detector_status, so we can inspect it in the ulog
 	_lookahead_z_position = position.v_z_valid ? position.z + position.vz * _param_fd_mr_alos_la_t.get() : position.z;
 
-	const float lookahead_z_error = _reference_z_position - _lookahead_z_position;
-	const float lookahead_altitude_loss = -lookahead_z_error;  // Flip the sign to make logic easier
+	const float lookahead_altitude_loss = _lookahead_z_position - _reference_z_position;
 
-	_status.flags.mr_altloss = (
-					   _param_fd_mr_alos_lim.get() > FLT_EPSILON
-					   && lookahead_altitude_loss > _param_fd_mr_alos_lim.get()
-				   );
+	_status.flags.mr_altloss = lookahead_altitude_loss > _param_fd_mr_alos_lim.get();
+}
+
+void FailureDetector::resetMRFallingStatus()
+{
+	_mr_falling_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
+	_status.flags.mr_falling = false;
 }
 
 void FailureDetector::updateMRFallingStatus(const vehicle_local_position_s &position)
 {
-	if (!position.v_z_valid) {
-		_status.flags.mr_falling = false;
-		return;
-	}
-
-	const bool failure = (
-				     _param_fd_mr_fall_vz.get() > FLT_EPSILON
-				     && position.vz > _param_fd_mr_fall_vz.get()
-			     );
+	const bool failure = position.vz > _param_fd_mr_fall_vz.get();
 
 	const hrt_abstime time_now = hrt_absolute_time();
 	_mr_falling_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_mr_fall_ttri.get()));
